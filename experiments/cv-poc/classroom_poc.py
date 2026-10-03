@@ -50,6 +50,16 @@ last_sync_status = "Standby"
 sync_lock = threading.Lock()
 
 
+def default_json_serializer(obj):
+    if isinstance(obj, (np.integer, int)):
+        return int(obj)
+    if isinstance(obj, (np.floating, float)):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return str(obj)
+
+
 def telemetry_dispatcher_worker(api_url, device_key):
     global last_sync_status
     while not streamer_stop_event.is_set():
@@ -59,7 +69,7 @@ def telemetry_dispatcher_worker(api_url, device_key):
             continue
 
         try:
-            data = json.dumps(payload).encode("utf-8")
+            data = json.dumps(payload, default=default_json_serializer).encode("utf-8")
             req = urllib.request.Request(
                 api_url,
                 data=data,
@@ -75,9 +85,9 @@ def telemetry_dispatcher_worker(api_url, device_key):
         except urllib.error.HTTPError as e:
             with sync_lock:
                 last_sync_status = f"Err {e.code}"
-        except Exception:
+        except Exception as e:
             with sync_lock:
-                last_sync_status = "Cloud Offline"
+                last_sync_status = f"Offline ({type(e).__name__})"
         finally:
             telemetry_queue.task_done()
 
@@ -558,7 +568,7 @@ def main():
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--interval", type=int, default=2)
     parser.add_argument("--session-id", type=str, default="00000000-0000-0000-0000-000000000001")
-    parser.add_argument("--api-url", type=str, default="http://localhost:3000/api/telemetry/ingest")
+    parser.add_argument("--api-url", type=str, default="http://127.0.0.1:3000/api/telemetry/ingest")
     parser.add_argument("--device-key", type=str, default="dev-edge-secret-key-2026")
     parser.add_argument("--headless", action="store_true")
     args = parser.parse_args()
