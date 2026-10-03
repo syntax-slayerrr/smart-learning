@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     const spatialData = spatial_distribution || { tracks: anonymized_tracks || [] };
     let insertedId = "telemetry-edge-" + Date.now();
 
-    if (!isDemoSession) {
+    try {
       const { data: inserted, error: insertError } = await adminClient
         .from("classroom_telemetry")
         .insert({
@@ -145,6 +145,8 @@ export async function POST(request: NextRequest) {
       } else if (inserted) {
         insertedId = inserted.id;
       }
+    } catch (dbErr) {
+      console.warn("[Telemetry Ingest DB Exception]:", dbErr);
     }
 
     // Save frame to in-memory buffer for real-time live dashboard sync

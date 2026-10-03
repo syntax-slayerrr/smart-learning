@@ -7,6 +7,10 @@ import {
   Maximize2,
   Minimize2,
   RefreshCw,
+  RotateCw,
+  RotateCcw,
+  FlipHorizontal,
+  Laptop,
   Smartphone,
   Copy,
   Check,
@@ -69,11 +73,15 @@ interface DetectedSubject {
   label: string;
   posture: "sitting" | "standing";
   activity: "attentive" | "writing" | "using_phone" | "distracted" | "sleep" | "hand_raised";
+  action_text?: string;
   confidence: number;
   row: string;
   location: string;
   hand_raised?: boolean;
   sleep?: boolean;
+  head_tilt_deg?: number;
+  gaze_direction?: string;
+  attention_score?: number;
 }
 
 const DEFAULT_CHANNELS: CameraChannel[] = [
@@ -187,6 +195,29 @@ export function LiveCameraMonitor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoImgRef = useRef<HTMLImageElement>(null);
 
+  const [cameraRotation, setCameraRotation] = useState<string>("auto");
+  const [isFlipped, setIsFlipped] = useState<boolean>(false);
+  const [aspectRatioMode, setAspectRatioMode] = useState<"portrait" | "landscape">("portrait");
+
+  const rotateCamera = async (deg: string) => {
+    setCameraRotation(deg);
+    try {
+      await fetch(`http://localhost:5000/rotate?deg=${deg}`);
+    } catch (e) {
+      console.warn("[LiveCameraMonitor] Gagal mengirim rotasi ke server:", e);
+    }
+  };
+
+  const toggleFlip = async () => {
+    const nextVal = !isFlipped;
+    setIsFlipped(nextVal);
+    try {
+      await fetch(`http://localhost:5000/rotate?flip=${nextVal ? "1" : "0"}`);
+    } catch (e) {
+      console.warn("[LiveCameraMonitor] Gagal mengirim mirror ke server:", e);
+    }
+  };
+
   const activeChannel = DEFAULT_CHANNELS[activeCamIndex] || DEFAULT_CHANNELS[0];
 
   const checkStreamStatus = async () => {
@@ -199,7 +230,16 @@ export function LiveCameraMonitor() {
         mode: "cors",
       });
       clearTimeout(timeoutId);
-      setStreamOnline(res.ok);
+      if (res.ok) {
+        setStreamOnline(true);
+        try {
+          const data = await res.json();
+          if (data?.rotation) setCameraRotation(data.rotation);
+          if (typeof data?.flip_h === "boolean") setIsFlipped(data.flip_h);
+        } catch {}
+      } else {
+        setStreamOnline(false);
+      }
     } catch {
       setStreamOnline(false);
     }
@@ -256,11 +296,15 @@ export function LiveCameraMonitor() {
             label: t.label || `Subjek #${idx + 1}`,
             posture: t.posture || "sitting",
             activity: t.activity || (t.sleep ? "sleep" : t.hand_raised ? "hand_raised" : "attentive"),
-            confidence: typeof t.confidence === "number" ? t.confidence : 0.94,
+            action_text: t.action_text || (t.sleep ? "Tidur di Meja" : t.hand_raised ? "Angkat Tangan" : t.activity === "writing" ? "Fokus Laptop/Meja" : "Fokus Belajar"),
+            confidence: typeof t.confidence === "number" ? t.confidence : 0.95,
             row: t.row || "Area Kamera",
             location: t.posture === "standing" ? "Berdiri" : "Duduk di Meja",
             hand_raised: !!t.hand_raised,
             sleep: !!t.sleep,
+            head_tilt_deg: typeof t.head_tilt_deg === "number" ? t.head_tilt_deg : 0,
+            gaze_direction: t.gaze_direction || "Depan / Layar",
+            attention_score: typeof t.attention_score === "number" ? t.attention_score : 95,
           }));
           setSubjects(mapped);
         } else if (latest.detected_students_count > 0) {
@@ -623,8 +667,88 @@ export function LiveCameraMonitor() {
                 </span>
               </div>
 
-              {/* Video Player Box */}
-              <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-stone-950 border border-stone-800 shadow-inner flex items-center justify-center">
+              {/* Orientation & Aspect Ratio Controls for Phone Camera */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#F5F2EB] border border-[#E7E2DA] p-2 text-xs">
+                <div className="flex items-center gap-1.5 font-semibold text-stone-700">
+                  <RotateCw className="h-3.5 w-3.5 text-[#EA580C]" />
+                  <span>Orientasi Kamera HP:</span>
+                  <span className="font-mono text-[10.5px] rounded bg-white px-1.5 py-0.5 border border-[#E7E2DA] text-stone-800 font-bold">
+                    {cameraRotation}° {isFlipped ? "(Mirror)" : ""}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => rotateCamera("0")}
+                    title="Rotasi 0 Derajat (Normal)"
+                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
+                      cameraRotation === "0" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    }`}
+                  >
+                    0°
+                  </button>
+                  <button
+                    onClick={() => rotateCamera("90")}
+                    title="Rotasi 90 Derajat (Searah jarum jam)"
+                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
+                      cameraRotation === "90" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    }`}
+                  >
+                    ↻ 90°
+                  </button>
+                  <button
+                    onClick={() => rotateCamera("180")}
+                    title="Rotasi 180 Derajat (Terbalik)"
+                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
+                      cameraRotation === "180" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    }`}
+                  >
+                    180°
+                  </button>
+                  <button
+                    onClick={() => rotateCamera("270")}
+                    title="Rotasi 270 Derajat (Berlawanan jarum jam)"
+                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
+                      cameraRotation === "270" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    }`}
+                  >
+                    ↺ 270°
+                  </button>
+                  <button
+                    onClick={toggleFlip}
+                    title="Cermin Horizontal (Mirror)"
+                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all flex items-center gap-1 ${
+                      isFlipped ? "bg-[#EA580C] text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    }`}
+                  >
+                    <FlipHorizontal className="h-3 w-3" />
+                    <span>Mirror</span>
+                  </button>
+                  <button
+                    onClick={() => setAspectRatioMode((m) => (m === "portrait" ? "landscape" : "portrait"))}
+                    className="ml-1 rounded px-2 py-0.5 text-[10.5px] font-medium bg-white text-stone-800 hover:bg-stone-100 border border-[#E7E2DA] flex items-center gap-1"
+                  >
+                    {aspectRatioMode === "portrait" ? (
+                      <>
+                        <Smartphone className="h-3 w-3 text-[#EA580C]" />
+                        <span>Mode Potret HP</span>
+                      </>
+                    ) : (
+                      <>
+                        <Laptop className="h-3 w-3 text-stone-600" />
+                        <span>Mode Lanskap</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Video Player Box with dynamic portrait/landscape ratio */}
+              <div
+                className={`relative w-full rounded-xl overflow-hidden bg-stone-950 border border-stone-800 shadow-inner flex items-center justify-center transition-all ${
+                  aspectRatioMode === "portrait" ? "aspect-[3/4] sm:aspect-[9/16] max-h-[580px]" : "aspect-video"
+                }`}
+              >
                 {streamOnline ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -725,7 +849,7 @@ export function LiveCameraMonitor() {
                     Deteksi Subjek Real-Time
                   </h4>
                   <p className="text-[11px] text-stone-500">
-                    Data riil subjek yang tertangkap kamera
+                    Data multimodal riil subjek yang tertangkap kamera
                   </p>
                 </div>
 
@@ -781,7 +905,7 @@ export function LiveCameraMonitor() {
                   </div>
 
                   {subjects.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
                       {subjects.map((st) => {
                         const badge = getStatusBadge(st.activity);
                         const isAlert = st.activity === "sleep" || st.activity === "using_phone";
@@ -791,7 +915,7 @@ export function LiveCameraMonitor() {
                           <div
                             key={st.id}
                             onClick={() => setSelectedSubject(st)}
-                            className={`rounded-lg border p-2.5 text-left transition-all cursor-pointer ${
+                            className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
                               isAlert
                                 ? "border-red-300 bg-red-50/70 shadow-xs"
                                 : isSelected
@@ -800,21 +924,40 @@ export function LiveCameraMonitor() {
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[10.5px] font-mono font-bold text-stone-600">
-                                {st.id}
+                              <span className="text-[11px] font-mono font-bold text-stone-700">
+                                #{st.anonymous_id || st.id}
                               </span>
-                              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-mono ${badge.bg}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[9.5px] font-mono ${badge.bg}`}>
                                 <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
                                 {badge.label}
                               </span>
                             </div>
-                            <p className="text-xs font-semibold text-stone-900 truncate">
-                              {st.label}
+
+                            <p className="text-xs font-bold text-stone-900 truncate">
+                              {st.action_text || st.label}
                             </p>
-                            <div className="flex items-center justify-between text-[9.5px] text-stone-400 font-mono mt-1">
-                              <span>Postur: {st.posture === "standing" ? "Berdiri" : "Duduk"}</span>
-                              <span>{Math.round(st.confidence * 100)}% Conf</span>
+
+                            {/* Multi-parameter detail pills */}
+                            <div className="mt-2 pt-2 border-t border-[#E7E2DA]/70 grid grid-cols-2 gap-1 text-[9.5px] font-mono text-stone-600">
+                              <span className="truncate">
+                                <strong>Fokus:</strong> {st.attention_score || 95}%
+                              </span>
+                              <span className="truncate text-right">
+                                <strong>Postur:</strong> {st.posture === "standing" ? "Berdiri" : "Duduk"}
+                              </span>
+                              <span className="truncate">
+                                <strong>Tilt:</strong> {st.head_tilt_deg !== undefined ? `${Math.round(st.head_tilt_deg)}°` : "0°"}
+                              </span>
+                              <span className="truncate text-right">
+                                <strong>Arah:</strong> {st.gaze_direction || "Depan"}
+                              </span>
                             </div>
+
+                            {st.hand_raised && (
+                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 flex items-center gap-1">
+                                <span>✋ Tangan Terangkat (Bertanya)</span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
