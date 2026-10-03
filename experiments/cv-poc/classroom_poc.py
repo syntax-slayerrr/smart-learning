@@ -402,6 +402,22 @@ def run_opencv_engine(args):
     face_profile = cv2.CascadeClassifier(os.path.join(cascade_dir, "haarcascade_profileface.xml"))
     upper_body = cv2.CascadeClassifier(os.path.join(cascade_dir, "haarcascade_upperbody.xml"))
 
+    # Load YuNet Deep Learning Model if available
+    yunet_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_detection_yunet_2023mar.onnx")
+    yunet_detector = None
+    if os.path.exists(yunet_path) and hasattr(cv2, "FaceDetectorYN"):
+        try:
+            yunet_detector = cv2.FaceDetectorYN.create(
+                model=yunet_path,
+                config="",
+                input_size=(320, 240),
+                score_threshold=0.30,
+                nms_threshold=0.30
+            )
+            print("[+] Deep Learning Vision: YuNet ONNX Neural Network Aktif!")
+        except Exception as e:
+            print(f"[!] Gagal inisialisasi YuNet ({e}), fallback ke Cascade.")
+
     hog = cv2.HOGDescriptor()
     hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
@@ -422,14 +438,15 @@ def run_opencv_engine(args):
     prev_time = time.time()
     last_json_time = time.time()
     frame_count = 0
+    active_rotation = args.rotate
 
-    print(f"[+] Engine Aktif! (Source: {args.source})")
+    print(f"[+] Engine Aktif! (Source: {args.source}, Rotation: {active_rotation})")
     print(f"[+] Feed Stream: http://localhost:{args.port}/video_feed")
 
     try:
         while True:
-            grabbed, frame = camera.read()
-            if not grabbed or frame is None:
+            grabbed, raw_frame = camera.read()
+            if not grabbed or raw_frame is None:
                 rec_frame = np.full((720, 1280, 3), (25, 27, 32), dtype=np.uint8)
                 cv2.putText(rec_frame, "MENUNGGU STREAM KAMERA HP...", (360, 350),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (220, 220, 220), 2, cv2.LINE_AA)
@@ -446,43 +463,71 @@ def run_opencv_engine(args):
             fps = 1.0 / max(1e-5, (curr_time - prev_time))
             prev_time = curr_time
 
+            # Handle camera orientation / rotation
+            if active_rotation == "90":
+                frame = cv2.rotate(raw_frame, cv2.ROTATE_90_CLOCKWISE)
+            elif active_rotation == "180":
+                frame = cv2.rotate(raw_frame, cv2.ROTATE_180)
+            elif active_rotation == "270":
+                frame = cv2.rotate(raw_frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            elif active_rotation == "auto":
+                # Most phone IP webcams stream landscape (w > h) while held in portrait
+                if raw_frame.shape[1] > raw_frame.shape[0]:
+                    frame = cv2.rotate(raw_frame, cv2.ROTATE_90_CLOCKWISE)
+                else:
+                    frame = raw_frame
+            else:
+                frame = raw_frame
+
             h, w = frame.shape[:2]
-
-            scale_w = 640
-            scale_h = int(640 * h / w)
-            small = cv2.resize(frame, (scale_w, scale_h))
-            scale_x = w / scale_w
-            scale_y = h / scale_h
-
-            gray_small = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
             raw_detections = []
 
-            # 1. Frontal & Profile Face
-            faces1 = face_frontal.detectMultiScale(gray_small, scaleFactor=1.12, minNeighbors=3, minSize=(28, 28))
-            for (fx, fy, fw, fh) in faces1:
-                raw_detections.append((int(fx * scale_x), int(fy * scale_y), int(fw * scale_x), int(fh * scale_y), 0.96, "face"))
+            # 1. Primary: YuNet Deep Learning Neural Network
+            if yunet_detector is not None:
+                try:
+                    yunet_detector.setInputSize((w, h))
+                    _, faces = yunet_detector.detect(frame)
+                    if faces is not None and len(faces) > 0:
+                        for f in faces:
+                            fx, fy, fw, fh = int(f[0]), int(f[1]), int(f[2]), int(f[3])
+                            conf = float(f[-1])
+                            if conf >= 0.28:
+                                # Estimate person body box around the face
+                                px = max(0, fx - int(fw * 0.4))
+                                py = max(0, fy - int(fh * 0.2))
+                                pw = min(w - px, int(fw * 1.8))
+                                ph = min(h - py, int(fh * 3.2))
+                                raw_detections.append((px, py, pw, ph, conf, "yunet_face"))
+                except Exception as e:
+                    pass
 
-            if len(faces1) == 0:
-                faces2 = face_profile.detectMultiScale(gray_small, scaleFactor=1.12, minNeighbors=3, minSize=(28, 28))
-                for (fx, fy, fw, fh) in faces2:
-                    raw_detections.append((int(fx * scale_x), int(fy * scale_y), int(fw * scale_x), int(fh * scale_y), 0.91, "profile"))
-
-            # 2. Upper Body
-            uppers = upper_body.detectMultiScale(gray_small, scaleFactor=1.15, minNeighbors=2, minSize=(45, 45))
-            for (ux, uy, uw, uh) in uppers:
-                raw_detections.append((int(ux * scale_x), int(uy * scale_y), int(uw * scale_x), int(uh * scale_y), 0.89, "upperbody"))
-
-            # 3. HOG jika belum ada deteksi
+            # 2. Secondary Fallback: Multi-scale Cascades if no faces found
             if len(raw_detections) == 0:
-                rects, weights = hog.detectMultiScale(small, winStride=(8, 8), padding=(4, 4), scale=1.05)
-                for (rx, ry, rw, rh), wt in zip(rects, weights):
-                    if wt > 0.2:
-                        raw_detections.append((int(rx * scale_x), int(ry * scale_y), int(rw * scale_x), int(rh * scale_y), float(wt), "hog"))
+                scale_w = 480
+                scale_h = int(480 * h / w)
+                small = cv2.resize(frame, (scale_w, scale_h))
+                scale_x = w / scale_w
+                scale_y = h / scale_h
+                gray_small = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+
+                faces1 = face_frontal.detectMultiScale(gray_small, scaleFactor=1.1, minNeighbors=3, minSize=(25, 25))
+                for (fx, fy, fw, fh) in faces1:
+                    raw_detections.append((int(fx * scale_x), int(fy * scale_y), int(fw * scale_x), int(fh * scale_y), 0.95, "face"))
+
+                if len(faces1) == 0:
+                    faces2 = face_profile.detectMultiScale(gray_small, scaleFactor=1.1, minNeighbors=3, minSize=(25, 25))
+                    for (fx, fy, fw, fh) in faces2:
+                        raw_detections.append((int(fx * scale_x), int(fy * scale_y), int(fw * scale_x), int(fh * scale_y), 0.88, "profile"))
+
+                if len(raw_detections) == 0:
+                    uppers = upper_body.detectMultiScale(gray_small, scaleFactor=1.12, minNeighbors=2, minSize=(40, 40))
+                    for (ux, uy, uw, uh) in uppers:
+                        raw_detections.append((int(ux * scale_x), int(uy * scale_y), int(uw * scale_x), int(uh * scale_y), 0.85, "upperbody"))
 
             if len(raw_detections) > 0:
                 boxes_np = np.array([[d[0], d[1], d[2], d[3]] for d in raw_detections])
                 nms_boxes = non_max_suppression_boxes(boxes_np, overlapThresh=0.35)
-                filtered = [(b[0], b[1], b[2], b[3], 0.94, "person") for b in nms_boxes]
+                filtered = [(b[0], b[1], b[2], b[3], 0.95, "person") for b in nms_boxes]
             else:
                 filtered = []
 
@@ -570,6 +615,7 @@ def main():
     parser.add_argument("--session-id", type=str, default="00000000-0000-0000-0000-000000000001")
     parser.add_argument("--api-url", type=str, default="http://127.0.0.1:3000/api/telemetry/ingest")
     parser.add_argument("--device-key", type=str, default="dev-edge-secret-key-2026")
+    parser.add_argument("--rotate", type=str, default="auto", choices=["auto", "0", "90", "180", "270"])
     parser.add_argument("--headless", action="store_true")
     args = parser.parse_args()
 
