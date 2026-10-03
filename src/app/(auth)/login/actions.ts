@@ -14,8 +14,8 @@ export async function loginAction(
   formData: FormData
 ): Promise<LoginState> {
   const rawData = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    username: (formData.get("username") as string)?.trim() || "",
+    password: (formData.get("password") as string) || "",
   };
 
   // Validate input
@@ -26,16 +26,26 @@ export async function loginAction(
     };
   }
 
+  const { username, password } = validated.data;
+
+  // Map username to email:
+  // If input contains '@', use as-is.
+  // Otherwise, default to username@slayer.test
+  let email = username.toLowerCase();
+  if (!email.includes("@")) {
+    email = `${email}@slayer.test`;
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
-    email: validated.data.email,
-    password: validated.data.password,
+    email,
+    password,
   });
 
   if (error) {
     return {
-      error: "Email atau password salah. Silakan coba lagi.",
+      error: "Username atau kata sandi tidak sesuai. Silakan coba lagi.",
     };
   }
 

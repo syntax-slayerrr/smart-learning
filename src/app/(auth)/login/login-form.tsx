@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { loginAction, type LoginState } from "./actions";
-import { Loader2, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Loader2, User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(
@@ -10,7 +10,7 @@ export function LoginForm() {
     {}
   );
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   return (
@@ -23,26 +23,44 @@ export function LoginForm() {
           </div>
         )}
 
-        {/* Email Field */}
+        {/* Username Field */}
         <div className="space-y-1.5">
-          <label
-            htmlFor="email"
-            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            Email Akun
-          </label>
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="username"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Username
+            </label>
+            <div className="flex items-center gap-1">
+              {["admin", "guru", "siswa", "ortu"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => {
+                    setUsername(r);
+                    setPassword("password123");
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted/80 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer border border-border/60"
+                  title={`Gunakan username ${r} (password123)`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+            <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
             <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              name="username"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@sekolah.sch.id"
-              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin, guru, siswa, atau ortu"
+              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
             />
           </div>
         </div>
