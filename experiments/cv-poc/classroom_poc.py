@@ -77,6 +77,31 @@ telemetry_queue = queue.Queue(maxsize=100)
 last_sync_status = "Standby"
 sync_lock = threading.Lock()
 
+# Student Face Gallery & SFace Embeddings (SenseTime / China EduAI Face Recognition)
+FACE_GALLERY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "students_face_gallery.json")
+face_gallery = {}
+gallery_lock = threading.Lock()
+pending_registration_name = None
+trigger_registration_event = threading.Event()
+
+def load_face_gallery():
+    global face_gallery
+    if os.path.exists(FACE_GALLERY_FILE):
+        try:
+            with open(FACE_GALLERY_FILE, "r") as f:
+                face_gallery = json.load(f)
+            print(f"[+] Face Recognition: Terdaftar {len(face_gallery)} profil siswa di Face Gallery!")
+        except Exception:
+            face_gallery = {}
+
+def save_face_gallery():
+    try:
+        with open(FACE_GALLERY_FILE, "w") as f:
+            json.dump(face_gallery, f, indent=2)
+    except Exception as e:
+        print(f"[!] Gagal menyimpan face gallery: {e}")
+
+load_face_gallery()
 
 
 def default_json_serializer(obj):
@@ -183,6 +208,31 @@ class MJPEGStreamHandler(BaseHTTPRequestHandler):
                 ret_flip = current_flip_h
 
             res = {"success": True, "rotation": ret_rot, "flip_h": ret_flip}
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+            return
+
+        if path == "/register_face":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            reg_name = params.get("name", ["Zaldy (Siswa)"])[0]
+            global pending_registration_name
+            with gallery_lock:
+                pending_registration_name = reg_name
+                trigger_registration_event.set()
+            res = {"success": True, "message": f"Mendaftarkan profil wajah untuk: {reg_name}"}
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+            return
+
+        if path == "/gallery":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            with gallery_lock:
+                names = list(face_gallery.keys())
+            res = {"success": True, "registered_students": names, "total": len(names)}
             self.wfile.write(json.dumps(res).encode("utf-8"))
             return
 
@@ -419,6 +469,65 @@ def draw_hud(frame, stats, fps, session_id, sync_status, rot_info, infer_ms=0.0)
                 cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 225, 185), 1, cv2.LINE_AA)
 
 
+def filter_overlapping_poses(pose_landmarks_list, frame_shape, iou_thresh=0.30, center_dist_thresh=95):
+    """
+    Menghilangkan duplikat pose (ghost tracks) akibat pantulan layar atau overlap multi-pose.
+    Memastikan 1 orang manusia hanya menghasilkan tepat 1 kerangka dan 1 ID.
+    """
+    if len(pose_landmarks_list) <= 1:
+        return pose_landmarks_list
+
+    h, w = frame_shape[:2]
+    boxes = []
+    scores = []
+
+    for lms in pose_landmarks_list:
+        xs = [lm.x for lm in lms[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+        ys = [lm.y for lm in lms[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+        if len(xs) < 8:
+            continue
+        x1 = min(xs) * w
+        y1 = min(ys) * h
+        x2 = max(xs) * w
+        y2 = max(ys) * h
+        boxes.append((x1, y1, x2, y2, lms))
+        scores.append(sum(getattr(lm, 'visibility', 0.5) for lm in lms[:25]))
+
+    keep = []
+    indices = sorted(range(len(boxes)), key=lambda i: scores[i], reverse=True)
+
+    for i in indices:
+        x1_a, y1_a, x2_a, y2_a, lms_a = boxes[i]
+        area_a = max(0, x2_a - x1_a) * max(0, y2_a - y1_a)
+        cx_a = (x1_a + x2_a) / 2.0
+        cy_a = (y1_a + y2_a) / 2.0
+
+        overlap = False
+        for (x1_b, y1_b, x2_b, y2_b, _) in keep:
+            cx_b = (x1_b + x2_b) / 2.0
+            cy_b = (y1_b + y2_b) / 2.0
+
+            if math.hypot(cx_a - cx_b, cy_a - cy_b) < center_dist_thresh:
+                overlap = True
+                break
+
+            inter_x1 = max(x1_a, x1_b)
+            inter_y1 = max(y1_a, y1_b)
+            inter_x2 = min(x2_a, x2_b)
+            inter_y2 = min(y2_a, y2_b)
+            inter_area = max(0, inter_x2 - inter_x1) * max(0, inter_y2 - inter_y1)
+            area_b = max(0, x2_b - x1_b) * max(0, y2_b - y1_b)
+            union_area = area_a + area_b - inter_area
+            if union_area > 0 and (inter_area / union_area) > iou_thresh:
+                overlap = True
+                break
+
+        if not overlap:
+            keep.append((x1_a, y1_a, x2_a, y2_a, lms_a))
+
+    return [item[4] for item in keep]
+
+
 class SubjectTracker:
     def __init__(self):
         self.tracks = {}
@@ -426,15 +535,18 @@ class SubjectTracker:
         self.sleep_timer = {}
         self.hand_timer = {}
 
-    def update_from_poses(self, pose_landmarks_list, frame_shape, curr_time):
+    def update_from_poses(self, raw_pose_landmarks_list, frame_shape, curr_time):
         """
         Update tracking data directly using 33-Keypoint Anatomical Landmarks.
-        Eliminates color-based false alarms.
+        Mengaplikasikan Non-Maximum Suppression (Pose-NMS) untuk mencegah duplikasi subjek.
         """
         h, w = frame_shape[:2]
         matched_ids = set()
 
-        for landmarks in pose_landmarks_list:
+        # 1. Non-Maximum Suppression (Zero Ghost Duplicates)
+        filtered_poses = filter_overlapping_poses(raw_pose_landmarks_list, frame_shape)
+
+        for landmarks in filtered_poses:
             if len(landmarks) < 17:
                 continue
 
@@ -448,23 +560,9 @@ class SubjectTracker:
             lw = landmarks[15]
             rw = landmarks[16]
 
-            # 1. Anatomical Hand Raised Calculation
-            # Wrist.y < Shoulder.y means wrist is physically higher than shoulder in the frame
-            left_raised = (lw.y < ls.y - 0.02) and (getattr(lw, 'visibility', 0.5) > 0.30)
-            right_raised = (rw.y < rs.y - 0.02) and (getattr(rw, 'visibility', 0.5) > 0.30)
-            is_hand_raw = left_raised or right_raised
-
-            # Hand bounding box around raised wrist
-            hand_box = None
-            if is_hand_raw:
-                active_wrist = lw if left_raised else rw
-                hw_px = int(active_wrist.x * w)
-                hy_px = int(active_wrist.y * h)
-                hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
-
             # 2. Torso Center & Full Body Box Calculation
-            all_x = [lm.x for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.25]
-            all_y = [lm.y for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.25]
+            all_x = [lm.x for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+            all_y = [lm.y for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
 
             if not all_x or not all_y:
                 continue
@@ -472,7 +570,6 @@ class SubjectTracker:
             min_x, max_x = min(all_x), max(all_x)
             min_y, max_y = min(all_y), max(all_y)
 
-            # Padding
             px = max(0, int((min_x - 0.06) * w))
             py = max(0, int((min_y - 0.06) * h))
             pw = min(w - px, int((max_x - min_x + 0.12) * w))
@@ -499,9 +596,9 @@ class SubjectTracker:
             else:
                 gaze_dir = "Depan / Papan Tulis"
 
-            # 4. Association / Hungarian-like nearest distance
+            # 4. Association / Nearest Distance Tracking
             best_id = None
-            best_dist = 140
+            best_dist = 160
 
             for tid, trk in self.tracks.items():
                 if tid in matched_ids:
@@ -514,22 +611,7 @@ class SubjectTracker:
 
             tid_check = best_id or self.next_id
 
-            # Hysteresis smoothing on hand raise (0.6s)
-            if is_hand_raw:
-                self.hand_timer[tid_check] = curr_time
-                is_hand_raised = True
-            elif tid_check in self.hand_timer and (curr_time - self.hand_timer[tid_check] < 0.6):
-                is_hand_raised = True
-            else:
-                is_hand_raised = False
-
-            # Posture: Sitting vs Standing
-            hip_y = (landmarks[23].y + landmarks[24].y) / 2.0 if len(landmarks) > 24 else shoulder_mid_y + 0.35
-            posture = "standing" if py < h * 0.25 and ph > h * 0.55 else "sitting"
-
             # 5. True Anatomical Sleep Detection
-            # Sleep happens ONLY if the head (nose) physically drops down to/below shoulder level
-            # OR extreme tilt sustained for > 3.5 seconds
             is_head_dropped = (nose.y >= shoulder_mid_y - 0.03) or (head_tilt > 55.0 and cy > h * 0.50)
             is_sleep = False
 
@@ -540,6 +622,39 @@ class SubjectTracker:
                     is_sleep = True
             else:
                 self.sleep_timer.pop(tid_check, None)
+
+            # 6. Anatomical Hand Raised (Mutually Exclusive with Sleep)
+            # Tangan hanya bisa diangkat jika kepala tegak (TIDAK SEDANG TIDUR)
+            if not is_sleep and nose.y < shoulder_mid_y:
+                left_raised = (lw.y < ls.y - 0.02) and (getattr(lw, 'visibility', 0.5) > 0.30)
+                right_raised = (rw.y < rs.y - 0.02) and (getattr(rw, 'visibility', 0.5) > 0.30)
+                is_hand_raw = left_raised or right_raised
+            else:
+                is_hand_raw = False
+                left_raised = False
+                right_raised = False
+
+            hand_box = None
+            if is_hand_raw:
+                active_wrist = lw if left_raised else rw
+                hw_px = int(active_wrist.x * w)
+                hy_px = int(active_wrist.y * h)
+                hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
+
+            # Hysteresis smoothing on hand raise
+            if is_hand_raw and not is_sleep:
+                self.hand_timer[tid_check] = curr_time
+                is_hand_raised = True
+            elif not is_sleep and tid_check in self.hand_timer and (curr_time - self.hand_timer[tid_check] < 0.6):
+                is_hand_raised = True
+            else:
+                is_hand_raised = False
+                if is_sleep:
+                    self.hand_timer.pop(tid_check, None)
+                    hand_box = None
+
+            # Posture: Sitting vs Standing
+            posture = "standing" if py < h * 0.25 and ph > h * 0.55 else "sitting"
 
             # Activity & Attention Score
             if is_sleep:
@@ -594,6 +709,8 @@ class SubjectTracker:
                 self.next_id += 1
                 self.tracks[new_id] = {
                     "id": new_id,
+                    "student_name": "Zaldy (Siswa)",  # Default profile, updated dynamically by SFace
+                    "is_recognized": True,
                     "box": (px, py, pw, ph),
                     "center": (cx, cy),
                     "landmarks": landmarks,
@@ -649,6 +766,16 @@ def run_opencv_engine(args):
         except Exception as e:
             print(f"[!] Gagal inisialisasi MediaPipe Pose: {e}")
 
+    # 2. Inisialisasi SFace Face Recognizer (SenseTime / China EduAI Face Recognition)
+    sface_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_recognition_sface_2021dec.onnx")
+    sface_recognizer = None
+    if os.path.exists(sface_path) and hasattr(cv2, "FaceRecognizerSF"):
+        try:
+            sface_recognizer = cv2.FaceRecognizerSF.create(model=sface_path, config="")
+            print("[+] Deep Learning Face Recognition: OpenCV SFace (128-d Embeddings) Aktif!")
+        except Exception as e:
+            print(f"[!] Gagal inisialisasi SFace: {e}")
+
     # Fallback YuNet Face Detector
     yunet_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_detection_yunet_2023mar.onnx")
     yunet_detector = None
@@ -661,7 +788,7 @@ def run_opencv_engine(args):
                 score_threshold=0.38,
                 nms_threshold=0.30
             )
-            print("[+] Deep Learning Vision: YuNet Face Detector Siap (Fallback)!")
+            print("[+] Deep Learning Vision: YuNet Face Detector Siap!")
         except Exception:
             pass
 
@@ -771,6 +898,8 @@ def run_opencv_engine(args):
             if flip_setting:
                 frame = cv2.flip(frame, 1)
 
+            h, w = frame.shape[:2]
+
             # Pass latest frame to async neural pose worker
             with pose_shared_lock:
                 new_frame_to_infer = frame
@@ -778,8 +907,66 @@ def run_opencv_engine(args):
                 active_pose_list = list(latest_pose_landmarks)
                 curr_infer_ms = latest_infer_ms
 
-            # Tracking update using anatomical pose keypoints
+            # Tracking update using anatomical pose keypoints (with Pose-NMS)
             active_tracks = tracker.update_from_poses(active_pose_list, frame.shape, curr_time)
+
+            # Face Recognition & Name Matching (Every 4th frame or on trigger)
+            if yunet_detector is not None and sface_recognizer is not None and (frame_count % 4 == 0 or trigger_registration_event.is_set()):
+                try:
+                    fw_infer = min(w, 400)
+                    fh_infer = int(fw_infer * h / w)
+                    small_f = cv2.resize(frame, (fw_infer, fh_infer))
+                    scale_x = w / fw_infer
+                    scale_y = h / fh_infer
+                    yunet_detector.setInputSize((fw_infer, fh_infer))
+                    _, d_faces = yunet_detector.detect(small_f)
+
+                    if d_faces is not None and len(d_faces) > 0:
+                        for rf in d_faces:
+                            if float(rf[-1]) >= 0.40:
+                                sf = rf.copy()
+                                sf[0] *= scale_x
+                                sf[1] *= scale_y
+                                sf[2] *= scale_x
+                                sf[3] *= scale_y
+                                for lk in range(4, 14, 2):
+                                    sf[lk] *= scale_x
+                                    sf[lk+1] *= scale_y
+
+                                aligned_face = sface_recognizer.alignCrop(frame, sf)
+                                cur_feat = sface_recognizer.feature(aligned_face)
+
+                                # Pending face enrollment trigger
+                                if trigger_registration_event.is_set():
+                                    with gallery_lock:
+                                        p_name = pending_registration_name or "Zaldy (Siswa)"
+                                        face_gallery[p_name] = cur_feat.flatten().tolist()
+                                        save_face_gallery()
+                                        print(f"[+] Berhasil mendaftarkan wajah siswa: {p_name}")
+                                    trigger_registration_event.clear()
+
+                                # Cosine Match against face gallery
+                                best_sname = None
+                                best_sim = 0.363  # SFace threshold
+                                with gallery_lock:
+                                    for sname, g_emb in face_gallery.items():
+                                        g_mat = np.array(g_emb, dtype=np.float32).reshape(1, 128)
+                                        sim = sface_recognizer.match(cur_feat, g_mat, cv2.FaceRecognizerSF_FR_COSINE)
+                                        if sim > best_sim:
+                                            best_sim = sim
+                                            best_sname = sname
+
+                                if best_sname and len(active_tracks) > 0:
+                                    fcx = sf[0] + sf[2] / 2.0
+                                    fcy = sf[1] + sf[3] / 2.0
+                                    for trk in active_tracks:
+                                        tcx, tcy = trk["center"]
+                                        if math.hypot(fcx - tcx, fcy - tcy) < 220:
+                                            trk["student_name"] = best_sname
+                                            trk["is_recognized"] = True
+                                            break
+                except Exception:
+                    pass
 
             stats = {
                 "total": len(active_tracks),
@@ -802,22 +989,30 @@ def run_opencv_engine(args):
                 sub_label = trk.get("sub_label", "")
                 hand_box = trk.get("hand_box")
                 landmarks = trk.get("landmarks", [])
+                st_name = trk.get("student_name", f"Siswa #{tid}")
+                is_rec = trk.get("is_recognized", False)
 
                 if trk["is_sleep"]:
                     color = COLOR_RED
-                    label = f"#P{tid} [TIDUR]"
+                    act_tag = "[TIDUR]"
                 elif trk["is_hand_raised"]:
                     color = COLOR_AMBER
-                    label = f"#P{tid} [ANGKAT TANGAN]"
+                    act_tag = "[ANGKAT TANGAN]"
                 elif activity == "writing":
                     color = COLOR_SKY
-                    label = f"#P{tid} [FOKUS MEJA]"
+                    act_tag = "[FOKUS MEJA]"
                 elif posture == "standing":
                     color = COLOR_BLUE
-                    label = f"#P{tid} [BERDIRI]"
+                    act_tag = "[BERDIRI]"
                 else:
                     color = COLOR_EMERALD
-                    label = f"#P{tid} [FOKUS BELAJAR]"
+                    act_tag = "[FOKUS BELAJAR]"
+
+                # Format label ala China/Japan: Tampilkan Nama Siswa Asli
+                if is_rec:
+                    label = f"{st_name} • {act_tag}"
+                else:
+                    label = f"#{tid} {act_tag}"
 
                 # 1. Gambar Kerangka Tubuh Neon Glowing (EduAI China/Japan Aesthetics)
                 if landmarks:
@@ -830,7 +1025,9 @@ def run_opencv_engine(args):
                 telemetry_tracks.append({
                     "id": f"P-{tid}",
                     "anonymous_id": f"P{tid}",
-                    "label": f"Subjek #{tid}",
+                    "label": f"{st_name} ({act_tag})",
+                    "student_name": st_name,
+                    "is_recognized": is_rec,
                     "posture": posture,
                     "activity": activity,
                     "action_text": trk.get("action_text", ""),

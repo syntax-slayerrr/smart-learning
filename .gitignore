@@ -44,4 +44,7 @@ yarn-error.log*
 __pycache__/
 *.pyc
 experiments/cv-poc/test_skeleton_output.jpg
+*.onnx
+*.task
+
 
