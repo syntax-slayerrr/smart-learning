@@ -104,10 +104,10 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
     name: "Ruang 10-IPA-1",
     subject: "Fisika Terapan",
     teacher: "Budi Santoso, M.Pd",
-    streamUrl: "http://localhost:5000/video_feed",
-    statusUrl: "http://localhost:5000/status",
-    ipAddress: "192.168.1.101:8080 (Wi-Fi HP #1)",
-    port: 5000,
+    streamUrl: "https://incorporated-steam-pat-tested.trycloudflare.com/video_feed",
+    statusUrl: "https://incorporated-steam-pat-tested.trycloudflare.com/api/telemetry",
+    ipAddress: "Google Colab T4 GPU (Cloudflare Tunnel)",
+    port: 8000,
     studentsCount: 18,
     sittingCount: 18,
     standingCount: 0,
@@ -212,8 +212,9 @@ export function LiveCameraMonitor() {
   const checkStreamStatus = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      const res = await fetch("http://localhost:5000/status", {
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const targetUrl = activeChannel.statusUrl || "https://incorporated-steam-pat-tested.trycloudflare.com/api/telemetry";
+      const res = await fetch(targetUrl, {
         signal: controller.signal,
         mode: "cors",
       });
