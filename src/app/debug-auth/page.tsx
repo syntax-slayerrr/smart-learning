@@ -60,7 +60,7 @@ export default function DebugAuthPage() {
 
   return (
     <div className="p-8 font-mono bg-slate-900 text-green-400 min-h-screen">
-      <h1 className="text-2xl mb-4 border-b border-green-800 pb-2">🛠 AbsenSMK Debug Auth</h1>
+      <h1 className="text-2xl mb-4 border-b border-zinc-800 pb-2">🛠 SYNTAX SLAYER Debug Auth</h1>
       
       {loading ? (
         <p className="animate-pulse">Analyzing connection...</p>

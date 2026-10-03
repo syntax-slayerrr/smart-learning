@@ -123,8 +123,10 @@ export function TeachersClient({ initialData, classes }: TeachersClientProps) {
 
     await exportProfessionalExcel({
       title: "JADWAL DAN KEHADIRAN GURU",
+      subtitle: "SMK TI SYNTAX SLAYER — Monitoring Presensi Pengajar & Jam Pelajaran",
       period: `Tanggal: ${format(new Date(selectedDate), "dd MMMM yyyy")}`,
       filename: `Kehadiran_Guru_${selectedDate}.xlsx`,
+      withPrintFooter: true,
       columns: [
         { header: "Tanggal", key: "tanggal", width: 15 },
         { header: "Nama Guru", key: "guru", width: 35 },

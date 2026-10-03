@@ -10,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[AbsenSMK] Unhandled error:", error);
+    console.error("[SYNTAX SLAYER] Unhandled error:", error);
   }, [error]);
 
   return (

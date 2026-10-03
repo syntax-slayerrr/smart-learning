@@ -191,9 +191,11 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
     }
 
     await exportProfessionalExcel({
-      title: "LAPORAN KEHADIRAN SISWA",
+      title: "LAPORAN KEHADIRAN HARIAN SISWA",
+      subtitle: "SMK TI SYNTAX SLAYER — Monitoring Presensi Jam Pelajaran (JP)",
       period: `Tanggal: ${format(new Date(selectedDate), "dd MMMM yyyy", { locale: id })}`,
       filename: `Kehadiran_Siswa_${selectedDate}.xlsx`,
+      withPrintFooter: true,
       columns: columns,
       data: exportReadyData
     });

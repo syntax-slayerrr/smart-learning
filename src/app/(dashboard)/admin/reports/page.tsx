@@ -102,7 +102,7 @@ export default async function AdminReportsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Laporan & Analitik</h1>
         <p className="text-muted-foreground">
-          Ringkasan performa kehadiran siswa di AbsenSMK berdasarkan data riil (real-time).
+          Ringkasan performa kehadiran siswa di SYNTAX SLAYER berdasarkan data riil (real-time).
         </p>
       </div>
 

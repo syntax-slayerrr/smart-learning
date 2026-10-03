@@ -18,9 +18,9 @@ export async function createStudent(formData: FormData) {
   const fullName = formData.get("full_name") as string;
   const nis = formData.get("nis") as string;
   
-  // Auto-generate standardized email: [nama_depan].[nis]@smktarkid.sch.id
+  // Auto-generate standardized email: [nama_depan].[nis]@slayer.test
   const firstName = fullName ? fullName.split(" ")[0].toLowerCase().replace(/[^a-z0-9]/g, "") : "siswa";
-  const generatedEmail = `${firstName}.${nis}@smktarkid.sch.id`;
+  const generatedEmail = `${firstName}.${nis}@slayer.test`;
 
   const raw = {
     full_name: fullName,
@@ -39,7 +39,7 @@ export async function createStudent(formData: FormData) {
   const adminClient = createAdminClient();
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
     email: validated.data.email,
-    password: "tarkid123", // Default password
+    password: "password123", // Default password
     email_confirm: true,
     user_metadata: {
       full_name: validated.data.full_name,
@@ -61,7 +61,7 @@ export async function createStudent(formData: FormData) {
         existingUserId = existingUser.id;
         // Reset password to default for existing user
         await adminClient.auth.admin.updateUserById(existingUser.id, { 
-          password: "tarkid123" 
+          password: "password123" 
         });
       } else {
         return { error: `Gagal menemukan akun yang sudah terdaftar.` };
@@ -202,9 +202,9 @@ export async function createTeacher(formData: FormData) {
 
   const fullName = formData.get("full_name") as string;
   
-  // Auto-generate standardized email: [nama_depan]@smktarkid.sch.id
+  // Auto-generate standardized email: [nama_depan]@slayer.test
   const firstName = fullName ? fullName.split(" ")[0].toLowerCase().replace(/[^a-z0-9]/g, "") : "guru";
-  const generatedEmail = `${firstName}@smktarkid.sch.id`;
+  const generatedEmail = `${firstName}@slayer.test`;
 
   const raw = {
     full_name: fullName,
@@ -222,7 +222,7 @@ export async function createTeacher(formData: FormData) {
   const adminClient = createAdminClient();
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
     email: validated.data.email,
-    password: "tarkid123",
+    password: "password123",
     email_confirm: true,
     user_metadata: {
       full_name: validated.data.full_name,
@@ -243,7 +243,7 @@ export async function createTeacher(formData: FormData) {
         existingUserId = existingUser.id;
         // Reset password to default for existing user
         await adminClient.auth.admin.updateUserById(existingUser.id, { 
-          password: "tarkid123" 
+          password: "password123" 
         });
       } else {
         return { error: `Gagal menemukan akun guru yang sudah terdaftar.` };
@@ -488,7 +488,7 @@ export async function createParent(formData: FormData) {
   // Create auth user
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
     email: validated.data.email,
-    password: 'tarkid123',
+    password: 'password123',
     email_confirm: true,
     user_metadata: {
       full_name: validated.data.full_name,
@@ -507,7 +507,7 @@ export async function createParent(formData: FormData) {
         .single();
       if (existingUser) {
         userId = existingUser.id;
-        await adminClient.auth.admin.updateUserById(existingUser.id, { password: 'tarkid123' });
+        await adminClient.auth.admin.updateUserById(existingUser.id, { password: 'password123' });
       } else {
         return { error: 'Gagal menemukan akun orang tua.' };
       }

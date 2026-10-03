@@ -76,7 +76,7 @@ export function TeachersClient({ teachers, subjects }: { teachers: TeacherRow[];
             </div>
             <div className="space-y-1.5 sm:col-span-2 rounded-lg bg-blue-50/50 border border-blue-100 p-3">
               <p className="text-xs text-blue-800 font-medium">ℹ️ Info Akun Otomatis:</p>
-              <p className="text-xs text-blue-600 mt-0.5">Email akan digenerate otomatis: <strong>nama@smktarkid.sch.id</strong>. Password default: <strong>tarkid123</strong></p>
+              <p className="text-xs text-blue-600 mt-0.5">Akun akan digenerate otomatis: <strong>nama@slayer.test</strong>. Password default: <strong>password123</strong></p>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">NIP</label>

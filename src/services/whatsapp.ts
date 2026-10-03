@@ -1,5 +1,5 @@
 // ============================================
-// WhatsApp Gateway Service — AbsenSMK
+// WhatsApp Gateway Service — SYNTAX SLAYER
 // Production-ready with provider abstraction,
 // retry-safe design, and delivery tracking.
 // ============================================
@@ -485,7 +485,7 @@ export function buildAttendanceMessage(params: {
     `Status: ${statusLabels[params.status] || params.status}`,
     `Waktu: ${params.time}`,
     "",
-    "— _AbsenSMK - Sistem Absensi Sekolah_",
+    "— _SYNTAX SLAYER - AI Smart Learning Ecosystem_",
     `_[Ref: ${refCode}]_`
   ].join("\n");
 }
@@ -514,7 +514,7 @@ export function buildDailyRecapMessage(params: {
     `⚠️ Terlambat: ${params.lateCount}`,
     `❌ Tidak Hadir: ${params.absentCount}`,
     "",
-    "— _AbsenSMK - Sistem Absensi Sekolah_",
+    "— _SYNTAX SLAYER - AI Smart Learning Ecosystem_",
     `_[Ref: ${refCode}]_`
   ].join("\n");
 }

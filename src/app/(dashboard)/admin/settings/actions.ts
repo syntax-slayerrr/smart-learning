@@ -78,7 +78,7 @@ export async function testWhatsApp(phone: string) {
   const result = await sendWhatsAppMessage(
     {
       phone,
-      message: "🚀 *Test Koneksi AbsenSMK*\n\nJika Anda menerima pesan ini, integrasi WhatsApp telah berhasil dikonfigurasi.",
+      message: "🚀 *Test Koneksi SYNTAX SLAYER*\n\nJika Anda menerima pesan ini, integrasi WhatsApp telah berhasil dikonfigurasi.",
     },
     {
       token: settings.wa_token,

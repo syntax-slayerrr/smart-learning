@@ -69,9 +69,9 @@ export function MonthlyReportClient({ classes }: MonthlyReportClientProps) {
       });
 
       await exportProfessionalExcel({
-        title: "LAPORAN REKAPITULASI ABSENSI SISWA",
-        subtitle: `Kelas: ${className}`,
-        period: `Bulan: ${monthName}`,
+        title: "LAPORAN REKAPITULASI PRESENSI SISWA",
+        subtitle: `SMK TI SYNTAX SLAYER — Kelas: ${className}`,
+        period: `Periode Rekapitulasi: ${monthName}`,
         filename: `Rekap_Siswa_${className}_${selectedMonth}.xlsx`,
         withPrintFooter: true,
         columns: [
@@ -99,9 +99,9 @@ export function MonthlyReportClient({ classes }: MonthlyReportClientProps) {
       });
 
       await exportProfessionalExcel({
-        title: "LAPORAN REKAPITULASI ABSENSI GURU",
-        subtitle: `Seluruh Guru Mata Pelajaran`,
-        period: `Bulan: ${monthName}`,
+        title: "LAPORAN REKAPITULASI KEHADIRAN GURU",
+        subtitle: `SMK TI SYNTAX SLAYER — Seluruh Pendidik & Tenaga Pengajar`,
+        period: `Periode Rekapitulasi: ${monthName}`,
         filename: `Rekap_Guru_${selectedMonth}.xlsx`,
         withPrintFooter: true,
         columns: [

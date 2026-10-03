@@ -1,5 +1,5 @@
 // ============================================
-// Rate Limiting Utility — AbsenSMK
+// Rate Limiting Utility — SYNTAX SLAYER
 // In-memory rate limiter for API routes.
 // For production at scale, replace with Redis.
 // ============================================

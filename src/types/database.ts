@@ -1,5 +1,5 @@
 // ============================================
-// Database Types — AbsenSMK
+// Database Types — SYNTAX SLAYER
 // Mirrors the Supabase PostgreSQL schema
 // ============================================
 

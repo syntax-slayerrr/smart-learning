@@ -1,5 +1,5 @@
 // ============================================
-// Audit Logger — AbsenSMK
+// Audit Logger — SYNTAX SLAYER
 // Logs critical system events to the audit_logs table.
 // ============================================
 

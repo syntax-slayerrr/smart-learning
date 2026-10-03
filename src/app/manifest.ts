@@ -2,9 +2,9 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Absensi SMK Muhammadiyah TarKid",
-    short_name: "Absen TarKid",
-    description: "Sistem Absensi Modern SMK Muhammadiyah TarKid",
+    name: "SYNTAX SLAYER — Smart Learning",
+    short_name: "SYNTAX SLAYER",
+    description: "AI Classroom Intelligence & Smart Learning Ecosystem",
     start_url: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui", "browser"],

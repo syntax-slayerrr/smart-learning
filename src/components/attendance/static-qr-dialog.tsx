@@ -58,7 +58,7 @@ export function StaticQrDialog({ classId, className, onClose }: StaticQrDialogPr
             <img src="${qrDataUrl}" />
             <h1>${className}</h1>
             <p>Scan untuk Absensi Mata Pelajaran</p>
-            <div class="footer">SMK Muhammadiyah TarKid • Sistem Absensi Otomatis</div>
+            <div class="footer">SYNTAX SLAYER • AI Smart Learning Ecosystem</div>
           </div>
           <script>
             window.onload = () => { window.print(); window.close(); };
