@@ -82,14 +82,14 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
     name: "Kamera HP (IP Webcam)",
     subject: "Monitoring Sesi Langsung",
     teacher: "Operator AI",
-    streamUrl: "https://phillips-acoustic-shoppers-subdivision.trycloudflare.com/video",
-    statusUrl: "https://phillips-acoustic-shoppers-subdivision.trycloudflare.com/",
-    ipAddress: "IP Webcam (Cloudflare Tunnel)",
+    streamUrl: "http://10.10.10.33:8080/video",
+    statusUrl: "http://10.10.10.33:8080/status",
+    ipAddress: "10.10.10.33:8080 (Wi-Fi HP)",
     port: 8080,
-    studentsCount: 18,
-    sittingCount: 18,
+    studentsCount: 0,
+    sittingCount: 0,
     standingCount: 0,
-    handRaiseCount: 1,
+    handRaiseCount: 0,
     sleepCount: 0,
     isOnline: true,
   },
@@ -181,6 +181,8 @@ export function LiveCameraMonitor() {
 
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [hermesNudge, setHermesNudge] = useState<string | null>(null);
+  const [isNudgeLoading, setIsNudgeLoading] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoImgRef = useRef<HTMLImageElement>(null);
@@ -190,16 +192,44 @@ export function LiveCameraMonitor() {
   const checkStreamStatus = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const targetUrl = activeChannel.statusUrl || "https://phillips-acoustic-shoppers-subdivision.trycloudflare.com/";
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const targetUrl = activeChannel.statusUrl || "http://localhost:5000/status";
       const res = await fetch(targetUrl, {
         signal: controller.signal,
-        mode: "no-cors",
+        mode: "cors",
       });
       clearTimeout(timeoutId);
-      setStreamOnline(true);
+      setStreamOnline(res.ok);
     } catch {
-      setStreamOnline(activeChannel.isOnline ?? true);
+      setStreamOnline(false);
+    }
+  };
+
+  const fetchHermesNudge = async (latestTele: TelemetryPoint, currentSubjects: DetectedSubject[]) => {
+    try {
+      setIsNudgeLoading(true);
+      const res = await fetch("/api/ai/pedagogical-nudge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: activeChannel.subject,
+          teacher: activeChannel.teacher,
+          detectedCount: latestTele.detected_students_count || currentSubjects.length,
+          sittingCount: latestTele.sitting_count,
+          standingCount: latestTele.standing_count,
+          sleepCount: latestTele.sleep_detected_count,
+          handRaiseCount: latestTele.hand_raise_count,
+          focusIndex: latestTele.detected_students_count > 0 ? 88 : 100,
+        }),
+      });
+      const data = await res.json();
+      if (data?.success && data?.nudge) {
+        setHermesNudge(data.nudge);
+      }
+    } catch (err) {
+      console.warn("[LiveCameraMonitor] Error fetching Hermes nudge:", err);
+    } finally {
+      setIsNudgeLoading(false);
     }
   };
 
@@ -286,13 +316,21 @@ export function LiveCameraMonitor() {
   useEffect(() => {
     checkStreamStatus();
     fetchTelemetry();
+    fetchHermesNudge(telemetry, subjects);
 
     const interval = setInterval(() => {
       checkStreamStatus();
       fetchTelemetry();
     }, 1500);
 
-    return () => clearInterval(interval);
+    const nudgeInterval = setInterval(() => {
+      fetchHermesNudge(telemetry, subjects);
+    }, 12000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(nudgeInterval);
+    };
   }, []);
 
   const handleManualRefresh = async () => {
@@ -855,10 +893,34 @@ export function LiveCameraMonitor() {
               )}
             </div>
 
-            {/* Dynamic Status / Alert Banner (NO HARDCODED NAMES) */}
-            <div className="pt-2 border-t border-[#E7E2DA]">
+            {/* Hermes AI Pedagogical Nudge & Alerts */}
+            <div className="pt-2 border-t border-[#E7E2DA] space-y-2">
+              {hermesNudge && (
+                <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-3 flex items-start gap-2.5 shadow-2xs">
+                  <div className="rounded-lg bg-orange-100 p-1.5 text-[#EA580C] shrink-0 mt-0.5">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5">
+                        Hermes Pedagogical Nudge
+                        <span className="rounded bg-orange-200/60 px-1.5 py-0.2 text-[9px] font-mono text-orange-900 font-semibold">
+                          9Router AI
+                        </span>
+                      </span>
+                      {isNudgeLoading && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#EA580C] animate-ping" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-700 leading-relaxed">
+                      {hermesNudge}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {counts.sleep > 0 ? (
-                <div className="rounded-xl border border-red-200 bg-red-50/90 p-3 flex items-start gap-2.5 shadow-2xs animate-pulse">
+                <div className="rounded-xl border border-red-200 bg-red-50/90 p-2.5 flex items-start gap-2.5 shadow-2xs animate-pulse">
                   <div className="rounded-lg bg-red-100 p-1.5 text-red-600 shrink-0">
                     <Moon className="h-4 w-4" />
                   </div>
@@ -866,7 +928,7 @@ export function LiveCameraMonitor() {
                     <span className="text-xs font-bold text-red-900 block">
                       ⚠️ Peringatan Kelelahan: Terdeteksi {counts.sleep} Subjek Menunduk
                     </span>
-                    <p className="text-[11px] text-red-700 leading-relaxed mt-0.5">
+                    <p className="text-[10.5px] text-red-700 leading-relaxed mt-0.5">
                       Subjek menunduk / tidak aktif di area meja lebih dari 3 detik.
                     </p>
                   </div>

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { InstallPrompt } from "@/components/shared/install-prompt";
+import { HermesCopilotWidget } from "@/components/ai/hermes-copilot-widget";
 import { logoutAction } from "@/app/(auth)/login/actions";
 import type { UserRole } from "@/types/database";
 
@@ -46,6 +47,7 @@ export function DashboardLayout({
         </main>
       </div>
       <InstallPrompt />
+      <HermesCopilotWidget />
     </div>
   );
 }
