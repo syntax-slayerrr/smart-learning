@@ -251,7 +251,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
         <button
           onClick={applyFilters}
           disabled={isPending}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="apple-press inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 py-2 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPending ? (
             <>

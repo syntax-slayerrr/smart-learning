@@ -253,14 +253,14 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
 
       {/* Import Progress Indicator */}
       {importProgress.show && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 animate-fade-in">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 animate-fade-in shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-blue-800">Proses Import Berjalan...</span>
-            <span className="text-sm font-bold text-blue-800">{importProgress.current} / {importProgress.total}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Proses Import Berjalan...</span>
+            <span className="text-xs font-mono font-bold text-primary">{importProgress.current} / {importProgress.total}</span>
           </div>
-          <div className="h-2 w-full bg-blue-200 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-600 transition-all duration-300" 
+              className="h-full bg-primary transition-all duration-300" 
               style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
             />
           </div>

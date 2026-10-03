@@ -107,47 +107,47 @@ export default async function AdminReportsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Users className="h-6 w-6 text-primary" />
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-xl bg-primary/10 border border-primary/20 p-2.5 text-primary">
+              <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Siswa</p>
-              <p className="text-2xl font-bold">{studentCount || 0}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Siswa Terdaftar</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{studentCount || 0}</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-blue-500/10 p-2">
-              <BarChart3 className="h-6 w-6 text-blue-500" />
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-xl bg-primary/10 border border-primary/20 p-2.5 text-primary">
+              <BarChart3 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Rata-rata Kehadiran</p>
-              <p className="text-2xl font-bold">{attendanceRate}%</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rata-rata Kehadiran</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{attendanceRate}%</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-orange-500/10 p-2">
-              <TrendingUp className="h-6 w-6 text-orange-500" />
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-amber-600">
+              <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Keterlambatan</p>
-              <p className="text-2xl font-bold">{latenessRate}%</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tingkat Keterlambatan</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{latenessRate}%</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-purple-500/10 p-2">
-              <Calendar className="h-6 w-6 text-purple-500" />
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-2.5 text-indigo-600">
+              <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Hari Sekolah</p>
-              <p className="text-2xl font-bold">{uniqueDays}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Hari Efektif Belajar</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{uniqueDays}</p>
             </div>
           </div>
         </div>

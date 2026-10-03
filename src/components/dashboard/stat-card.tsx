@@ -24,35 +24,37 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-5 transition-shadow duration-200 hover:shadow-md",
+        "rounded-xl border border-[#E7E2DA] bg-white p-5 card-hover shadow-2xs transition-all duration-200",
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold tracking-tight text-foreground">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5 min-w-0">
+          <p className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-stone-500 truncate">
+            {title}
+          </p>
+          <p className="text-3xl font-bold tracking-tight text-stone-900 tabular-nums">
             {value}
           </p>
           {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-stone-500 truncate">{description}</p>
           )}
           {trend && (
             <p
               className={cn(
-                "text-xs font-medium",
-                trend.positive ? "text-emerald-600" : "text-red-600"
+                "inline-flex items-center gap-1 text-[11px] font-medium font-mono",
+                trend.positive ? "text-emerald-700" : "text-red-600"
               )}
             >
-              {trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%
-              <span className="ml-1 text-muted-foreground">
-                dari kemarin
+              <span>{trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%</span>
+              <span className="text-stone-400 font-sans text-[10px]">
+                vs periode lalu
               </span>
             </p>
           )}
         </div>
-        <div className="rounded-lg bg-primary/10 p-2.5">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="rounded-lg bg-[#EA580C]/[0.08] border border-[#EA580C]/15 p-2.5 text-[#EA580C] shrink-0">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>

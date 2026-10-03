@@ -27,41 +27,44 @@ export const ROLES = [
   { value: "parent", label: "Orang Tua", path: "/parent" },
 ] as const;
 
-// Navigation Items per Role
+// Navigation Items per Role with Semantic Categorization
 export const NAV_ITEMS = {
   admin: [
-    { label: "Dashboard", href: "/admin", icon: "LayoutDashboard" },
-    { label: "Siswa", href: "/admin/students", icon: "Users" },
-    { label: "Guru", href: "/admin/teachers", icon: "GraduationCap" },
-    { label: "Kelas", href: "/admin/classes", icon: "School" },
-    { label: "Mata Pelajaran", href: "/admin/subjects", icon: "BookOpen" },
-    { label: "Jadwal Pelajaran", href: "/admin/schedules", icon: "Calendar" },
-    { label: "Orang Tua", href: "/admin/parents", icon: "Users" },
-    { label: "Absensi Siswa", href: "/admin/attendance", icon: "ClipboardCheck" },
-    { label: "Absensi Guru", href: "/admin/attendance/teachers", icon: "ClipboardList" },
-    { label: "Laporan", href: "/admin/reports", icon: "BarChart3" },
-    { label: "Log Notifikasi", href: "/admin/notifications", icon: "Bell" },
-    { label: "Pengaturan", href: "/admin/settings", icon: "Settings" },
-    { label: "Profil", href: "/admin/profile", icon: "UserCircle" },
+    { label: "Dashboard", href: "/admin", icon: "LayoutDashboard", group: "OPERASIONAL" },
+    { label: "Absensi Siswa", href: "/admin/attendance", icon: "ClipboardCheck", group: "OPERASIONAL" },
+    { label: "Absensi Guru", href: "/admin/attendance/teachers", icon: "ClipboardList", group: "OPERASIONAL" },
+    { label: "Laporan & Rekap", href: "/admin/reports", icon: "BarChart3", group: "OPERASIONAL" },
+    
+    { label: "Kelas", href: "/admin/classes", icon: "School", group: "AKADEMIK & JADWAL" },
+    { label: "Mata Pelajaran", href: "/admin/subjects", icon: "BookOpen", group: "AKADEMIK & JADWAL" },
+    { label: "Jadwal Pelajaran", href: "/admin/schedules", icon: "Calendar", group: "AKADEMIK & JADWAL" },
+    
+    { label: "Direktori Siswa", href: "/admin/students", icon: "Users", group: "DATA MASTER" },
+    { label: "Direktori Guru", href: "/admin/teachers", icon: "GraduationCap", group: "DATA MASTER" },
+    { label: "Orang Tua / Wali", href: "/admin/parents", icon: "Users", group: "DATA MASTER" },
+    
+    { label: "Log Notifikasi", href: "/admin/notifications", icon: "Bell", group: "SISTEM" },
+    { label: "Pengaturan", href: "/admin/settings", icon: "Settings", group: "SISTEM" },
+    { label: "Profil Akun", href: "/admin/profile", icon: "UserCircle", group: "SISTEM" },
   ],
   teacher: [
-    { label: "Dashboard", href: "/teacher", icon: "LayoutDashboard" },
-    { label: "Scan QR", href: "/teacher/scan", icon: "QrCode" },
-    { label: "Riwayat", href: "/teacher/history", icon: "History" },
-    { label: "Rekap", href: "/teacher/recap", icon: "BarChart3" },
-    { label: "Profil", href: "/teacher/profile", icon: "UserCircle" },
+    { label: "Dashboard", href: "/teacher", icon: "LayoutDashboard", group: "AKTIVITAS" },
+    { label: "Scan QR Absensi", href: "/teacher/scan", icon: "QrCode", group: "AKTIVITAS" },
+    { label: "Riwayat Sesi", href: "/teacher/history", icon: "History", group: "DATA KELAS" },
+    { label: "Rekap Kehadiran", href: "/teacher/recap", icon: "BarChart3", group: "DATA KELAS" },
+    { label: "Profil Guru", href: "/teacher/profile", icon: "UserCircle", group: "AKUN" },
   ],
   student: [
-    { label: "Dashboard", href: "/student", icon: "LayoutDashboard" },
-    { label: "Scan QR", href: "/student/scan", icon: "QrCode" },
-    { label: "Riwayat", href: "/student/history", icon: "History" },
-    { label: "Profil", href: "/student/profile", icon: "UserCircle" },
+    { label: "Dashboard", href: "/student", icon: "LayoutDashboard", group: "UTAMA" },
+    { label: "Scan Kartu / QR", href: "/student/scan", icon: "QrCode", group: "UTAMA" },
+    { label: "Riwayat Absensi", href: "/student/history", icon: "History", group: "CATATAN" },
+    { label: "Profil Siswa", href: "/student/profile", icon: "UserCircle", group: "AKUN" },
   ],
   parent: [
-    { label: "Dashboard", href: "/parent", icon: "LayoutDashboard" },
-    { label: "Absensi Anak", href: "/parent/attendance", icon: "ClipboardCheck" },
-    { label: "Riwayat", href: "/parent/history", icon: "History" },
-    { label: "Notifikasi", href: "/parent/notifications", icon: "Bell" },
+    { label: "Dashboard Anak", href: "/parent", icon: "LayoutDashboard", group: "STATUS ANAK" },
+    { label: "Absensi & Telemetri", href: "/parent/attendance", icon: "ClipboardCheck", group: "STATUS ANAK" },
+    { label: "Riwayat Bulanan", href: "/parent/history", icon: "History", group: "CATATAN" },
+    { label: "Pusat Notifikasi", href: "/parent/notifications", icon: "Bell", group: "ALARM & NOTIF" },
   ],
 } as const;
 

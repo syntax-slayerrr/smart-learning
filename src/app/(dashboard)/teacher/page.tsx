@@ -12,6 +12,8 @@ import {
   Bell,
 } from "lucide-react";
 import Link from "next/link";
+import { getTeacherSessionsAnalytics } from "@/services/student-analytics";
+import { TeacherSessionsAnalytics } from "@/components/dashboard/teacher-sessions-analytics";
 
 export const metadata: Metadata = {
   title: "Dashboard Guru",
@@ -103,6 +105,12 @@ export default async function TeacherDashboard() {
   
   const recentSessions = recentSessionsRes.data;
 
+  // 4. Fetch AI classroom analytics for this teacher
+  let teacherAnalytics = null;
+  if (teacherId) {
+    teacherAnalytics = await getTeacherSessionsAnalytics(teacherId);
+  }
+
   // 3. Fetch activeScheduleSession sequentially ONLY if currentSchedule exists
   let activeScheduleSession = null;
   if (currentSchedule) {
@@ -121,22 +129,22 @@ export default async function TeacherDashboard() {
     <div className="dashboard-container space-y-6 animate-fade-in">
       <PageHeader
         title="Dashboard Guru"
-        description="Kelola absensi kelas Anda"
+        description="Portal Manajemen Sesi & Analitika Telemetri Kelas"
         action={
           <div className="flex items-center gap-2">
             <Link
               href="/teacher/scan"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+              className="apple-press inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted/60"
             >
-              <QrCode className="h-4 w-4" />
-              Scan QR
+              <QrCode className="h-4 w-4 text-primary" />
+              <span>Scan QR</span>
             </Link>
             <Link
               href="/teacher/attendance/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95"
+              className="apple-press inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover"
             >
               <Plus className="h-4 w-4" />
-              Buat Absensi
+              <span>Buka Sesi Baru</span>
             </Link>
           </div>
         }
@@ -144,22 +152,22 @@ export default async function TeacherDashboard() {
 
       {/* Push Notification Reminder Banner */}
       {!hasPushSubscription && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm relative overflow-hidden flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="absolute -right-4 -top-4 text-blue-100 opacity-50">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-2xs relative overflow-hidden flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="absolute -right-4 -top-4 text-primary/10 pointer-events-none">
             <Bell className="w-24 h-24" />
           </div>
           <div className="relative z-10">
-            <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-blue-600 animate-pulse" />
-              Pengingat Jadwal Mengajar (Baru!)
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
+              <Bell className="w-3.5 h-3.5 animate-pulse" />
+              Pengingat Jadwal Mengajar Otomatis
             </h3>
-            <p className="text-xs text-blue-700 mt-1 max-w-lg leading-relaxed">
-              Aktifkan notifikasi aplikasi untuk mendapatkan pengingat otomatis di HP Anda 30 menit sebelum jam kelas dimulai. Bebas dari risiko WA diblokir!
+            <p className="text-xs text-muted-foreground mt-1 max-w-lg leading-relaxed font-medium">
+              Aktifkan push notification untuk mendapatkan reminder presensi 30 menit sebelum sesi kelas dimulai.
             </p>
           </div>
           <Link
             href="/teacher?setup=notif"
-            className="relative z-10 shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm active:scale-95 whitespace-nowrap w-full sm:w-auto"
+            className="apple-press relative z-10 shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm shadow-primary/20 whitespace-nowrap w-full sm:w-auto"
           >
             Aktifkan Sekarang
           </Link>
@@ -169,38 +177,41 @@ export default async function TeacherDashboard() {
       {/* Current Schedule / Verification Code Section */}
       {currentSchedule && (
         <div className="overflow-hidden rounded-xl border-2 border-amber-200 bg-white shadow-md">
-          <div className="bg-amber-50 px-5 py-3 border-b border-amber-100 flex items-center justify-between">
+          <div className="bg-[#FBF9F5] px-5 py-3 border-b border-[#E7E2DA] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-              <h3 className="text-sm font-bold text-amber-800 uppercase tracking-tight">Jadwal Aktif Saat Ini</h3>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#EA580C]" />
+              </span>
+              <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">Jadwal Mengajar Aktif Saat Ini</h3>
             </div>
-            <span className="text-xs font-medium text-amber-600 bg-white px-2 py-0.5 rounded-full border border-amber-200">
-              {currentSchedule.start_time} - {currentSchedule.end_time}
+            <span className="text-xs font-mono font-semibold text-stone-700 bg-white px-2.5 py-0.5 rounded-md border border-[#E7E2DA] shadow-2xs">
+              {currentSchedule.start_time} - {currentSchedule.end_time} WIB
             </span>
           </div>
-          <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-white">
             <div>
-              <p className="text-xl font-black text-foreground">{(currentSchedule.subjects as any)?.name}</p>
-              <p className="text-sm text-muted-foreground">Kelas: {(currentSchedule.classes as any)?.name}</p>
+              <p className="text-lg font-bold text-stone-900 tracking-tight">{(currentSchedule.subjects as any)?.name}</p>
+              <p className="text-xs text-stone-500 mt-0.5">Kelas: <span className="font-semibold text-stone-700">{(currentSchedule.classes as any)?.name}</span></p>
             </div>
 
             {activeScheduleSession ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-amber-600 p-4 min-w-[160px] text-white shadow-lg shadow-amber-600/30">
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Sesi Aktif</span>
-                <span className="text-xl font-black mt-1">SIAP SCAN</span>
-                <Link href={`/teacher/attendance/${activeScheduleSession.id}`} className="mt-2 text-[10px] font-bold underline opacity-90 hover:opacity-100">
-                  Lihat Daftar Hadir
+              <div className="flex flex-col items-center justify-center rounded-xl bg-[#EA580C] p-4 min-w-[160px] text-white shadow-xs apple-press">
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Sesi Aktif</span>
+                <span className="text-base font-bold mt-0.5">SIAP SCAN</span>
+                <Link href={`/teacher/attendance/${activeScheduleSession.id}`} className="mt-2 text-xs font-semibold underline underline-offset-2 opacity-95 hover:opacity-100">
+                  Buka Konsol Sesi →
                 </Link>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-amber-50 p-6 min-w-[160px] border-2 border-amber-200 shadow-sm">
+              <div className="flex flex-col items-center justify-center rounded-xl bg-[#FBF9F5] p-5 min-w-[160px] border border-[#E7E2DA]">
                 <Link
                   href="/teacher/scan"
-                  className="w-full text-center rounded-xl bg-amber-600 px-4 py-3 text-sm font-black text-white shadow-md transition-all hover:bg-amber-700 active:scale-95 uppercase tracking-widest"
+                  className="w-full text-center rounded-lg bg-[#EA580C] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#C2410C] active:scale-[0.97] uppercase tracking-wider apple-press"
                 >
-                  Mulai Scan
+                  Mulai Sesi Mengajar
                 </Link>
-                <p className="text-[10px] text-amber-600/70 font-medium mt-2">Otomatis Catat Hadir</p>
+                <p className="text-[10px] text-stone-500 font-medium mt-1.5 font-mono">Scan QR & Kamera AI</p>
               </div>
             )}
           </div>
@@ -231,11 +242,16 @@ export default async function TeacherDashboard() {
 
       {/* Active Sessions */}
       {activeSessions && activeSessions.length > 0 && (
-        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-5">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-800">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-            Sesi Aktif
-          </h3>
+        <div className="rounded-xl border border-[#E7E2DA] bg-white p-5 shadow-2xs">
+          <div className="mb-3.5 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-900">
+              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+              Sesi Mengajar yang Sedang Berjalan
+            </h3>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+              {activeSessions.length} Berlangsung
+            </span>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {activeSessions.map((session: Record<string, unknown>) => {
               const classes = session.classes as unknown as Record<string, unknown> | null;
@@ -243,22 +259,29 @@ export default async function TeacherDashboard() {
                 <Link
                   key={session.id as string}
                   href={`/teacher/attendance/${session.id}`}
-                  className="flex items-center justify-between rounded-lg border border-emerald-200 bg-white p-4 transition-shadow hover:shadow-md"
+                  className="flex items-center justify-between rounded-xl border border-[#E7E2DA] bg-white p-4 shadow-2xs card-hover apple-press"
                 >
                   <div>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-xs font-bold text-stone-900">
                       {(session.subjects as any)?.name || "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {(classes?.name as string) || "—"}
+                    <p className="text-[11px] text-stone-500">
+                      {(classes?.name as string) || "—"} • Klik untuk kelola
                     </p>
                   </div>
-                  <QrCode className="h-5 w-5 text-emerald-600" />
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2 text-emerald-700">
+                    <QrCode className="h-4 w-4" />
+                  </div>
                 </Link>
               );
             })}
           </div>
         </div>
+      )}
+
+      {/* AI Classroom Analytics */}
+      {teacherAnalytics && teacherAnalytics.total_sessions > 0 && (
+        <TeacherSessionsAnalytics data={teacherAnalytics} />
       )}
 
       {/* Recent Sessions */}

@@ -327,23 +327,28 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}
-        <div className="w-full md:w-64 space-y-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                activeTab === tab.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+        <div className="w-full md:w-64 space-y-1.5 shrink-0">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`apple-press flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all ${
+                  isActive
+                    ? "bg-primary/10 text-primary font-semibold shadow-2xs border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                }`}
+              >
+                <tab.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Content */}
-        <div className="flex-1 rounded-xl border bg-card p-6 shadow-sm overflow-hidden">
+        <div className="flex-1 rounded-2xl border border-border bg-card p-6 shadow-2xs overflow-hidden">
           {/* Profil Sekolah */}
           {activeTab === "school" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">

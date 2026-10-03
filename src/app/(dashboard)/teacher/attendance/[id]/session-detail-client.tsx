@@ -143,10 +143,10 @@ export function SessionDetailClient({ session, students, records: initialRecords
         <div className="flex justify-center mb-6">
           <button
             onClick={() => setShowScanner(true)}
-            className="w-full max-w-sm flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-md transition-all active:scale-95"
+            className="apple-press w-full max-w-sm flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-primary-foreground py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-primary/20 transition-all"
           >
-            <Camera className="h-5 w-5" />
-            Buka Scanner Kamera
+            <Camera className="h-4 w-4" />
+            <span>Buka Scanner Kamera Guru</span>
           </button>
         </div>
       )}

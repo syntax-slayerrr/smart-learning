@@ -203,19 +203,23 @@ export function ScannerClient() {
 
   if (state === "success" && result) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-8 text-center animate-slide-up">
-        <div className="rounded-full bg-emerald-100 p-4">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-emerald-300/80 bg-emerald-50/60 p-8 text-center animate-slide-up shadow-xs">
+        <div className="rounded-full bg-emerald-100 p-4 ring-8 ring-emerald-50">
           <CheckCircle className="h-10 w-10 text-emerald-600" />
         </div>
         <div>
-          <p className="text-lg font-bold text-emerald-800">Absensi Berhasil!</p>
-          <p className="mt-1 text-sm text-emerald-700">{result.subject}</p>
-          <div className="mt-2 inline-flex rounded-full bg-emerald-200 px-3 py-1 text-xs font-medium text-emerald-800">
+          <p className="text-xl font-bold tracking-tight text-emerald-950">Absensi Berhasil Diverifikasi</p>
+          <p className="mt-1 text-sm font-medium text-emerald-800">{result.subject}</p>
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100/80 px-3.5 py-1 text-xs font-semibold text-emerald-900">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
             Status: {getAttendanceStatusLabel(result.status || "present")}
           </div>
         </div>
-        <button onClick={reset} className="mt-2 text-sm font-medium text-emerald-700 underline hover:text-emerald-800">
-          Kembali
+        <button
+          onClick={reset}
+          className="apple-press mt-2 rounded-lg border border-emerald-300 bg-white px-5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-50"
+        >
+          Selesai & Kembali
         </button>
       </div>
     );
@@ -223,16 +227,19 @@ export function ScannerClient() {
 
   if (state === "error") {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-red-200 bg-red-50 p-8 text-center animate-slide-up">
-        <div className="rounded-full bg-red-100 p-4">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-red-50/60 p-8 text-center animate-slide-up shadow-xs">
+        <div className="rounded-full bg-red-100 p-4 ring-8 ring-red-50">
           <XCircle className="h-10 w-10 text-red-600" />
         </div>
         <div>
-          <p className="text-lg font-bold text-red-800">Gagal</p>
-          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <p className="text-xl font-bold tracking-tight text-red-950">Validasi Gagal</p>
+          <p className="mt-1.5 text-xs text-red-700 max-w-xs mx-auto leading-relaxed">{error}</p>
         </div>
-        <button onClick={reset} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
-          Coba Lagi
+        <button
+          onClick={reset}
+          className="apple-press rounded-lg bg-red-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-red-700"
+        >
+          Coba Ulangi
         </button>
       </div>
     );
@@ -240,27 +247,28 @@ export function ScannerClient() {
 
   if (state === "loading") {
     return (
-      <div className="flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-primary/20 bg-primary/5 p-8 text-center min-h-[300px] animate-fade-in shadow-inner">
+      <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center min-h-[300px] animate-fade-in shadow-2xs">
         <div className="relative flex items-center justify-center">
-          <div className="absolute h-24 w-24 animate-ping rounded-full bg-primary/20" />
-          <div className="absolute h-16 w-16 animate-pulse rounded-full bg-primary/40" />
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg">
-            {geoStatus ? <MapPin className="h-6 w-6 text-white animate-bounce" /> : <Loader2 className="h-6 w-6 text-white animate-spin" />}
+          <div className="absolute h-20 w-20 animate-ping rounded-full bg-primary/15" />
+          <div className="absolute h-14 w-14 animate-pulse rounded-full bg-primary/30" />
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-sm shadow-primary/30 text-white">
+            {geoStatus ? <MapPin className="h-6 w-6 animate-bounce" /> : <Loader2 className="h-6 w-6 animate-spin" />}
           </div>
         </div>
         
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold text-primary">
-            {geoStatus ? "Mengunci Koordinat GPS" : "Memvalidasi Data"}
+        <div className="space-y-1.5">
+          <h3 className="text-base font-bold text-foreground">
+            {geoStatus ? "Mengunci Koordinat Satelit GPS" : "Memvalidasi Sesi & Otorisasi"}
           </h3>
-          <p className="text-sm font-medium text-muted-foreground max-w-[250px] mx-auto leading-relaxed">
-            {geoStatus || "Sedang mencocokkan data absensi Anda dengan server..."}
+          <p className="text-xs text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+            {geoStatus || "Mencocokkan timestamp dan parameter biometrik/lokasi ke server..."}
           </p>
         </div>
 
         {geoStatus && (
-          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800 animate-slide-up">
-            ⚠️ Mohon diam di tempat dan jangan tutup layar ini (Maks. 15 detik).
+          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2 text-[11px] font-medium text-amber-800 animate-slide-up flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+            <span>Mohon tetap di posisi dan jangan tutup layar aplikasi.</span>
           </div>
         )}
       </div>
@@ -270,45 +278,60 @@ export function ScannerClient() {
   if (state === "scanning") {
     return (
       <div className="space-y-4">
-        <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-black">
-          <video ref={videoRef} autoPlay playsInline muted className="w-full" />
+        <div className="relative overflow-hidden rounded-2xl border-2 border-primary/30 bg-black aspect-square sm:aspect-video flex items-center justify-center">
+          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="h-48 w-48 rounded-2xl border-2 border-white/50" />
+            <div className="relative h-56 w-56 rounded-2xl border-2 border-white/60">
+              {/* Corner reticles */}
+              <div className="absolute -top-1 -left-1 h-4 w-4 border-t-2 border-l-2 border-primary" />
+              <div className="absolute -top-1 -right-1 h-4 w-4 border-t-2 border-r-2 border-primary" />
+              <div className="absolute -bottom-1 -left-1 h-4 w-4 border-b-2 border-l-2 border-primary" />
+              <div className="absolute -bottom-1 -right-1 h-4 w-4 border-b-2 border-r-2 border-primary" />
+            </div>
           </div>
         </div>
-        <p className="text-center text-xs text-muted-foreground">Arahkan QR code ke dalam kotak</p>
-        <button onClick={() => { stopCamera(); setState("idle"); }} className="w-full rounded-lg border border-border bg-card py-2.5 text-sm font-medium hover:bg-accent">
-          Batal
+        <p className="text-center text-xs text-muted-foreground">Posisikan kode QR di dalam kotak panduan kamera</p>
+        <button
+          onClick={() => { stopCamera(); setState("idle"); }}
+          className="apple-press w-full rounded-lg border border-border bg-card py-2.5 text-xs font-semibold text-foreground hover:bg-muted/60"
+        >
+          Batalkan Pemindaian
         </button>
       </div>
     );
   }
 
-
-
   // Idle state
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-700 border border-amber-100">
-        <MapPin className="h-4 w-4 shrink-0" />
-        <span>Absensi menggunakan verifikasi lokasi. Pastikan GPS aktif.</span>
+      <div className="flex items-center gap-2.5 rounded-xl bg-primary/5 p-3 text-xs text-foreground border border-primary/15">
+        <MapPin className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-muted-foreground">
+          Sistem menggunakan radius geofencing kampus. Pastikan GPS aktif.
+        </span>
       </div>
+
       <button
         onClick={startCamera}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 transition-colors hover:border-primary/50 hover:bg-primary/10"
+        className="apple-press group flex w-full items-center justify-center gap-3.5 rounded-2xl border border-primary/30 bg-card p-6 shadow-2xs transition-all hover:border-primary/60 hover:bg-primary/5"
       >
-        <Camera className="h-8 w-8 text-primary" />
-        <div className="text-left">
-          <p className="text-sm font-semibold">Buka Kamera</p>
-          <p className="text-xs text-muted-foreground">Scan QR code dengan kamera</p>
+        <div className="rounded-xl bg-primary/10 p-3 text-primary group-hover:scale-105 transition-transform">
+          <Camera className="h-6 w-6" />
+        </div>
+        <div className="text-left flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">Buka Scanner Kamera</p>
+          <p className="text-xs text-muted-foreground">Arahkan kamera ke QR Code sesi kelas</p>
         </div>
       </button>
+
       <button
         onClick={() => setState("manual")}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent"
+        className="apple-press flex w-full items-center justify-center gap-3.5 rounded-2xl border border-border bg-card p-4 transition-all hover:bg-muted/60"
       >
-        <KeyboardIcon className="h-5 w-5 text-muted-foreground" />
-        <span className="text-sm font-medium">Input Kode Manual</span>
+        <div className="rounded-lg bg-muted p-2 text-muted-foreground">
+          <KeyboardIcon className="h-4 w-4" />
+        </div>
+        <span className="text-xs font-semibold text-foreground">Input Token Sesi Manual</span>
       </button>
     </div>
   );

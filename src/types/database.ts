@@ -256,6 +256,7 @@ export interface ClassroomTelemetry {
   standing_count: number;
   hand_raise_count: number;
   desk_focused_count: number;
+  sleep_detected_count: number;
   active_clusters_count: number;
   teacher_zone: string | null;
   spatial_distribution_json: Record<string, unknown>;
@@ -267,7 +268,7 @@ export interface PedagogicalInsight {
   session_id: string;
   phase_start_time: string | null;
   phase_end_time: string | null;
-  insight_type: "participation" | "mobility" | "group_work" | "pacing";
+  insight_type: "participation" | "mobility" | "group_work" | "pacing" | "sleeping";
   observation_summary: string;
   pedagogical_prompt: string;
   confidence_level: "low" | "medium" | "high";

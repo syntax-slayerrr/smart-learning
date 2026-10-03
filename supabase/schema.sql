@@ -125,6 +125,29 @@ CREATE INDEX IF NOT EXISTS idx_student_parents_student_id ON student_parents(stu
 CREATE INDEX IF NOT EXISTS idx_student_parents_parent_id ON student_parents(parent_id);
 
 -- ============================================
+-- 7.5. SUBJECTS & TEACHER_SUBJECTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS subjects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  code TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(name);
+
+CREATE TABLE IF NOT EXISTS teacher_subjects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(teacher_id, subject_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_teacher_subjects_teacher_id ON teacher_subjects(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_teacher_subjects_subject_id ON teacher_subjects(subject_id);
+
+-- ============================================
 -- 8. ATTENDANCE_SESSIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS attendance_sessions (
@@ -531,18 +554,8 @@ CREATE POLICY "System can insert audit_logs"
   WITH CHECK (true);
 
 -- ============================================
--- 14. SUBJECTS TABLE
+-- 14. SUBJECTS & TEACHER_SUBJECTS RLS
 -- ============================================
-CREATE TABLE IF NOT EXISTS subjects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  code TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(name);
-
--- RLS for subjects
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admin can manage subjects" ON subjects;
@@ -559,20 +572,6 @@ DROP POLICY IF EXISTS "Students can view subjects" ON subjects;
 CREATE POLICY "Students can view subjects"
   ON subjects FOR SELECT
   USING (get_user_role() = 'student');
-
--- ============================================
--- 14.5. TEACHER_SUBJECTS
--- ============================================
-CREATE TABLE IF NOT EXISTS teacher_subjects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
-  subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(teacher_id, subject_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_teacher_subjects_teacher_id ON teacher_subjects(teacher_id);
-CREATE INDEX IF NOT EXISTS idx_teacher_subjects_subject_id ON teacher_subjects(subject_id);
 
 ALTER TABLE teacher_subjects ENABLE ROW LEVEL SECURITY;
 

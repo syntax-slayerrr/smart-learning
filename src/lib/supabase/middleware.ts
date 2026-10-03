@@ -33,15 +33,29 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const pathname = request.nextUrl.pathname;
 
-  // Define public routes
+  // Define public routes and static assets
   const publicRoutes = ["/login", "/debug-auth", "/api/setup-admin", "/sw.js", "/manifest.json", "/favicon.ico", "/icon.png", "/apple-icon.png"];
-  const isPublicRoute = publicRoutes.some((route) => pathname === route) || pathname.startsWith("/api/cron");
+  const isPublicRoute = 
+    publicRoutes.some((route) => pathname === route) || 
+    pathname.startsWith("/api/cron") || 
+    pathname.startsWith("/api/telemetry") || 
+    pathname.startsWith("/api/attendance") || 
+    pathname.startsWith("/brand") || 
+    pathname.startsWith("/_next");
+
+  if (isPublicRoute && pathname !== "/login") {
+    return supabaseResponse;
+  }
+
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    console.warn("Middleware auth check skipped:", err);
+  }
 
   // 1. If NOT logged in and trying to access protected route -> Login
   if (!user && !isPublicRoute) {
