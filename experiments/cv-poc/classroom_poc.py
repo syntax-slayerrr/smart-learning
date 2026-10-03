@@ -18,6 +18,7 @@ Lisensi: Proprietary - Smart Learning Platform
 import argparse
 import json
 import time
+import urllib.request
 from datetime import datetime
 import cv2
 import numpy as np
@@ -176,6 +177,26 @@ def draw_skeleton(frame, keypoints, color=(0, 255, 200)):
             cv2.circle(frame, pts[i], 3, (255, 255, 255), -1, cv2.LINE_AA)
 
 
+def send_telemetry_to_cloud(api_url, payload, device_key):
+    """Mengirim batch telemetry JSON ke Next.js endpoint secara asinkron."""
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            api_url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "x-edge-device-key": device_key
+            }
+        )
+        with urllib.request.urlopen(req, timeout=3.0) as response:
+            if response.status in (200, 201):
+                return True, "Ingested successfully"
+            return False, f"HTTP {response.status}"
+    except Exception as e:
+        return False, str(e)
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Classroom Intelligence - PoC")
     parser.add_argument("--source", type=str, default="0",
@@ -186,6 +207,12 @@ def main():
                         help="Confidence threshold")
     parser.add_argument("--json-interval", type=int, default=5,
                         help="Interval waktu (detik) untuk mencetak telemetry JSON ke konsol")
+    parser.add_argument("--session-id", type=str, default=None,
+                        help="Attendance Session UUID untuk sync langsung ke dashboard web")
+    parser.add_argument("--api-url", type=str, default="http://localhost:3000/api/telemetry/ingest",
+                        help="Endpoint API Ingest Next.js")
+    parser.add_argument("--device-key", type=str, default="dev-edge-secret-key-2026",
+                        help="Secret key otorisasi edge device")
     args = parser.parse_args()
 
     # Parse camera source
@@ -315,7 +342,7 @@ def main():
         # Tampilkan Jendela Live
         cv2.imshow("AI Classroom Intelligence - PoC Preview", frame)
 
-        # Cetak Telemetry JSON secara berkala ke konsol
+        # Cetak Telemetry JSON secara berkala atau kirim ke Cloud API
         if curr_time - last_json_time >= args.json_interval:
             payload = {
                 "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -323,8 +350,16 @@ def main():
                 "summary": stats,
                 "anonymized_tracks": telemetry_tracks
             }
-            print("\n[TELEMETRY JSON PAYLOAD GENERATED (Ready for Cloud API)]:")
-            print(json.dumps(payload, indent=2))
+            if args.session_id:
+                payload["session_id"] = args.session_id
+                ok, msg = send_telemetry_to_cloud(args.api_url, payload, args.device_key)
+                if ok:
+                    print(f"[*] [CLOUD INGEST SUCCESS] Sent telemetry to {args.api_url} (Hand raises: {stats['hands_raised']})")
+                else:
+                    print(f"[!] [CLOUD INGEST FAILED] {msg}")
+            else:
+                print("\n[TELEMETRY JSON PAYLOAD GENERATED (Local Preview)]:")
+                print(json.dumps(payload, indent=2))
             last_json_time = curr_time
 
         # Tombol Exit: 'q' atau ESC

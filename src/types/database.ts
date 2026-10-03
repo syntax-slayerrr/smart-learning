@@ -229,3 +229,49 @@ export interface ParentStats {
   totalAbsent: number;
   recentRecords: AttendanceRecord[];
 }
+
+// ============================================
+// Classroom Intelligence Tables
+// ============================================
+
+export interface ClassroomDevice {
+  id: string;
+  classroom_id: string;
+  device_name: string;
+  device_type: "edge_camera" | "mobile_ip_cam" | "laptop_webcam";
+  api_secret_hash: string;
+  is_active: boolean;
+  last_heartbeat: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClassroomTelemetry {
+  id: string;
+  session_id: string;
+  timestamp_bucket: string;
+  frame_sequence: number;
+  detected_students_count: number;
+  sitting_count: number;
+  standing_count: number;
+  hand_raise_count: number;
+  desk_focused_count: number;
+  active_clusters_count: number;
+  teacher_zone: string | null;
+  spatial_distribution_json: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface PedagogicalInsight {
+  id: string;
+  session_id: string;
+  phase_start_time: string | null;
+  phase_end_time: string | null;
+  insight_type: "participation" | "mobility" | "group_work" | "pacing";
+  observation_summary: string;
+  pedagogical_prompt: string;
+  confidence_level: "low" | "medium" | "high";
+  is_reviewed_by_teacher: boolean;
+  created_at: string;
+}
+
