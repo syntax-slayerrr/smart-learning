@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/close-sessions",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/sp-warning",
+      "schedule": "0 10 * * 5"
+    },
+    {
+      "path": "/api/cron/morning-alarm",
+      "schedule": "0 23 * * 0-5"
+    }
+  ]
+}
