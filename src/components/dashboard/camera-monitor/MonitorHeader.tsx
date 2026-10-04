@@ -15,6 +15,7 @@ import { CameraChannel } from "./types";
 
 interface MonitorHeaderProps {
   streamOnline: boolean;
+  actualFps?: number;
   viewMode: "single" | "quad";
   setViewMode: (mode: "single" | "quad") => void;
   isRefreshing: boolean;
@@ -30,6 +31,7 @@ interface MonitorHeaderProps {
 
 export function MonitorHeader({
   streamOnline,
+  actualFps = 30,
   viewMode,
   setViewMode,
   isRefreshing,
@@ -67,7 +69,7 @@ export function MonitorHeader({
                     streamOnline ? "bg-emerald-600 animate-pulse" : "bg-stone-400"
                   }`}
                 />
-                {streamOnline ? "LIVE STREAM AKTIF (30 FPS)" : "KAMERA STANDBY"}
+                {streamOnline ? `LIVE STREAM AKTIF (${actualFps} FPS)` : "KAMERA STANDBY"}
               </span>
             </div>
             <p className="text-[11px] text-stone-500">

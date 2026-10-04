@@ -88,6 +88,10 @@ export function LiveCameraMonitor() {
   const [rightTab, setRightTab] = useState<"digital_twin" | "analytics">("digital_twin");
   const [activeCamIndex, setActiveCamIndex] = useState<number>(0);
   const [streamOnline, setStreamOnline] = useState<boolean>(false);
+  const [actualFps, setActualFps] = useState<number>(30);
+  const failedStatusCountRef = useRef<number>(0);
+  const lastRealtimeEventRef = useRef<number>(0);
+  const [smoothedFocusIndex, setSmoothedFocusIndex] = useState<number>(100);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [copiedCmd, setCopiedCmd] = useState<boolean>(false);
   const [subjects, setSubjects] = useState<DetectedSubject[]>([]);
@@ -304,19 +308,27 @@ export function LiveCameraMonitor() {
       });
       clearTimeout(timeoutId);
       if (res.ok) {
+        failedStatusCountRef.current = 0;
         setStreamOnline(true);
         try {
           const data = await res.json();
+          if (typeof data?.fps === "number" && data.fps > 0) setActualFps(data.fps);
           if (data?.rotation) setCameraRotation(data.rotation);
           if (typeof data?.flip_h === "boolean") setIsFlipped(data.flip_h);
           if (data?.current_source !== undefined) setCurrentCameraSource(data.current_source);
           if (typeof data?.camera_connected === "boolean") setIsCameraHardwareConnected(data.camera_connected);
         } catch {}
       } else {
-        setStreamOnline(false);
+        failedStatusCountRef.current += 1;
+        if (failedStatusCountRef.current >= 2) {
+          setStreamOnline(false);
+        }
       }
     } catch {
-      setStreamOnline(false);
+      failedStatusCountRef.current += 1;
+      if (failedStatusCountRef.current >= 2) {
+        setStreamOnline(false);
+      }
     }
   };
 
@@ -450,6 +462,7 @@ export function LiveCameraMonitor() {
           table: "classroom_telemetry",
         },
         () => {
+          lastRealtimeEventRef.current = Date.now();
           fetchTelemetry();
         }
       )
@@ -457,7 +470,11 @@ export function LiveCameraMonitor() {
 
     const interval = setInterval(() => {
       checkStreamStatus();
-      fetchTelemetry();
+      // Watchdog polling: Jika websocket aktif mengirim data dalam 5 detik terakhir, abaikan polling untuk cegah jitter/race condition
+      const isWsRecent = Date.now() - lastRealtimeEventRef.current < 5000;
+      if (!isWsRecent) {
+        fetchTelemetry();
+      }
     }, 2500);
 
     const nudgeInterval = setInterval(() => {
@@ -537,9 +554,16 @@ export function LiveCameraMonitor() {
   if (!telemetry.hand_raise_count) counts.hand_raised = hitunganAngkatTanganLokal;
   if (!telemetry.sleep_detected_count) counts.sleep = hitunganTidurLokal;
 
-  const focusIndex = totalDetected > 0
+  const rawFocusIndex = totalDetected > 0
     ? Math.min(100, Math.round(((counts.attentive + counts.writing) / Math.max(1, totalDetected)) * 100))
     : 100;
+
+  // Smoothing Exponential Moving Average (EMA) untuk mencegah lonjakan/flicker HUD
+  useEffect(() => {
+    setSmoothedFocusIndex((prev) => Math.round(prev * 0.7 + rawFocusIndex * 0.3));
+  }, [rawFocusIndex]);
+
+  const focusIndex = smoothedFocusIndex;
 
   return (
     <div
@@ -552,6 +576,7 @@ export function LiveCameraMonitor() {
       {/* Header Bar & Saluran Selector */}
       <MonitorHeader
         streamOnline={streamOnline}
+        actualFps={actualFps}
         viewMode={viewMode}
         setViewMode={setViewMode}
         isRefreshing={isRefreshing}
