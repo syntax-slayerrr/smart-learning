@@ -315,14 +315,14 @@ function StatPill({
   };
 
   return (
-    <div className={`rounded-xl border p-3.5 ${colorMap[color] || colorMap.stone} shadow-2xs`}>
+    <div className={`rounded-xl border p-3.5 ${colorMap[color] || colorMap.stone} shadow-2xs transition-all duration-500 ease-out`}>
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon className={`h-3.5 w-3.5 ${alert ? "animate-pulse text-red-600" : "text-stone-400"}`} />
+        <Icon className={`h-3.5 w-3.5 ${alert ? "animate-pulse text-red-600" : "text-stone-400"} transition-colors duration-300`} />
         <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
           {label}
         </span>
       </div>
-      <p className="text-xl font-bold tabular-nums tracking-tight font-sans text-stone-900">
+      <p className="text-xl font-bold tabular-nums tracking-tight font-sans text-stone-900 transition-all duration-300">
         {value}
       </p>
     </div>

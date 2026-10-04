@@ -960,9 +960,9 @@ export function LiveCameraMonitor() {
                     </div>
 
                     <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                      <div className="rounded-md bg-stone-950/80 backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-stone-200 border border-white/10 flex items-center gap-2">
-                        <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-                        <span>Kamera HP IP Webcam • Duduk: {telemetry.sitting_count} | Berdiri: {telemetry.standing_count}</span>
+                      <div className="rounded-md bg-stone-950/80 backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-stone-200 border border-white/10 flex items-center gap-2 transition-all duration-500">
+                        <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse shrink-0" />
+                        <span>Kamera HP IP Webcam • Duduk: <strong className="font-mono tabular-nums text-white">{telemetry.sitting_count}</strong> | Berdiri: <strong className="font-mono tabular-nums text-white">{telemetry.standing_count}</strong></span>
                       </div>
                     </div>
                   </>
@@ -1004,21 +1004,31 @@ export function LiveCameraMonitor() {
 
             {/* Quick Status Legend Bar */}
             <div className="mt-3 pt-3 border-t border-[#E7E2DA]/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="font-semibold text-stone-700">Status Real-Time:</span>
-                <span className="flex items-center gap-1 text-emerald-700 font-mono text-[10.5px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600" /> Fokus ({counts.attentive})
+                <span className="flex items-center gap-1 text-emerald-700 font-mono text-[10.5px] transition-all duration-300">
+                  <span className="h-2 w-2 rounded-full bg-emerald-600 transition-colors duration-300" /> Duduk / Fokus (<strong className="tabular-nums font-bold">{counts.attentive}</strong>)
                 </span>
-                <span className="flex items-center gap-1 text-sky-700 font-mono text-[10.5px]">
-                  <span className="h-2 w-2 rounded-full bg-sky-500" /> Menulis / Meja ({counts.writing})
+                <span className="flex items-center gap-1 text-sky-700 font-mono text-[10.5px] transition-all duration-300">
+                  <span className="h-2 w-2 rounded-full bg-sky-500 transition-colors duration-300" /> Menulis (<strong className="tabular-nums font-bold">{counts.writing}</strong>)
                 </span>
                 {counts.sleep > 0 && (
-                  <span className="flex items-center gap-1 text-red-700 font-mono text-[10.5px] font-bold">
-                    <span className="h-2 w-2 rounded-full bg-red-700 animate-pulse" /> Menunduk ({counts.sleep})
+                  <span className="flex items-center gap-1 text-red-700 font-mono text-[10.5px] font-bold transition-all duration-300">
+                    <span className="h-2 w-2 rounded-full bg-red-700 animate-pulse" /> Tidur / Menunduk (<strong className="tabular-nums">{counts.sleep}</strong>)
+                  </span>
+                )}
+                {counts.hand_raised > 0 && (
+                  <span className="flex items-center gap-1 text-amber-800 font-mono text-[10.5px] font-bold transition-all duration-300">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" /> Angkat Tangan (<strong className="tabular-nums">{counts.hand_raised}</strong>)
+                  </span>
+                )}
+                {telemetry.standing_count > 0 && (
+                  <span className="flex items-center gap-1 text-blue-700 font-mono text-[10.5px] font-bold transition-all duration-300">
+                    <span className="h-2 w-2 rounded-full bg-blue-600" /> Berdiri (<strong className="tabular-nums">{telemetry.standing_count}</strong>)
                   </span>
                 )}
               </div>
-              <div className="font-mono text-stone-400">
+              <div className="font-mono text-stone-400 text-[10.5px]">
                 Update: {lastSyncTime.toLocaleTimeString("id-ID")}
               </div>
             </div>
@@ -1060,24 +1070,24 @@ export function LiveCameraMonitor() {
               </div>
 
               {/* Focus Index Gauge Banner */}
-              <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3 shadow-2xs">
+              <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3 shadow-2xs transition-all duration-500">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-[#EA580C]" /> Indeks Fokus Real-Time
                   </span>
-                  <span className="text-base font-bold font-mono text-emerald-700 tabular-nums">
+                  <span className="text-base font-bold font-mono text-emerald-700 tabular-nums transition-all duration-300">
                     {focusIndex}%
                   </span>
                 </div>
                 <div className="h-2 bg-stone-200 rounded-full overflow-hidden flex">
                   {totalDetected > 0 ? (
                     <>
-                      <div style={{ width: `${(counts.attentive / totalDetected) * 100}%` }} className="bg-emerald-600" title="Fokus" />
-                      <div style={{ width: `${(counts.writing / totalDetected) * 100}%` }} className="bg-sky-500" title="Menulis" />
-                      <div style={{ width: `${(counts.sleep / totalDetected) * 100}%` }} className="bg-red-700" title="Menunduk / Tidur" />
+                      <div style={{ width: `${(counts.attentive / totalDetected) * 100}%` }} className="bg-emerald-600 transition-all duration-700 ease-out" title="Fokus / Duduk" />
+                      <div style={{ width: `${(counts.writing / totalDetected) * 100}%` }} className="bg-sky-500 transition-all duration-700 ease-out" title="Menulis" />
+                      <div style={{ width: `${(counts.sleep / totalDetected) * 100}%` }} className="bg-red-700 transition-all duration-700 ease-out" title="Menunduk / Tidur" />
                     </>
                   ) : (
-                    <div style={{ width: "100%" }} className="bg-stone-300" title="Standby" />
+                    <div style={{ width: "100%" }} className="bg-stone-300 transition-all duration-500" title="Standby" />
                   )}
                 </div>
               </div>
@@ -1087,7 +1097,7 @@ export function LiveCameraMonitor() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[10.5px] font-mono text-stone-500 px-1">
                     <span>AREA VISUAL KAMERA</span>
-                    <span>{totalDetected} SUBJEK TERDETEKSI</span>
+                    <span className="tabular-nums font-bold text-stone-700">{totalDetected} SUBJEK TERDETEKSI</span>
                   </div>
 
                   {subjects.length > 0 ? (
@@ -1101,38 +1111,38 @@ export function LiveCameraMonitor() {
                           <div
                             key={st.id}
                             onClick={() => setSelectedSubject(st)}
-                            className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                            className={`rounded-xl border p-3 text-left transition-all duration-500 ease-out cursor-pointer ${
                               isAlert
                                 ? "border-red-300 bg-red-50/70 shadow-xs"
                                 : isSelected
                                 ? "border-[#EA580C] bg-orange-50/50 shadow-xs"
-                                : "border-[#E7E2DA] bg-[#FBF9F5] hover:bg-stone-50"
+                                : "border-[#E7E2DA] bg-[#FBF9F5] hover:bg-stone-50 hover:border-stone-300"
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-[11px] font-mono font-bold text-stone-700">
                                 #{st.anonymous_id || st.id}
                               </span>
-                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[9.5px] font-mono ${badge.bg}`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[9.5px] font-mono transition-all duration-500 ${badge.bg}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${badge.dot}`} />
                                 {badge.label}
                               </span>
                             </div>
 
-                            <p className="text-xs font-bold text-stone-900 truncate">
+                            <p className="text-xs font-bold text-stone-900 truncate transition-colors duration-300">
                               {st.action_text || st.label}
                             </p>
 
                             {/* Multi-parameter detail pills */}
                             <div className="mt-2 pt-2 border-t border-[#E7E2DA]/70 grid grid-cols-2 gap-1 text-[9.5px] font-mono text-stone-600">
                               <span className="truncate">
-                                <strong>Fokus:</strong> {st.attention_score || 95}%
+                                <strong>Fokus:</strong> <span className="tabular-nums">{st.attention_score || 95}%</span>
                               </span>
                               <span className="truncate text-right">
-                                <strong>Postur:</strong> {st.posture === "standing" ? "Berdiri" : "Duduk"}
+                                <strong>Postur:</strong> <span className="font-semibold text-stone-800 transition-colors duration-300">{st.posture === "standing" ? "Berdiri" : "Duduk"}</span>
                               </span>
                               <span className="truncate">
-                                <strong>Tilt:</strong> {st.head_tilt_deg !== undefined ? `${Math.round(st.head_tilt_deg)}°` : "0°"}
+                                <strong>Tilt:</strong> <span className="tabular-nums">{st.head_tilt_deg !== undefined ? `${Math.round(st.head_tilt_deg)}°` : "0°"}</span>
                               </span>
                               <span className="truncate text-right">
                                 <strong>Arah:</strong> {st.gaze_direction || "Depan"}
@@ -1140,7 +1150,7 @@ export function LiveCameraMonitor() {
                             </div>
 
                             {st.hand_raised && (
-                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 flex items-center gap-1">
+                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 flex items-center gap-1 transition-all duration-300">
                                 <span>✋ Tangan Terangkat (Bertanya)</span>
                               </div>
                             )}

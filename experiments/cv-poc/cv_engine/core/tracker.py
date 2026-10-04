@@ -57,6 +57,8 @@ class PelacakSubjekKelas:
         self.pencatat_mulai_angkat_tangan: Dict[int, float] = {}
         self.penahan_histesis_tangan: Dict[int, float] = {}
         self.riwayat_posisi_pergelangan: Dict[int, deque] = {}
+        self.riwayat_postur: Dict[int, deque] = {}  # Filter temporal voting postur (anti-chatter)
+        self.penahan_waktu_menulis: Dict[int, float] = {}  # Latch aktivitas menulis agar halus alami
         self.lost_tracks: Dict[int, Dict[str, Any]] = {}
 
         # Alias kompatibilitas internal
@@ -197,10 +199,17 @@ class PelacakSubjekKelas:
 
             id_pemeriksaan = id_terbaik or self.id_berikutnya
 
-            # Klasifikasi Postur Duduk vs Berdiri
-            postur = "standing" if py < tinggi_frame * 0.25 and ph > tinggi_frame * 0.55 else "sitting"
+            # 5. Klasifikasi Postur Duduk vs Berdiri dengan Filter Mayoritas Temporal (Anti-Jitter)
+            postur_mentah = "standing" if (py < tinggi_frame * 0.28 and ph > tinggi_frame * 0.52) else "sitting"
+            if id_pemeriksaan not in self.riwayat_postur:
+                self.riwayat_postur[id_pemeriksaan] = deque(maxlen=10)
+            self.riwayat_postur[id_pemeriksaan].append(postur_mentah)
 
-            # 5. Kinematika Angkat Tangan & Deteksi Tidur (Guardrail 1 & 2)
+            suara_berdiri = sum(1 for p in self.riwayat_postur[id_pemeriksaan] if p == "standing")
+            # Tuntut minimal 7 dari 10 frame untuk menyatakan berdiri (stabilisasi transisi)
+            postur = "standing" if suara_berdiri >= 7 else "sitting"
+
+            # 6. Kinematika Angkat Tangan & Deteksi Tidur (Guardrail 1 & 2)
             if memiliki_pose:
                 # Guardrail 2: Hand Motion Energy Verifier (Sliding Window Deque)
                 if id_pemeriksaan not in self.riwayat_posisi_pergelangan:
@@ -217,16 +226,25 @@ class PelacakSubjekKelas:
 
                 # Siswa tekun menulis di meja jika tangan bergerak aktif dan posisi di bawah bahu
                 is_sedang_menulis = (
-                    (pergelangan_kiri.y > bahu_kiri.y + 0.06 or pergelangan_kanan.y > bahu_kanan.y + 0.06) and
-                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS) and
-                    (hidung.y > pusat_bahu_y - 0.14)
+                    (pergelangan_kiri.y > bahu_kiri.y + 0.04 or pergelangan_kanan.y > bahu_kanan.y + 0.04) and
+                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 0.8) and
+                    (hidung.y > pusat_bahu_y - 0.16)
+                )
+
+                if is_sedang_menulis:
+                    self.penahan_waktu_menulis[id_pemeriksaan] = waktu_sekarang
+
+                # Latch aktivitas menulis selama 1.8 detik untuk menjembatani jeda alami tarikan pena
+                aktivitas_menulis_aktif = (
+                    id_pemeriksaan in self.penahan_waktu_menulis and
+                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.8
                 )
 
                 # Gerbang deteksi tidur murni: Kepala jatuh DAN tangan statis
                 is_kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.02) or (kemiringan_kepala > 55.0 and pusat_subjek_y > tinggi_frame * 0.45)
                 is_tidur = False
 
-                if is_sedang_menulis:
+                if aktivitas_menulis_aktif:
                     self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
                     is_tidur = False
                 elif is_kepala_menunduk and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR):
@@ -290,7 +308,7 @@ class PelacakSubjekKelas:
                     self.pencatat_mulai_angkat_tangan.pop(id_pemeriksaan, None)
                     self.penahan_histesis_tangan.pop(id_pemeriksaan, None)
 
-                # Penentuan Skor Atensi & Teks Aktivitas Pedagogis
+                # Penentuan Skor Atensi & Teks Aktivitas Pedagogis Bebas Fluktuasi
                 if is_tidur:
                     aktivitas = "sleep"
                     teks_aksi = "Rebahan / Tidur di Meja"
@@ -299,18 +317,14 @@ class PelacakSubjekKelas:
                     aktivitas = "hand_raised"
                     teks_aksi = "Angkat Tangan (Bertanya)"
                     skor_atensi = 98
-                elif is_sedang_menulis:
+                elif aktivitas_menulis_aktif:
                     aktivitas = "writing"
                     teks_aksi = "Fokus Menulis / Meja"
-                    skor_atensi = 96
+                    skor_atensi = 94
                 elif postur == "standing":
                     aktivitas = "attentive"
                     teks_aksi = "Berdiri di Depan"
                     skor_atensi = 90
-                elif pergelangan_kiri.y > bahu_kiri.y and pergelangan_kanan.y > bahu_kanan.y and hidung.y > pusat_bahu_y - 0.14:
-                    aktivitas = "writing"
-                    teks_aksi = "Fokus Mengetik / Meja"
-                    skor_atensi = 95
                 else:
                     aktivitas = "attentive"
                     teks_aksi = "Fokus Belajar"
@@ -325,18 +339,19 @@ class PelacakSubjekKelas:
 
             sub_label_hud = f"Postur: {'Duduk' if postur == 'sitting' else 'Berdiri'} • Fokus: {skor_atensi}% • {arah_tatapan}"
 
-            # Guardrail 4: EMA Coordinate Smoothing (Zero Jitter)
+            # Guardrail 4: EMA Coordinate Smoothing Adaptif (Zero Jitter, Zero Snap)
             if id_terbaik is not None:
                 track_lama = self.tracks[id_terbaik]
                 lama_x, lama_y, lama_w, lama_h = track_lama["box"]
 
-                if math.hypot(px - lama_x, py - lama_y) > 90:
-                    halus_x, halus_y, halus_w, halus_h = px, py, pw, ph
-                else:
-                    halus_x = int(FAKTOR_EMA_SMOOTHING * px + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_x)
-                    halus_y = int(FAKTOR_EMA_SMOOTHING * py + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_y)
-                    halus_w = int(FAKTOR_EMA_SMOOTHING * pw + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_w)
-                    halus_h = int(FAKTOR_EMA_SMOOTHING * ph + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_h)
+                jarak_geser = math.hypot(px - lama_x, py - lama_y)
+                # Alpha adaptif: transisi meluncur mulus tanpa patah-patah
+                alpha_adaptif = min(0.60, max(FAKTOR_EMA_SMOOTHING, jarak_geser / 250.0))
+
+                halus_x = int(alpha_adaptif * px + (1.0 - alpha_adaptif) * lama_x)
+                halus_y = int(alpha_adaptif * py + (1.0 - alpha_adaptif) * lama_y)
+                halus_w = int(alpha_adaptif * pw + (1.0 - alpha_adaptif) * lama_w)
+                halus_h = int(alpha_adaptif * ph + (1.0 - alpha_adaptif) * lama_h)
 
                 track_lama["box"] = (halus_x, halus_y, halus_w, halus_h)
                 track_lama["center"] = (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0)
@@ -391,6 +406,8 @@ class PelacakSubjekKelas:
                 self.pencatat_mulai_angkat_tangan.pop(id_t, None)
                 self.penahan_histesis_tangan.pop(id_t, None)
                 self.riwayat_posisi_pergelangan.pop(id_t, None)
+                self.riwayat_postur.pop(id_t, None)
+                self.penahan_waktu_menulis.pop(id_t, None)
 
         # Hapus rekaman jika telah melampaui toleransi TTL 4.0 detik
         self.lost_tracks = {
