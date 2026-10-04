@@ -27,7 +27,11 @@ from cv_engine.config import (
     TOLERANSI_TRACK_HILANG_DETIK,
     MINIMAL_VOTING_IDENTITAS
 )
-from cv_engine.core.kinematics import hitung_sudut_tiga_titik, saring_pose_tumpang_tindih
+from cv_engine.core.kinematics import (
+    hitung_sudut_tiga_titik,
+    saring_pose_tumpang_tindih,
+    saring_kandidat_spasial
+)
 
 
 class PelacakSubjekKelas:
@@ -94,17 +98,22 @@ class PelacakSubjekKelas:
                 pusat_yolo_y = yy + yh / 2.0
 
                 pose_terbaik = None
-                jarak_terdekat = 180.0
+                jarak_terdekat = 280.0
                 for pose in pose_tersaring:
                     if len(pose) < 17:
                         continue
                     bahu_kiri = pose[11]
                     bahu_kanan = pose[12]
-                    pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x) / 2.0) * lebar_frame
-                    pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y) / 2.0) * tinggi_frame
+                    # Pusat torso realistis (antara bahu dan pinggul jika tersedia)
+                    if len(pose) >= 25 and getattr(pose[23], 'visibility', 0.0) > 0.2:
+                        pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x + pose[23].x + pose[24].x) / 4.0) * lebar_frame
+                        pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y + pose[23].y + pose[24].y) / 4.0) * tinggi_frame
+                    else:
+                        pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x) / 2.0) * lebar_frame
+                        pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y) / 2.0) * tinggi_frame
                     jarak_euclidean = math.hypot(pusat_yolo_x - pusat_torso_x, pusat_yolo_y - pusat_torso_y)
 
-                    if jarak_euclidean < jarak_terdekat and (yx - 40 <= pusat_torso_x <= yx + yw + 40) and (yy - 40 <= pusat_torso_y <= yy + yh + 40):
+                    if jarak_euclidean < jarak_terdekat and (yx - 50 <= pusat_torso_x <= yx + yw + 50) and (yy - 50 <= pusat_torso_y <= yy + yh + 50):
                         jarak_terdekat = jarak_euclidean
                         pose_terbaik = pose
 
@@ -133,6 +142,9 @@ class PelacakSubjekKelas:
                     "keyakinan": 0.95,
                     "landmarks": pose
                 })
+
+        # 3. Spatial NMS Filter pada Kandidat Terpadu (Menghilangkan Bounding Box Ganda)
+        kandidat_terpadu = saring_kandidat_spasial(kandidat_terpadu, ambang_iou=0.35, ambang_jarak_pusat=100.0)
 
         for kandidat in kandidat_terpadu:
             px, py, pw, ph = kandidat["kotak"]
@@ -199,8 +211,41 @@ class PelacakSubjekKelas:
 
             id_pemeriksaan = id_terbaik or self.id_berikutnya
 
-            # 5. Klasifikasi Postur Duduk vs Berdiri dengan Filter Mayoritas Temporal (Anti-Jitter)
-            postur_mentah = "standing" if (py < tinggi_frame * 0.28 and ph > tinggi_frame * 0.52) else "sitting"
+            # 5. Klasifikasi Postur Duduk vs Berdiri dengan Analisis Biomekanika Anatomi
+            postur_mentah = "sitting"
+            if memiliki_pose and len(landmarks) >= 27:
+                # Periksa visibilitas pinggul dan lutut
+                pinggul_kiri = landmarks[23]
+                pinggul_kanan = landmarks[24]
+                lutut_kiri = landmarks[25]
+                lutut_kanan = landmarks[26]
+
+                vis_pinggul = max(getattr(pinggul_kiri, 'visibility', 0.0), getattr(pinggul_kanan, 'visibility', 0.0))
+                vis_lutut = max(getattr(lutut_kiri, 'visibility', 0.0), getattr(lutut_kanan, 'visibility', 0.0))
+
+                # Berdiri jika dan hanya jika tungkai kaki bawah terdeteksi dengan jelas di bawah pinggul
+                # dan tubuh memanjang secara vertikal dalam posisi berdiri penuh
+                if vis_lutut > 0.38 and vis_pinggul > 0.35:
+                    pusat_pinggul_y = (pinggul_kiri.y + pinggul_kanan.y) / 2.0
+                    pusat_lutut_y = (lutut_kiri.y + lutut_kanan.y) / 2.0
+                    rasio_aspek = ph / max(1.0, pw)
+
+                    # Lutut harus berada di bawah pinggul dengan jarak vertikal signifikan
+                    if (pusat_lutut_y - pusat_pinggul_y > 0.15) and (rasio_aspek >= 1.5) and (ph > tinggi_frame * 0.45):
+                        postur_mentah = "standing"
+                    else:
+                        postur_mentah = "sitting"
+                else:
+                    # Jika lutut tidak terlihat (terpotong meja / pandangan laptop/webcam), postur adalah duduk
+                    postur_mentah = "sitting"
+            else:
+                # Fallback rasio aspek hanya jika pose tidak tersedia
+                rasio_aspek = ph / max(1.0, pw)
+                if (rasio_aspek >= 1.9) and (ph > tinggi_frame * 0.55):
+                    postur_mentah = "standing"
+                else:
+                    postur_mentah = "sitting"
+
             if id_pemeriksaan not in self.riwayat_postur:
                 self.riwayat_postur[id_pemeriksaan] = deque(maxlen=10)
             self.riwayat_postur[id_pemeriksaan].append(postur_mentah)
@@ -414,6 +459,54 @@ class PelacakSubjekKelas:
             id_t: data_t for id_t, data_t in self.lost_tracks.items()
             if waktu_sekarang - data_t["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK
         }
+
+        # Guardrail Ekstra: Eliminasi Ghost Tracks yang saling tumpang tindih pada active tracks
+        daftar_id_aktif = sorted(list(self.tracks.keys()))
+        id_dihapus = set()
+        for i in range(len(daftar_id_aktif)):
+            id_a = daftar_id_aktif[i]
+            if id_a in id_dihapus or id_a not in self.tracks:
+                continue
+            track_a = self.tracks[id_a]
+            ax, ay, aw, ah = track_a["box"]
+            acx, acy = track_a["center"]
+
+            for j in range(i + 1, len(daftar_id_aktif)):
+                id_b = daftar_id_aktif[j]
+                if id_b in id_dihapus or id_b not in self.tracks:
+                    continue
+                track_b = self.tracks[id_b]
+                bx, by, bw, bh = track_b["box"]
+                bcx, bcy = track_b["center"]
+
+                jarak_pusat = math.hypot(acx - bcx, acy - bcy)
+
+                # Uji IoU
+                ix1 = max(ax, bx)
+                iy1 = max(ay, by)
+                ix2 = min(ax + aw, bx + bw)
+                iy2 = min(ay + ah, by + bh)
+                luas_i = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+                luas_u = (aw * ah) + (bw * bh) - luas_i
+                iou = (luas_i / float(luas_u)) if luas_u > 0 else 0.0
+
+                if jarak_pusat < 110.0 or iou > 0.35:
+                    # Tumpang tindih terdeteksi! Pertahankan track utama (ID lebih kecil)
+                    id_korban = id_b
+                    id_pemenang = id_a
+                    if not self.tracks[id_pemenang].get("is_recognized") and self.tracks[id_korban].get("is_recognized"):
+                        self.tracks[id_pemenang]["student_name"] = self.tracks[id_korban]["student_name"]
+                        self.tracks[id_pemenang]["is_recognized"] = True
+                    id_dihapus.add(id_korban)
+
+        for id_buang in id_dihapus:
+            self.tracks.pop(id_buang, None)
+            self.pencatat_waktu_tidur.pop(id_buang, None)
+            self.pencatat_mulai_angkat_tangan.pop(id_buang, None)
+            self.penahan_histesis_tangan.pop(id_buang, None)
+            self.riwayat_posisi_pergelangan.pop(id_buang, None)
+            self.riwayat_postur.pop(id_buang, None)
+            self.penahan_waktu_menulis.pop(id_buang, None)
 
         return list(self.tracks.values())
 

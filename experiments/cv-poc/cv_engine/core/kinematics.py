@@ -10,7 +10,7 @@ Modul ini mengimplementasikan algoritma geometri analitis dan penyaringan spasia
 """
 
 import math
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Dict
 import numpy as np
 
 
@@ -128,6 +128,59 @@ def saring_pose_tumpang_tindih(
     return [item[4] for item in kotak_terseleksi]
 
 
+def saring_kandidat_spasial(
+    daftar_kandidat: List[Dict[str, Any]],
+    ambang_iou: float = 0.35,
+    ambang_jarak_pusat: float = 100.0
+) -> List[Dict[str, Any]]:
+    """
+    Menyaring kandidat subjek deteksi terpadu agar tidak terjadi duplikasi/ghost box.
+    Mengurutkan kandidat berdasarkan skor keyakinan dan mengeliminasi kotak
+    yang memiliki IoU tinggi atau jarak pusat sangat dekat (subjek yang sama).
+    """
+    if len(daftar_kandidat) <= 1:
+        return daftar_kandidat
+
+    kandidat_terurut = sorted(daftar_kandidat, key=lambda k: k.get("keyakinan", 0.0), reverse=True)
+    kandidat_terpilih: List[Dict[str, Any]] = []
+
+    for cand in kandidat_terurut:
+        cx1, cy1, cw1, ch1 = cand["kotak"]
+        cpx1 = cx1 + cw1 / 2.0
+        cpy1 = cy1 + ch1 / 2.0
+        luas1 = max(0, cw1) * max(0, ch1)
+
+        tumpang_tindih = False
+        for terpilih in kandidat_terpilih:
+            cx2, cy2, cw2, ch2 = terpilih["kotak"]
+            cpx2 = cx2 + cw2 / 2.0
+            cpy2 = cy2 + ch2 / 2.0
+            luas2 = max(0, cw2) * max(0, ch2)
+
+            # 1. Uji Jarak Euclidean Titik Pusat
+            if math.hypot(cpx1 - cpx2, cpy1 - cpy2) < ambang_jarak_pusat:
+                tumpang_tindih = True
+                break
+
+            # 2. Uji Rasio IoU (Intersection-over-Union)
+            ix1 = max(cx1, cx2)
+            iy1 = max(cy1, cy2)
+            ix2 = min(cx1 + cw1, cx2 + cw2)
+            iy2 = min(cy1 + ch1, cy2 + ch2)
+            luas_irisan = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+            luas_gabungan = luas1 + luas2 - luas_irisan
+
+            if luas_gabungan > 0 and (luas_irisan / luas_gabungan) > ambang_iou:
+                tumpang_tindih = True
+                break
+
+        if not tumpang_tindih:
+            kandidat_terpilih.append(cand)
+
+    return kandidat_terpilih
+
+
 # Alias backward-compatibility untuk pemanggil eksternal
 calculate_angle_3pts = hitung_sudut_tiga_titik
 filter_overlapping_poses = saring_pose_tumpang_tindih
+filter_spatial_candidates = saring_kandidat_spasial

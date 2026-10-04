@@ -93,7 +93,8 @@ class DetektorYOLO26:
 
         skala_x = lebar_asli / float(dimensi_input)
         skala_y = tinggi_asli / float(dimensi_input)
-        daftar_hasil = []
+        kotak_calon = []
+        skor_calon = []
 
         for (pusat_x, pusat_y, lebar_kotak, tinggi_kotak), skor in zip(kotak_valid, skor_valid):
             koordinat_x = max(0, int((pusat_x - lebar_kotak / 2.0) * skala_x))
@@ -102,8 +103,25 @@ class DetektorYOLO26:
             tinggi_piksel = min(tinggi_asli - koordinat_y, int(tinggi_kotak * skala_y))
 
             # Filter ukuran minimum agar tidak memproses noise
-            if lebar_piksel > 30 and tinggi_piksel > 40:
-                daftar_hasil.append((koordinat_x, koordinat_y, lebar_piksel, tinggi_piksel, float(skor)))
+            if lebar_piksel > 35 and tinggi_piksel > 50:
+                kotak_calon.append([koordinat_x, koordinat_y, lebar_piksel, tinggi_piksel])
+                skor_calon.append(float(skor))
+
+        daftar_hasil = []
+        # 4. Non-Maximum Suppression (NMS) Berbasis C++ OpenCV DNN
+        # Mengeliminasi redundansi anchor sehingga 1 subjek = tepat 1 kotak deteksi
+        if len(kotak_calon) > 0:
+            indeks_terpilih = cv2.dnn.NMSBoxes(
+                bboxes=kotak_calon,
+                scores=skor_calon,
+                score_threshold=float(ambang_keyakinan),
+                nms_threshold=0.45
+            )
+            if len(indeks_terpilih) > 0:
+                for idx in np.array(indeks_terpilih).flatten():
+                    bx, by, bw, bh = kotak_calon[idx]
+                    sc = skor_calon[idx]
+                    daftar_hasil.append((bx, by, bw, bh, sc))
 
         return daftar_hasil
 

@@ -18,7 +18,9 @@ from cv_engine.core.kinematics import (
     hitung_sudut_tiga_titik,
     calculate_angle_3pts,
     saring_pose_tumpang_tindih,
-    filter_overlapping_poses
+    filter_overlapping_poses,
+    saring_kandidat_spasial,
+    filter_spatial_candidates
 )
 
 __all__ = [
@@ -30,6 +32,7 @@ __all__ = [
     "PelacakSubjekKelas",
     "hitung_sudut_tiga_titik",
     "saring_pose_tumpang_tindih",
+    "saring_kandidat_spasial",
     # Alias Kompatibilitas
     "YOLO26Detector",
     "MediaPipePoseDetector",
@@ -37,5 +40,6 @@ __all__ = [
     "FacePipeline",
     "SubjectTracker",
     "calculate_angle_3pts",
-    "filter_overlapping_poses"
+    "filter_overlapping_poses",
+    "filter_spatial_candidates"
 ]
