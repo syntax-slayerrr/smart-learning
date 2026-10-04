@@ -31,6 +31,7 @@ export const ROLES = [
 export const NAV_ITEMS = {
   admin: [
     { label: "Dashboard", href: "/admin", icon: "LayoutDashboard", group: "OPERASIONAL" },
+    { label: "AI Classroom", href: "/admin/camera-monitor", icon: "Video", group: "OPERASIONAL" },
     { label: "Absensi Siswa", href: "/admin/attendance", icon: "ClipboardCheck", group: "OPERASIONAL" },
     { label: "Absensi Guru", href: "/admin/attendance/teachers", icon: "ClipboardList", group: "OPERASIONAL" },
     { label: "Laporan & Rekap", href: "/admin/reports", icon: "BarChart3", group: "OPERASIONAL" },

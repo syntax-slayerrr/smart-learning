@@ -656,6 +656,26 @@ export async function createSubject(formData: FormData) {
   return { success: true };
 }
 
+export async function updateSubject(formData: FormData) {
+  const supabase = await createClient();
+  const id = formData.get('id') as string;
+  const name = formData.get('name') as string;
+  const code = formData.get('code') as string;
+
+  if (!id || !name) return { error: 'ID dan nama mata pelajaran wajib diisi.' };
+
+  const { error } = await supabase
+    .from('subjects')
+    .update({ name, code: code || null })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/admin/subjects');
+  return { success: true };
+}
+
+
 // ============================================
 // SCHEDULE ACTIONS
 // ============================================

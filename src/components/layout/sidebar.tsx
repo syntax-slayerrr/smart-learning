@@ -23,6 +23,7 @@ import {
   UserCircle,
   BookOpen,
   Calendar,
+  Video,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -40,6 +41,7 @@ const iconMap: Record<string, React.ElementType> = {
   UserCircle,
   BookOpen,
   Calendar,
+  Video,
 };
 
 interface SidebarProps {

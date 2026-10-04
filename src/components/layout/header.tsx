@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Menu } from "lucide-react";
 import { getRoleLabel } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -34,15 +35,31 @@ export function Header({ role, onMenuClick }: HeaderProps) {
       </div>
 
       {/* Center: Live Telemetry Indicator Pill (Section 22) */}
-      <div className="hidden sm:flex items-center gap-2 rounded-full border border-[rgba(52,199,89,0.25)] bg-[#34C759]/[0.08] px-3.5 py-1 text-xs font-medium text-[#1D1D1F]">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
-        </span>
-        <span className="text-[12px] tracking-tight">
-          AI Telemetry Engine <span className="text-[#34C759] font-semibold">• Live</span>
-        </span>
-      </div>
+      {role === "admin" ? (
+        <Link
+          href="/admin/camera-monitor"
+          className="hidden sm:flex items-center gap-2 rounded-full border border-[rgba(52,199,89,0.25)] bg-[#34C759]/[0.08] hover:bg-[#34C759]/[0.15] px-3.5 py-1 text-xs font-medium text-[#1D1D1F] transition-all apple-press"
+          title="Buka AI Classroom Vision & Live Monitor"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
+          </span>
+          <span className="text-[12px] tracking-tight">
+            AI Telemetry Engine <span className="text-[#34C759] font-semibold">• Live Monitor</span>
+          </span>
+        </Link>
+      ) : (
+        <div className="hidden sm:flex items-center gap-2 rounded-full border border-[rgba(52,199,89,0.25)] bg-[#34C759]/[0.08] px-3.5 py-1 text-xs font-medium text-[#1D1D1F]">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
+          </span>
+          <span className="text-[12px] tracking-tight">
+            AI Telemetry Engine <span className="text-[#34C759] font-semibold">• Live</span>
+          </span>
+        </div>
+      )}
 
       {/* Right: Notifications (Touch Target >= 44px) */}
       <div className="flex items-center gap-2">

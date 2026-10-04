@@ -27,6 +27,7 @@ import {
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 interface StudentRow {
@@ -53,6 +54,7 @@ export function StudentsClient({
 }) {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentRow | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<{ id: string; name: string } | null>(null);
   const [selectedMobileStudent, setSelectedMobileStudent] = useState<StudentRow | null>(null);
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState("");
@@ -96,13 +98,14 @@ export function StudentsClient({
     });
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (!confirm(`Hapus siswa "${name}"?`)) return;
+  const handleDeleteConfirm = () => {
+    if (!deletingStudent) return;
     startTransition(async () => {
-      await deleteStudent(id);
-      if (selectedMobileStudent?.id === id) {
+      await deleteStudent(deletingStudent.id);
+      if (selectedMobileStudent?.id === deletingStudent.id) {
         setSelectedMobileStudent(null);
       }
+      setDeletingStudent(null);
     });
   };
 
@@ -465,7 +468,7 @@ export function StudentsClient({
                         <Printer className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(s.id, s.profiles?.full_name || "")}
+                        onClick={() => setDeletingStudent({ id: s.id, name: s.profiles?.full_name || s.nis })}
                         disabled={isPending}
                         title="Hapus Siswa"
                         className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors"
@@ -724,7 +727,10 @@ export function StudentsClient({
                 type="button"
                 variant="destructive"
                 onClick={() => {
-                  handleDelete(selectedMobileStudent.id, selectedMobileStudent.profiles?.full_name || "");
+                  setDeletingStudent({
+                    id: selectedMobileStudent.id,
+                    name: selectedMobileStudent.profiles?.full_name || selectedMobileStudent.nis,
+                  });
                 }}
                 className="w-full justify-start gap-2.5"
               >
@@ -735,6 +741,17 @@ export function StudentsClient({
           </div>
         )}
       </BottomSheet>
+
+      {/* Dialog Konfirmasi Hapus Siswa */}
+      <DeleteConfirmDialog
+        isOpen={Boolean(deletingStudent)}
+        onClose={() => setDeletingStudent(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deletingStudent?.name}
+        isPending={isPending}
+        title="Hapus Data Siswa"
+        description={`Apakah Anda yakin ingin menghapus data siswa "${deletingStudent?.name}"? Seluruh data kehadiran, pelanggaran, dan kartu QR terkait akan dihapus secara permanen.`}
+      />
     </div>
   );
 }
