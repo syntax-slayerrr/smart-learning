@@ -168,38 +168,16 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
   const getStatusBadgeClass = (type: string) => {
     switch (type) {
       case "present":
-        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
+        return "bg-[#34C759]/10 text-[#34C759] border-[#34C759]/20";
       case "warning":
-        return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
+        return "bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/20";
       case "sick":
-        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
+        return "bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20";
       case "absent":
       default:
-        return "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20";
+        return "bg-[#FF3B30]/10 text-[#FF3B30] border-[#FF3B30]/20";
     }
   };
-
-  // Immediate attendance statistics from records
-  const statsSummary = useMemo(() => {
-    let hadir = 0;
-    let terlambat = 0;
-    let izin = 0;
-    let sakit = 0;
-    let alpa = 0;
-
-    records.forEach((r) => {
-      if (r.status === "present") hadir++;
-      else if (r.status === "late") terlambat++;
-      else if (r.status === "excused") izin++;
-      else if (r.status === "sick") sakit++;
-      else if (r.status === "absent") alpa++;
-    });
-
-    const totalScanned = hadir + terlambat + izin + sakit + alpa;
-    const rate = totalScanned > 0 ? Math.round(((hadir + terlambat) / totalScanned) * 100) : 0;
-
-    return { hadir, terlambat, izin, sakit, alpa, rate, totalScanned };
-  }, [records]);
 
   const handleExport = async () => {
     if (sortedStudents.length === 0) {
@@ -251,14 +229,14 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
       {/* Header and Export Action */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-[10px] font-bold tracking-wider uppercase text-orange-600 dark:text-orange-400">
-            REKAPITULASI PRESENSI • SMK TI SYNTAX SLAYER
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-[#8E8E93]">
+            REKAPITULASI PRESENSI
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
-            Monitoring Presensi Harian Siswa
+          <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">
+            Laporan Absensi Siswa
           </h1>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-            Pelacakan kehadiran multi-sesi Jam Pelajaran (JP) dengan verifikasi AI & barcode scanner.
+          <p className="text-xs text-[#6E6E73] mt-0.5">
+            Monitor kehadiran harian siswa terintegrasi Jam Pelajaran (JP).
           </p>
         </div>
         <div>
@@ -266,80 +244,46 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
             type="button"
             variant="primary"
             onClick={handleExport}
-            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 shadow-xs"
+            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
           >
             <Download className="h-4 w-4" />
-            <span>Ekspor Lembar Excel</span>
+            <span>Export Excel</span>
           </Button>
         </div>
       </div>
 
-      {/* Immediate Attendance Summary Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xs">
-          <p className="text-[11px] font-medium text-stone-500">Tingkat Hadir</p>
-          <p className="text-2xl font-bold font-mono text-orange-600 dark:text-orange-400 mt-0.5">
-            {statsSummary.rate}%
-          </p>
-        </div>
-        <div className="p-3.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xs">
-          <p className="text-[11px] font-medium text-stone-500">Hadir Tepat Waktu</p>
-          <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {statsSummary.hadir}
-          </p>
-        </div>
-        <div className="p-3.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xs">
-          <p className="text-[11px] font-medium text-stone-500">Terlambat</p>
-          <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
-            {statsSummary.terlambat}
-          </p>
-        </div>
-        <div className="p-3.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xs">
-          <p className="text-[11px] font-medium text-stone-500">Izin & Sakit</p>
-          <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">
-            {statsSummary.izin + statsSummary.sakit}
-          </p>
-        </div>
-        <div className="col-span-2 sm:col-span-1 p-3.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xs">
-          <p className="text-[11px] font-medium text-stone-500">Alpa / Belum Absen</p>
-          <p className="text-2xl font-bold font-mono text-red-600 dark:text-red-400 mt-0.5">
-            {statsSummary.alpa}
-          </p>
-        </div>
-      </div>
-
-      {/* Filter Toolbar (Controls separated from data) */}
-      <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 text-xs font-semibold text-stone-900 dark:text-stone-100">
-          <Filter className="h-3.5 w-3.5 text-orange-600" />
-          <span>Filter Parameter Tanggal & Rombel</span>
+      {/* Filter Card */}
+      <div className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#1D1D1F]">
+          <Filter className="h-3.5 w-3.5 text-[#007AFF]" />
+          <span>Filter Laporan</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-600 dark:text-stone-400 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-stone-400" />
-              Tanggal Presensi
+            <label className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              Tanggal
             </label>
             <input
               type="date"
               value={localDate}
               onChange={(e) => setLocalDate(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15 transition-all"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15 transition-all"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-600 dark:text-stone-400 flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5 text-stone-400" />
-              Rombel / Kelas
+            <label className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Kelas
             </label>
             <select
               value={localClass}
               onChange={(e) => setLocalClass(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15 transition-all"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15 transition-all"
             >
-              <option value="">Semua Rombel</option>
+              <option value="">Semua Kelas</option>
               {classes?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -363,7 +307,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                 </>
               ) : (
                 <>
-                  <Filter className="h-4 w-4 mr-1.5 text-orange-600" />
+                  <Filter className="h-4 w-4 mr-1.5 text-[#007AFF]" />
                   <span>Terapkan Filter</span>
                 </>
               )}
@@ -372,15 +316,15 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
         </div>
       </div>
 
-      {/* Search Input Toolbar */}
+      {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8E8E93]" />
         <input
           type="text"
-          placeholder="Cari nama atau NIS siswa..."
+          placeholder="Cari siswa..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 pl-10 pr-4 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none placeholder:text-stone-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15 transition-all shadow-xs"
+          className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white pl-10 pr-4 py-2 text-sm text-[#1D1D1F] outline-none placeholder:text-[#8E8E93] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15 transition-all"
         />
       </div>
 
@@ -394,21 +338,21 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
           return (
             <div
               key={student.id}
-              className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-4 shadow-xs space-y-3"
+              className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{studentName}</h3>
+                  <h3 className="text-sm font-semibold text-[#1D1D1F]">{studentName}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono text-stone-500">{student.nis || "—"}</span>
-                    <span className="text-xs text-stone-400">•</span>
-                    <span className="text-xs font-medium text-stone-600 dark:text-stone-400">{className}</span>
+                    <span className="text-xs font-mono text-[#8E8E93]">{student.nis || "—"}</span>
+                    <span className="text-xs text-[#8E8E93]">•</span>
+                    <span className="text-xs font-medium text-[#6E6E73]">{className}</span>
                   </div>
                 </div>
               </div>
 
               {/* JP Status Grid */}
-              <div className="pt-2 border-t border-stone-100 dark:border-white/5 grid grid-cols-2 gap-2">
+              <div className="pt-2 border-t border-[rgba(60,60,67,0.06)] grid grid-cols-2 gap-2">
                 {Array.from({ length: maxJP }).map((_, i) => {
                   const session = mySessions[i];
                   if (!session) return null;
@@ -419,11 +363,11 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-2 rounded-xl bg-stone-50 dark:bg-zinc-800/60 border border-stone-200/80 dark:border-white/5"
+                      className="flex items-center justify-between p-2 rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.06)]"
                     >
-                      <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-400">JP {i + 1}</span>
+                      <span className="text-[11px] font-semibold text-[#6E6E73]">JP {i + 1}</span>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono border ${getStatusBadgeClass(
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadgeClass(
                           status.type
                         )}`}
                       >
@@ -438,34 +382,34 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
         })}
 
         {sortedStudents.length === 0 && (
-          <div className="p-8 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-white/10 text-stone-500 text-sm">
-            Tidak ada data presensi yang sesuai dengan parameter filter.
+          <div className="p-8 text-center bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] text-[#8E8E93] text-sm">
+            Tidak ada data presensi yang sesuai.
           </div>
         )}
       </div>
 
       {/* DESKTOP DATA TABLE */}
-      <div className="hidden sm:block rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
+      <div className="hidden sm:block rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-zinc-800/60 text-stone-600 dark:text-stone-400">
+              <tr className="border-b border-[rgba(60,60,67,0.08)] bg-[#F7F7F5]/80 text-[#6E6E73]">
                 <th
                   onClick={() => requestSort("student")}
-                  className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase cursor-pointer select-none hover:text-stone-900 dark:hover:text-stone-100"
+                  className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase cursor-pointer select-none hover:text-[#1D1D1F]"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>Nama Siswa</span>
-                    <ArrowUpDown className="h-3 w-3 text-stone-400" />
+                    <ArrowUpDown className="h-3 w-3 text-[#8E8E93]" />
                   </div>
                 </th>
                 <th
                   onClick={() => requestSort("class")}
-                  className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase cursor-pointer select-none hover:text-stone-900 dark:hover:text-stone-100"
+                  className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase cursor-pointer select-none hover:text-[#1D1D1F]"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Kelas / Rombel</span>
-                    <ArrowUpDown className="h-3 w-3 text-stone-400" />
+                    <span>Kelas</span>
+                    <ArrowUpDown className="h-3 w-3 text-[#8E8E93]" />
                   </div>
                 </th>
                 {Array.from({ length: maxJP }).map((_, i) => (
@@ -478,25 +422,25 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-white/5">
+            <tbody className="divide-y divide-[rgba(60,60,67,0.08)]">
               {sortedStudents.map((student: any) => {
                 const studentName = extractName(student.profiles);
                 const className = extractClass(student.classes);
                 const mySessions = classSessions[student.class_id] || [];
 
                 return (
-                  <tr key={student.id} className="hover:bg-stone-50/70 dark:hover:bg-zinc-800/40 transition-colors">
-                    <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">
+                  <tr key={student.id} className="hover:bg-[#F7F7F5]/50 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-[#1D1D1F]">
                       <div className="whitespace-nowrap">{studentName}</div>
-                      <div className="text-xs font-mono text-stone-500">{student.nis || "—"}</div>
+                      <div className="text-xs font-mono text-[#8E8E93]">{student.nis || "—"}</div>
                     </td>
-                    <td className="px-5 py-3.5 text-stone-600 dark:text-stone-400 whitespace-nowrap">{className}</td>
+                    <td className="px-5 py-3.5 text-[#6E6E73] whitespace-nowrap">{className}</td>
 
                     {Array.from({ length: maxJP }).map((_, i) => {
                       const session = mySessions[i];
                       if (!session) {
                         return (
-                          <td key={i} className="px-4 py-3.5 text-center text-stone-300 dark:text-stone-600">
+                          <td key={i} className="px-4 py-3.5 text-center text-[#C7C7CC]">
                             —
                           </td>
                         );
@@ -508,7 +452,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                       return (
                         <td key={i} className="px-4 py-3.5 text-center whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold font-mono border ${getStatusBadgeClass(
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeClass(
                               status.type
                             )}`}
                           >
@@ -522,7 +466,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
               })}
               {sortedStudents.length === 0 && (
                 <tr>
-                  <td colSpan={maxJP + 2} className="px-5 py-12 text-center text-stone-400">
+                  <td colSpan={maxJP + 2} className="px-5 py-12 text-center text-[#8E8E93]">
                     Tidak ada data siswa yang sesuai dengan filter.
                   </td>
                 </tr>

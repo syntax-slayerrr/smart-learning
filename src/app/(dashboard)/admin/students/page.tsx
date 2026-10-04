@@ -21,11 +21,7 @@ export default async function StudentsPage() {
 
   return (
     <div className="dashboard-container space-y-6 animate-fade-in">
-      <PageHeader
-        eyebrow="DATA MASTER CIVITAS • SMK TI SYNTAX SLAYER"
-        title="Direktori & Manajemen Siswa"
-        description="Kelola data induk siswa, penugasan rombel kelas, kartu pintar QR, dan pengaturan kunci perangkat HP."
-      />
+      <PageHeader title="Kelola Siswa" description="Tambah, edit, dan hapus data siswa" />
       <StudentsClient
         students={JSON.parse(JSON.stringify(students || []))}
         classes={JSON.parse(JSON.stringify(classes || []))}

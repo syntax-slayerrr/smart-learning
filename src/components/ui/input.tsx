@@ -32,14 +32,14 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-semibold text-foreground"
+            className="block text-xs font-semibold text-[#1D1D1F]"
           >
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="pointer-events-none absolute left-3.5 flex items-center text-muted-foreground">
+            <div className="pointer-events-none absolute left-3.5 flex items-center text-[#8E8E93]">
               {leftIcon}
             </div>
           )}
@@ -47,26 +47,26 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              "w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50 disabled:bg-muted/50",
+              "w-full min-h-[44px] rounded-xl border bg-white px-3.5 py-2.5 text-sm text-[#1D1D1F] transition-all placeholder:text-[#8E8E93] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20 focus:outline-none disabled:opacity-50 disabled:bg-[#F2F2F0]",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
               error
-                ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                : "border-border",
+                ? "border-[#FF3B30] focus:border-[#FF3B30] focus:ring-[#FF3B30]/20"
+                : "border-[rgba(60,60,67,0.16)]",
               className
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3.5 flex items-center text-muted-foreground">
+            <div className="absolute right-3.5 flex items-center text-[#8E8E93]">
               {rightIcon}
             </div>
           )}
         </div>
         {error ? (
-          <p className="text-[11px] font-medium text-destructive">{error}</p>
+          <p className="text-[11px] font-medium text-[#FF3B30]">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-muted-foreground">{helperText}</p>
+          <p className="text-[11px] text-[#6E6E73]">{helperText}</p>
         ) : null}
       </div>
     );
@@ -85,7 +85,7 @@ export const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
 
     return (
       <div className="relative flex items-center w-full">
-        <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-[#8E8E93]" />
         <input
           ref={ref}
           type="search"
@@ -93,7 +93,7 @@ export const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
           onChange={onChange}
           placeholder={placeholder}
           className={cn(
-            "w-full min-h-[44px] rounded-xl border border-border bg-card pl-10 pr-9 py-2.5 text-sm text-foreground transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none shadow-xs",
+            "w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white pl-10 pr-9 py-2.5 text-sm text-[#1D1D1F] transition-all placeholder:text-[#8E8E93] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20 focus:outline-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
             className
           )}
           {...props}
@@ -102,7 +102,7 @@ export const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
           <button
             type="button"
             onClick={onClear}
-            className="absolute right-3 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#E5E5EA] text-[#6E6E73] hover:bg-[#D1D1D6] transition-colors"
             aria-label="Bersihkan pencarian"
           >
             <X className="h-3 w-3" />
@@ -131,7 +131,7 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-xs font-semibold text-foreground"
+            className="block text-xs font-semibold text-[#1D1D1F]"
           >
             {label}
           </label>
@@ -141,10 +141,10 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
             id={selectId}
             ref={ref}
             className={cn(
-              "w-full min-h-[44px] appearance-none rounded-xl border border-border bg-card px-3.5 py-2.5 pr-8 text-sm text-foreground transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50",
+              "w-full min-h-[44px] appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-8 text-sm text-[#1D1D1F] transition-all focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20 focus:outline-none disabled:opacity-50",
               error
-                ? "border-destructive focus:border-destructive focus:ring-destructive/20"
-                : "border-border",
+                ? "border-[#FF3B30] focus:border-[#FF3B30] focus:ring-[#FF3B30]/20"
+                : "border-[rgba(60,60,67,0.16)]",
               className
             )}
             {...props}
@@ -157,7 +157,7 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
                 ))
               : children}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#8E8E93]">
             <svg
               className="h-4 w-4"
               fill="none"
@@ -174,9 +174,9 @@ export const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>
           </div>
         </div>
         {error ? (
-          <p className="text-[11px] font-medium text-destructive">{error}</p>
+          <p className="text-[11px] font-medium text-[#FF3B30]">{error}</p>
         ) : helperText ? (
-          <p className="text-[11px] text-muted-foreground">{helperText}</p>
+          <p className="text-[11px] text-[#6E6E73]">{helperText}</p>
         ) : null}
       </div>
     );

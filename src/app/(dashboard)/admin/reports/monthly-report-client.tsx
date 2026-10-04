@@ -116,383 +116,163 @@ export function MonthlyReportClient({ classes }: MonthlyReportClientProps) {
     }
   };
 
-  // Derived metrics from real data
-  const summaryMetrics = reportData.length > 0 ? (() => {
-    if (reportType === "siswa") {
-      let totalH = 0;
-      let totalT = 0;
-      let totalS = 0;
-      let totalI = 0;
-      let totalA = 0;
-      let totalPresents = 0;
-      let totalPossible = 0;
-
-      reportData.forEach((row) => {
-        totalH += row.present || 0;
-        totalT += row.late || 0;
-        totalS += row.sick || 0;
-        totalI += row.excused || 0;
-        totalA += row.absent || 0;
-        const total = (row.present || 0) + (row.late || 0) + (row.sick || 0) + (row.excused || 0) + (row.absent || 0);
-        totalPossible += total;
-        totalPresents += (row.present || 0) + (row.late || 0);
-      });
-
-      const avgPercent = totalPossible > 0 ? Math.round((totalPresents / totalPossible) * 100) : 0;
-      return { type: "siswa" as const, totalH, totalT, totalS, totalI, totalA, avgPercent, totalCount: reportData.length };
-    } else {
-      let totalSessions = 0;
-      let totalPresent = 0;
-      let totalAbsent = 0;
-      reportData.forEach((row) => {
-        totalSessions += row.total_sessions || 0;
-        totalPresent += row.present || 0;
-        totalAbsent += row.absent || 0;
-      });
-      const avgPercent = totalSessions > 0 ? Math.round((totalPresent / totalSessions) * 100) : 0;
-      return { type: "guru" as const, totalSessions, totalPresent, totalAbsent, avgPercent, totalCount: reportData.length };
-    }
-  })() : null;
-
   return (
     <div className="space-y-6">
-      {/* Type Toggle & Mode Segmented Control */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="inline-flex p-1 bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-white/10 rounded-xl">
-          <button
-            type="button"
-            onClick={() => { setReportType("siswa"); setReportData([]); setHasSearched(false); }}
-            className={`flex items-center gap-2 py-2 px-4 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] ${
-              reportType === "siswa"
-                ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-2xs font-bold"
-                : "text-stone-500 hover:text-stone-800 dark:hover:text-stone-300"
-            }`}
-          >
-            <Users className="h-4 w-4 text-primary" />
-            <span>Rekap Siswa (Per Kelas)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setReportType("guru"); setReportData([]); setHasSearched(false); }}
-            className={`flex items-center gap-2 py-2 px-4 text-xs font-semibold rounded-lg transition-all active:scale-[0.98] ${
-              reportType === "guru"
-                ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-2xs font-bold"
-                : "text-stone-500 hover:text-stone-800 dark:hover:text-stone-300"
-            }`}
-          >
-            <UserCheck className="h-4 w-4 text-primary" />
-            <span>Rekap Guru & Pendidik</span>
-          </button>
-        </div>
-
-        <div className="text-xs text-stone-500">
-          Format audit resmi standar kurikulum vokasi SMK
-        </div>
+      {/* Type Toggle */}
+      <div className="flex p-1 space-x-1 bg-muted/50 rounded-lg max-w-sm">
+        <button
+          onClick={() => { setReportType("siswa"); setReportData([]); }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-all ${reportType === "siswa" ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:bg-muted/80'}`}
+        >
+          <Users className="h-4 w-4" /> Siswa
+        </button>
+        <button
+          onClick={() => { setReportType("guru"); setReportData([]); }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md transition-all ${reportType === "guru" ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:bg-muted/80'}`}
+        >
+          <UserCheck className="h-4 w-4" /> Guru
+        </button>
       </div>
 
-      {/* Filter & Parameters Hub */}
-      <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-5 shadow-2xs">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-stone-100 dark:border-white/5">
+      {/* Filters */}
+      <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
           <FileText className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-bold text-stone-900 dark:text-white">
-            Konfigurasi Periode & Target Rekapitulasi
-          </h2>
-        </div>
-
+          Generator Laporan Bulanan {reportType === "siswa" ? "Siswa" : "Guru"}
+        </h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-600 dark:text-stone-400">
-              Pilih Bulan & Tahun
-            </label>
+            <label className="text-xs font-medium text-muted-foreground">Pilih Bulan</label>
             <input
               type="month"
               value={selectedMonth}
-              onChange={(e) => { setSelectedMonth(e.target.value); setReportData([]); setHasSearched(false); }}
-              className="w-full rounded-lg border border-stone-200 dark:border-white/10 bg-stone-50/50 dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              onChange={(e) => { setSelectedMonth(e.target.value); setReportData([]); }}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-
+          
           {reportType === "siswa" ? (
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-stone-600 dark:text-stone-400">
-                Pilih Kelas Target
-              </label>
+              <label className="text-xs font-medium text-muted-foreground">Pilih Kelas</label>
               <select
                 value={selectedClass}
-                onChange={(e) => { setSelectedClass(e.target.value); setReportData([]); setHasSearched(false); }}
-                className="w-full rounded-lg border border-stone-200 dark:border-white/10 bg-stone-50/50 dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                onChange={(e) => { setSelectedClass(e.target.value); setReportData([]); }}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="">-- Pilih Rombel / Kelas --</option>
+                <option value="">-- Pilih Kelas --</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
           ) : (
-            <div className="space-y-1.5 flex flex-col justify-end">
-              <p className="text-xs text-stone-500 bg-stone-50 dark:bg-stone-900 p-2.5 rounded-lg border border-stone-200 dark:border-white/10 leading-relaxed">
-                Merekap seluruh jam mengajar pendidik di seluruh kelas selama periode terpilih.
-              </p>
-            </div>
+             <div className="space-y-1.5 flex flex-col justify-end">
+               <p className="text-xs text-muted-foreground bg-muted p-2 rounded border border-dashed">
+                 Laporan guru akan merekap semua data kehadiran mengajar di seluruh kelas.
+               </p>
+             </div>
           )}
 
           <div className="flex items-end">
             <button
               onClick={handleGenerate}
               disabled={loading || (reportType === "siswa" && !selectedClass)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition-all active:scale-[0.98] shadow-2xs"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors"
             >
-              {loading ? "Menghitung Rekapitulasi..." : "Tampilkan Pratinjau Rekap"}
+              {loading ? "Memproses..." : "Tampilkan Pratinjau"}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Report Data Preview & Analysis */}
-      {reportData.length > 0 && summaryMetrics && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-          {/* Real-time Summary Pulse Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Subjek</p>
-              <p className="text-xl font-black font-mono tracking-tight text-stone-900 dark:text-white mt-1">
-                {summaryMetrics.totalCount} <span className="text-xs font-sans font-normal text-stone-500">{reportType === "siswa" ? "Siswa" : "Guru"}</span>
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Rata-rata Kehadiran</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-black font-mono tracking-tight text-emerald-600">
-                  {summaryMetrics.avgPercent}%
-                </span>
-                <span className="text-[10px] font-medium text-stone-500">keseluruhan</span>
-              </div>
-            </div>
-
-            {summaryMetrics.type === "siswa" && (
-              <>
-                <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Alpa (A)</p>
-                  <p className="text-xl font-black font-mono tracking-tight text-red-600 mt-1">
-                    {summaryMetrics.totalA} <span className="text-xs font-sans font-normal text-stone-500">kali</span>
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Izin & Sakit (S+I)</p>
-                  <p className="text-xl font-black font-mono tracking-tight text-amber-600 mt-1">
-                    {summaryMetrics.totalS + summaryMetrics.totalI} <span className="text-xs font-sans font-normal text-stone-500">kali</span>
-                  </p>
-                </div>
-              </>
-            )}
-
-            {summaryMetrics.type === "guru" && (
-              <>
-                <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Sesi Mengajar</p>
-                  <p className="text-xl font-black font-mono tracking-tight text-stone-900 dark:text-white mt-1">
-                    {summaryMetrics.totalSessions} <span className="text-xs font-sans font-normal text-stone-500">sesi</span>
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 shadow-2xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Alpa Mengajar</p>
-                  <p className="text-xl font-black font-mono tracking-tight text-red-600 mt-1">
-                    {summaryMetrics.totalAbsent} <span className="text-xs font-sans font-normal text-stone-500">sesi</span>
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Action Ribbon & Export */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-            <p className="text-xs font-medium text-stone-500">
-              Menampilkan <span className="font-mono font-bold text-stone-900 dark:text-white">{reportData.length}</span> baris data terverifikasi.
+      {/* Report Preview */}
+      {reportData.length > 0 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Menampilkan {reportData.length} baris data untuk diekspor.
             </p>
             <button
-              type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-2xs transition-all active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm transition-transform active:scale-95"
             >
               <Download className="h-4 w-4" />
-              <span>Export Dokumen Excel Resmi (.xlsx)</span>
+              Export Excel Profesional
             </button>
           </div>
 
-          {/* Adaptive Collection — Mobile View (Cards) */}
-          <div className="md:hidden space-y-3">
-            {reportData.map((row, idx) => {
-              if (reportType === "siswa") {
-                const total = row.present + row.late + row.sick + row.excused + row.absent;
-                const percent = total > 0 ? Math.round(((row.present + row.late) / total) * 100) : 0;
-                return (
-                  <div key={row.student_id || idx} className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-3.5 space-y-2 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 pr-2">
-                        <p className="text-xs font-bold text-stone-900 dark:text-white truncate">{row.full_name}</p>
-                        <p className="text-[10px] font-mono text-stone-500">NIS: {row.nis || "-"}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold font-mono ${
-                        percent >= 85 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                        percent >= 75 ? "bg-amber-50 text-amber-700 border border-amber-200" :
-                        "bg-red-50 text-red-700 border border-red-200"
-                      }`}>
-                        {percent}%
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-5 gap-1 pt-1 border-t border-stone-100 dark:border-white/5 text-center text-[10px]">
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">H</div>
-                        <div className="font-mono font-bold text-emerald-600">{row.present}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">T</div>
-                        <div className="font-mono font-bold text-amber-600">{row.late}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">S</div>
-                        <div className="font-mono font-bold text-blue-600">{row.sick}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">I</div>
-                        <div className="font-mono font-bold text-purple-600">{row.excused}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">A</div>
-                        <div className="font-mono font-bold text-red-600">{row.absent}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                const percent = row.total_sessions > 0 ? Math.round((row.present / row.total_sessions) * 100) : 0;
-                return (
-                  <div key={row.teacher_id || idx} className="rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-3.5 space-y-2 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-stone-900 dark:text-white truncate">{row.full_name}</p>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold font-mono ${
-                        percent >= 90 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                        "bg-red-50 text-red-700 border border-red-200"
-                      }`}>
-                        {percent}%
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1 pt-1 border-t border-stone-100 dark:border-white/5 text-center text-[10px]">
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">Total Sesi</div>
-                        <div className="font-mono font-bold text-stone-700 dark:text-stone-300">{row.total_sessions}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">Hadir</div>
-                        <div className="font-mono font-bold text-emerald-600">{row.present}</div>
-                      </div>
-                      <div className="p-1 rounded bg-stone-50 dark:bg-stone-900">
-                        <div className="text-stone-400 font-bold">Alpa</div>
-                        <div className="font-mono font-bold text-red-600">{row.absent}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-            })}
-          </div>
-
-          {/* Desktop Data Table */}
-          <div className="hidden md:block rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto">
-              {reportType === "siswa" ? (
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-50 dark:bg-stone-900/60 border-b border-stone-200 dark:border-white/10 text-stone-500 font-semibold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-3 w-10 text-center">No</th>
-                      <th className="py-3 px-4">Nama Siswa</th>
-                      <th className="py-3 px-3 w-28">NIS</th>
-                      <th className="py-3 px-2 text-center w-12 text-emerald-700">H</th>
-                      <th className="py-3 px-2 text-center w-12 text-amber-700">T</th>
-                      <th className="py-3 px-2 text-center w-12 text-blue-700">S</th>
-                      <th className="py-3 px-2 text-center w-12 text-purple-700">I</th>
-                      <th className="py-3 px-2 text-center w-12 text-red-700">A</th>
-                      <th className="py-3 px-3 text-center w-20">Kehadiran</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100 dark:divide-white/5">
-                    {reportData.map((row, idx) => {
-                      const total = row.present + row.late + row.sick + row.excused + row.absent;
-                      const percent = total > 0 ? Math.round(((row.present + row.late) / total) * 100) : 0;
-                      return (
-                        <tr key={row.student_id || idx} className="hover:bg-stone-50/50 dark:hover:bg-stone-900/30 transition-colors">
-                          <td className="py-2.5 px-3 text-center font-mono text-stone-400">{idx + 1}</td>
-                          <td className="py-2.5 px-4 font-semibold text-stone-900 dark:text-white">{row.full_name}</td>
-                          <td className="py-2.5 px-3 font-mono text-stone-500">{row.nis || "-"}</td>
-                          <td className="py-2.5 px-2 text-center font-mono font-medium text-emerald-600">{row.present}</td>
-                          <td className="py-2.5 px-2 text-center font-mono font-medium text-amber-600">{row.late}</td>
-                          <td className="py-2.5 px-2 text-center font-mono font-medium text-blue-600">{row.sick}</td>
-                          <td className="py-2.5 px-2 text-center font-mono font-medium text-purple-600">{row.excused}</td>
-                          <td className="py-2.5 px-2 text-center font-mono font-bold text-red-600">{row.absent}</td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md font-mono font-bold text-[11px] ${
-                              percent >= 85 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" :
-                              percent >= 75 ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400" :
-                              "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
-                            }`}>
-                              {percent}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-50 dark:bg-stone-900/60 border-b border-stone-200 dark:border-white/10 text-stone-500 font-semibold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-3 w-10 text-center">No</th>
-                      <th className="py-3 px-4">Nama Guru / Pendidik</th>
-                      <th className="py-3 px-3 text-center w-28">Total Sesi</th>
-                      <th className="py-3 px-3 text-center w-28 text-emerald-700">Hadir</th>
-                      <th className="py-3 px-3 text-center w-28 text-red-700">Alpa</th>
-                      <th className="py-3 px-3 text-center w-28">% Kehadiran</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100 dark:divide-white/5">
-                    {reportData.map((row, idx) => {
-                      const percent = row.total_sessions > 0 ? Math.round((row.present / row.total_sessions) * 100) : 0;
-                      return (
-                        <tr key={row.teacher_id || idx} className="hover:bg-stone-50/50 dark:hover:bg-stone-900/30 transition-colors">
-                          <td className="py-2.5 px-3 text-center font-mono text-stone-400">{idx + 1}</td>
-                          <td className="py-2.5 px-4 font-semibold text-stone-900 dark:text-white">{row.full_name}</td>
-                          <td className="py-2.5 px-3 text-center font-mono text-stone-600 dark:text-stone-300">{row.total_sessions}</td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-600">{row.present}</td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-red-600">{row.absent}</td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md font-mono font-bold text-[11px] ${
-                              percent >= 90 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" :
-                              "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
-                            }`}>
-                              {percent}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
+          <div className="rounded-xl border bg-card p-6 shadow-sm overflow-auto">
+            {reportType === "siswa" ? (
+               <table className="w-full caption-bottom text-sm">
+                 <thead className="[&_tr]:border-b">
+                   <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                     <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground w-10">No</th>
+                     <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">Nama Siswa</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-12">H</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-12">T</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-12">S</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-12">I</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-12">A</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground w-16">%</th>
+                   </tr>
+                 </thead>
+                 <tbody className="[&_tr:last-child]:border-0">
+                   {reportData.map((row, idx) => {
+                     const total = row.present + row.late + row.sick + row.excused + row.absent;
+                     const percent = total > 0 ? Math.round(((row.present + row.late) / total) * 100) : 0;
+                     return (
+                       <tr key={row.student_id} className="border-b transition-colors hover:bg-muted/50">
+                         <td className="p-2 align-middle">{idx + 1}</td>
+                         <td className="p-2 align-middle font-medium">{row.full_name}</td>
+                         <td className="p-2 align-middle text-center">{row.present}</td>
+                         <td className="p-2 align-middle text-center">{row.late}</td>
+                         <td className="p-2 align-middle text-center">{row.sick}</td>
+                         <td className="p-2 align-middle text-center">{row.excused}</td>
+                         <td className="p-2 align-middle text-center font-bold text-red-500">{row.absent}</td>
+                         <td className="p-2 align-middle text-center font-bold">{percent}%</td>
+                       </tr>
+                     );
+                   })}
+                 </tbody>
+               </table>
+            ) : (
+               <table className="w-full caption-bottom text-sm">
+                 <thead className="[&_tr]:border-b">
+                   <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                     <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground w-10">No</th>
+                     <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">Nama Guru</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground">Total Sesi</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground text-emerald-600">Hadir</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground text-red-600">Alpa</th>
+                     <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground">% Hadir</th>
+                   </tr>
+                 </thead>
+                 <tbody className="[&_tr:last-child]:border-0">
+                   {reportData.map((row, idx) => {
+                     const percent = row.total_sessions > 0 ? Math.round((row.present / row.total_sessions) * 100) : 0;
+                     return (
+                       <tr key={row.teacher_id} className="border-b transition-colors hover:bg-muted/50">
+                         <td className="p-2 align-middle">{idx + 1}</td>
+                         <td className="p-2 align-middle font-medium">{row.full_name}</td>
+                         <td className="p-2 align-middle text-center">{row.total_sessions}</td>
+                         <td className="p-2 align-middle text-center font-bold text-emerald-600">{row.present}</td>
+                         <td className="p-2 align-middle text-center font-bold text-red-600">{row.absent}</td>
+                         <td className="p-2 align-middle text-center font-bold">{percent}%</td>
+                       </tr>
+                     );
+                   })}
+                 </tbody>
+               </table>
+            )}
           </div>
         </div>
       )}
 
-      {/* Empty State */}
       {hasSearched && !loading && reportData.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/10 bg-white dark:bg-stone-950 p-12 text-center">
-          <p className="text-sm font-bold text-stone-900 dark:text-white">Tidak Ada Data Absensi</p>
-          <p className="text-xs text-stone-500 mt-1 max-w-md mx-auto leading-relaxed">
-            Belum ada catatan sesi absensi yang terekam untuk {reportType === "siswa" ? "kelas" : "guru"} pada bulan terpilih ({selectedMonth}).
+        <div className="rounded-xl border border-dashed bg-card p-12 text-center text-muted-foreground animate-in fade-in">
+          <p className="text-base font-semibold text-foreground">Tidak Ada Data Absensi</p>
+          <p className="text-sm mt-1">
+            Belum ada catatan sesi absensi yang tercatat untuk {reportType === "siswa" ? "kelas" : "guru"} pada bulan yang dipilih ({selectedMonth}).
           </p>
         </div>
       )}

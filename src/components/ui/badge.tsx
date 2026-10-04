@@ -21,13 +21,13 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variantStyles = {
-    default: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20",
-    secondary: "bg-stone-100 dark:bg-zinc-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-white/10",
-    outline: "bg-transparent text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-white/10",
-    success: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
-    warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20",
-    destructive: "bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20",
-    info: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20",
+    default: "bg-[#007AFF]/10 text-[#007AFF] border-transparent",
+    secondary: "bg-[#F2F2F0] text-[#1D1D1F] border-transparent",
+    outline: "bg-transparent text-[#6E6E73] border-[rgba(60,60,67,0.2)]",
+    success: "bg-[#34C759]/12 text-[#248A3D] border-transparent",
+    warning: "bg-[#FF9F0A]/12 text-[#B26B00] border-transparent",
+    destructive: "bg-[#FF3B30]/12 text-[#D70015] border-transparent",
+    info: "bg-[#5E5CE6]/12 text-[#5E5CE6] border-transparent",
   };
 
   const sizeStyles = {
@@ -59,43 +59,43 @@ export interface StatusBadgeProps {
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   const statusConfig = {
     hadir: {
-      dot: "bg-emerald-600 dark:bg-emerald-400",
-      bg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+      dot: "bg-[#34C759]",
+      bg: "bg-[#34C759]/10 text-[#248A3D] border-[rgba(52,199,89,0.2)]",
       defaultLabel: "Hadir",
     },
     izin: {
-      dot: "bg-amber-600 dark:bg-amber-400",
-      bg: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+      dot: "bg-[#FF9F0A]",
+      bg: "bg-[#FF9F0A]/10 text-[#B26B00] border-[rgba(255,159,10,0.2)]",
       defaultLabel: "Izin",
     },
     sakit: {
-      dot: "bg-sky-600 dark:bg-sky-400",
-      bg: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
+      dot: "bg-[#007AFF]",
+      bg: "bg-[#007AFF]/10 text-[#007AFF] border-[rgba(0,122,255,0.2)]",
       defaultLabel: "Sakit",
     },
     alpa: {
-      dot: "bg-destructive dark:bg-red-400",
-      bg: "bg-destructive/10 text-destructive dark:text-red-400 border-destructive/20",
+      dot: "bg-[#FF3B30]",
+      bg: "bg-[#FF3B30]/10 text-[#D70015] border-[rgba(255,59,48,0.2)]",
       defaultLabel: "Alpa",
     },
     belum: {
-      dot: "bg-muted-foreground/60",
-      bg: "bg-muted text-muted-foreground border-border",
+      dot: "bg-[#8E8E93]",
+      bg: "bg-[#8E8E93]/10 text-[#6E6E73] border-[rgba(142,142,147,0.2)]",
       defaultLabel: "Belum",
     },
     active: {
-      dot: "bg-emerald-500 animate-pulse",
-      bg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+      dot: "bg-[#34C759] animate-pulse",
+      bg: "bg-[#34C759]/10 text-[#248A3D] border-[rgba(52,199,89,0.2)]",
       defaultLabel: "Live",
     },
     standby: {
-      dot: "bg-muted-foreground/60",
-      bg: "bg-muted text-muted-foreground border-border",
+      dot: "bg-[#8E8E93]",
+      bg: "bg-[#8E8E93]/10 text-[#6E6E73] border-[rgba(142,142,147,0.2)]",
       defaultLabel: "Standby",
     },
     warning: {
-      dot: "bg-primary animate-pulse",
-      bg: "bg-primary/10 text-primary border-primary/20",
+      dot: "bg-[#FF9F0A] animate-pulse",
+      bg: "bg-[#FF9F0A]/10 text-[#B26B00] border-[rgba(255,159,10,0.2)]",
       defaultLabel: "Perhatian",
     },
   };

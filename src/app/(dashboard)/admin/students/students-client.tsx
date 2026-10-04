@@ -234,29 +234,29 @@ export function StudentsClient({
   return (
     <div className="space-y-5">
       {/* Search, Filter, Primary Actions Bar */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-stone-200 dark:border-white/10 shadow-xs">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Search & Filter */}
         <div className="flex flex-1 flex-col sm:flex-row gap-2.5 max-w-xl">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
             <input
               type="text"
-              placeholder="Cari nama siswa atau NIS..."
+              placeholder="Cari siswa atau NIS..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 py-2 pl-10 pr-4 text-sm text-stone-900 dark:text-stone-100 outline-none transition-all placeholder:text-stone-400 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white py-2 pl-10 pr-4 text-sm text-[#1D1D1F] outline-none transition-all placeholder:text-[#8E8E93] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             />
           </div>
-          <div className="relative sm:w-52 shrink-0">
+          <div className="relative sm:w-48 shrink-0">
             <select
               value={selectedClassFilter}
               onChange={(e) => setSelectedClassFilter(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none transition-all focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none transition-all focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             >
-              <option value="">Semua Rombel / Kelas</option>
+              <option value="">Semua Kelas</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.grade})
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -270,9 +270,9 @@ export function StudentsClient({
             onClick={handleResetAllDevicesInClass}
             disabled={isPending}
             title="Reset ikatan HP siswa"
-            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-xs"
+            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] active:scale-[0.98] transition-all"
           >
-            <RotateCcw className="h-4 w-4 text-stone-400" />
+            <RotateCcw className="h-4 w-4 text-[#8E8E93]" />
             <span>Reset HP {selectedClassFilter ? "Kelas" : "Massal"}</span>
           </button>
 
@@ -286,9 +286,9 @@ export function StudentsClient({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-xs"
+            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] active:scale-[0.98] transition-all"
           >
-            <Upload className="h-4 w-4 text-stone-400" />
+            <Upload className="h-4 w-4 text-[#8E8E93]" />
             <span>Import Excel</span>
           </button>
 
@@ -299,7 +299,7 @@ export function StudentsClient({
               setFormError("");
               setShowAddSheet(true);
             }}
-            className="min-h-[44px] inline-flex items-center gap-2 px-4 shadow-xs"
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
           >
             <Plus className="h-4 w-4" />
             <span>Tambah Siswa</span>
@@ -307,43 +307,27 @@ export function StudentsClient({
         </div>
       </div>
 
-      {/* Filter and Count Summary Strip */}
-      <div className="flex items-center justify-between text-xs text-stone-500 px-1">
-        <span>
-          Menampilkan <strong className="font-mono text-stone-900 dark:text-stone-100">{filtered.length}</strong> siswa
-          {selectedClassFilter ? ` di kelas terpilih` : ` dari seluruh rombel`}
-        </span>
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="text-orange-600 hover:underline font-medium"
-          >
-            Reset pencarian
-          </button>
-        )}
-      </div>
-
       {/* Import Progress Bar */}
       {importProgress.show && (
-        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4 animate-fade-in">
+        <div className="rounded-2xl border border-[#007AFF]/20 bg-[#007AFF]/5 p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#007AFF]">
               Mengimpor Data Siswa...
             </span>
-            <span className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400">
+            <span className="text-xs font-mono font-bold text-[#007AFF]">
               {importProgress.current} / {importProgress.total}
             </span>
           </div>
-          <div className="h-2 w-full bg-stone-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-[#E5E5EA] rounded-full overflow-hidden">
             <div
-              className="h-full bg-orange-600 transition-all duration-300"
+              className="h-full bg-[#007AFF] transition-all duration-300"
               style={{
                 width: `${(importProgress.current / importProgress.total) * 100}%`,
               }}
             />
           </div>
           {importProgress.current === importProgress.total && importErrors.length > 0 && (
-            <div className="mt-4 space-y-2 text-xs text-red-600 bg-red-500/10 p-3 rounded-xl border border-red-500/20 max-h-32 overflow-y-auto">
+            <div className="mt-4 space-y-2 text-xs text-[#FF3B30] bg-[#FF3B30]/10 p-3 rounded-xl border border-[#FF3B30]/20 max-h-32 overflow-y-auto">
               <p className="font-semibold">Beberapa baris tidak dapat diimpor:</p>
               <ul className="list-disc pl-4 space-y-1">
                 {importErrors.map((err, idx) => (
@@ -356,7 +340,7 @@ export function StudentsClient({
       )}
 
       {/* MOBILE LIST (Under 640px) */}
-      <div className="sm:hidden space-y-2.5">
+      <div className="sm:hidden space-y-2">
         {filtered.map((s) => {
           const classNameStr =
             classes.find((c) => c.id === s.class_id)?.name ||
@@ -367,67 +351,67 @@ export function StudentsClient({
             <div
               key={s.id}
               onClick={() => setSelectedMobileStudent(s)}
-              className="min-h-[58px] flex items-center justify-between p-3.5 bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-white/10 active:bg-stone-50 dark:active:bg-zinc-800 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
+              className="min-h-[58px] flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] active:bg-[#F2F2F0] active:scale-[0.99] transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
             >
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                <span className="text-sm font-semibold text-[#1D1D1F]">
                   {s.profiles?.full_name || "—"}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-mono text-stone-500">{s.nis}</span>
-                  <span className="text-xs text-stone-400">•</span>
-                  <span className="text-xs text-stone-600 dark:text-stone-400 font-medium">{classNameStr}</span>
+                  <span className="text-xs font-mono text-[#8E8E93]">{s.nis}</span>
+                  <span className="text-xs text-[#8E8E93]">•</span>
+                  <span className="text-xs text-[#6E6E73] font-medium">{classNameStr}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {s.device_id && (
-                  <span className="h-2 w-2 rounded-full bg-amber-500" title="HP Terkunci" />
+                  <span className="h-2 w-2 rounded-full bg-[#FF9F0A]" title="HP Terkunci" />
                 )}
-                <ChevronRight className="h-4 w-4 text-stone-400" />
+                <ChevronRight className="h-4 w-4 text-[#C7C7CC]" />
               </div>
             </div>
           );
         })}
 
         {filtered.length === 0 && (
-          <div className="p-8 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-white/10 text-stone-500 text-sm">
-            {search ? "Tidak ada siswa yang cocok dengan kriteria pencarian." : "Belum ada data siswa terdaftar."}
+          <div className="p-8 text-center bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] text-[#8E8E93] text-sm">
+            {search ? "Tidak ada siswa yang cocok." : "Belum ada data siswa."}
           </div>
         )}
       </div>
 
       {/* DESKTOP TABLE (640px and above) */}
-      <div className="hidden sm:block rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
+      <div className="hidden sm:block rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-zinc-800/60 text-stone-600 dark:text-stone-400">
-                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Nama Siswa</th>
+              <tr className="border-b border-[rgba(60,60,67,0.08)] bg-[#F7F7F5]/80 text-[#6E6E73]">
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Nama</th>
                 <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">NIS</th>
-                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Kelas / Rombel</th>
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Kelas</th>
                 <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Status HP</th>
-                <th className="hidden lg:table-cell px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Akun Email</th>
+                <th className="hidden lg:table-cell px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Email</th>
                 <th className="px-5 py-3.5 text-right font-semibold text-xs tracking-wider uppercase">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-white/5">
+            <tbody className="divide-y divide-[rgba(60,60,67,0.08)]">
               {filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-stone-50/70 dark:hover:bg-zinc-800/40 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">
+                <tr key={s.id} className="hover:bg-[#F7F7F5]/50 transition-colors">
+                  <td className="px-5 py-3.5 font-medium text-[#1D1D1F]">
                     {s.profiles?.full_name || "—"}
                   </td>
-                  <td className="px-5 py-3.5 font-mono text-xs text-stone-600 dark:text-stone-400">{s.nis}</td>
-                  <td className="px-5 py-3.5 text-stone-600 dark:text-stone-400">
+                  <td className="px-5 py-3.5 font-mono text-xs text-[#6E6E73]">{s.nis}</td>
+                  <td className="px-5 py-3.5 text-[#6E6E73]">
                     <select
                       value={s.class_id || ""}
                       onChange={(e) => handleClassChange(s.id, e.target.value)}
                       disabled={isPending}
-                      className="bg-transparent border border-transparent text-sm text-stone-900 dark:text-stone-100 outline-none cursor-pointer hover:border-stone-200 hover:bg-stone-100/70 dark:hover:bg-zinc-800 focus:bg-white dark:focus:bg-zinc-800 focus:border-orange-600 px-2 py-1 rounded-lg transition-all -ml-2"
+                      className="bg-transparent border border-transparent text-sm text-[#1D1D1F] outline-none cursor-pointer hover:border-[rgba(60,60,67,0.16)] hover:bg-[#F2F2F0] focus:bg-white focus:border-[#007AFF] px-2 py-1 rounded-lg transition-all -ml-2"
                     >
-                      <option value="">— Belum ada kelas —</option>
+                      <option value="">— Kosong —</option>
                       {classes.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} ({c.grade})
+                          {c.name}
                         </option>
                       ))}
                     </select>
@@ -435,7 +419,7 @@ export function StudentsClient({
                   <td className="px-5 py-3.5">
                     {s.device_id ? (
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF9F0A]/10 px-2.5 py-1 text-xs font-semibold text-[#FF9F0A]">
                           <Smartphone className="h-3 w-3" />
                           Terkunci
                         </span>
@@ -443,24 +427,24 @@ export function StudentsClient({
                           type="button"
                           onClick={() => handleResetDevice(s.id, s.profiles?.full_name || "")}
                           disabled={isPending}
-                          title="Reset ikatan HP"
-                          className="text-xs font-semibold text-red-600 hover:underline"
+                          title="Reset kunci HP"
+                          className="text-xs font-semibold text-[#FF3B30] hover:underline"
                         >
                           Reset
                         </button>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34C759]/10 px-2.5 py-1 text-xs font-semibold text-[#34C759]">
                         <CheckCircle2 className="h-3 w-3" />
                         Bebas
                       </span>
                     )}
                   </td>
-                  <td className="hidden lg:table-cell px-5 py-3.5 text-stone-500 dark:text-stone-400 font-mono text-xs">
+                  <td className="hidden lg:table-cell px-5 py-3.5 text-[#8E8E93] text-xs">
                     {s.profiles?.email || "—"}
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-1.5">
                       <button
                         onClick={() => {
                           setEditingStudent(s);
@@ -468,7 +452,7 @@ export function StudentsClient({
                         }}
                         disabled={isPending}
                         title="Edit Data Siswa"
-                        className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-zinc-800 dark:hover:text-stone-100 transition-colors"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F] transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -476,7 +460,7 @@ export function StudentsClient({
                         onClick={() => window.open(`/admin/students/print-card/${s.id}`, "_blank")}
                         disabled={isPending}
                         title="Cetak Kartu Absen"
-                        className="rounded-lg p-2 text-stone-500 hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#007AFF]/10 hover:text-[#007AFF] transition-colors"
                       >
                         <Printer className="h-4 w-4" />
                       </button>
@@ -484,7 +468,7 @@ export function StudentsClient({
                         onClick={() => handleDelete(s.id, s.profiles?.full_name || "")}
                         disabled={isPending}
                         title="Hapus Siswa"
-                        className="rounded-lg p-2 text-stone-500 hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -494,7 +478,7 @@ export function StudentsClient({
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-stone-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-[#8E8E93]">
                     {search ? "Tidak ada siswa yang cocok dengan filter." : "Belum ada data siswa."}
                   </td>
                 </tr>
@@ -513,36 +497,36 @@ export function StudentsClient({
       >
         <form action={handleCreateSubmit} className="space-y-4">
           {formError && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs text-red-600 font-medium">
+            <div className="rounded-xl border border-[#FF3B30]/20 bg-[#FF3B30]/10 p-3.5 text-xs text-[#FF3B30] font-medium">
               {formError}
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-900 dark:text-stone-100">Nama Lengkap Siswa</label>
+            <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
             <input
               name="full_name"
               required
               placeholder="Contoh: Andi Pratama"
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-900 dark:text-stone-100">Nomor Induk Siswa (NIS)</label>
+            <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
             <input
               name="nis"
               required
               placeholder="Contoh: 20250001"
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm font-mono text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-900 dark:text-stone-100">Penugasan Kelas / Rombel</label>
+            <label className="text-xs font-semibold text-[#1D1D1F]">Kelas</label>
             <select
               name="class_id"
-              className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             >
               <option value="">Pilih kelas...</option>
               {classes.map((c) => (
@@ -553,8 +537,8 @@ export function StudentsClient({
             </select>
           </div>
 
-          <div className="rounded-xl bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-white/10 p-3 text-xs text-stone-500 dark:text-stone-400">
-            Akun portal siswa dan QR kartu pintar akan di-generate secara otomatis oleh sistem.
+          <div className="rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.10)] p-3 text-xs text-[#6E6E73]">
+            Akun dibuat otomatis. Kredensial awal tersedia setelah siswa tersimpan.
           </div>
 
           <div className="flex gap-2.5 pt-2">
@@ -562,7 +546,7 @@ export function StudentsClient({
               type="button"
               variant="outline"
               onClick={() => setShowAddSheet(false)}
-              className="flex-1 min-h-[44px]"
+              className="flex-1"
             >
               Batal
             </Button>
@@ -570,10 +554,10 @@ export function StudentsClient({
               type="submit"
               variant="primary"
               disabled={isPending}
-              className="flex-1 min-h-[44px]"
+              className="flex-1"
             >
               {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Simpan Siswa
+              Simpan
             </Button>
           </div>
         </form>
@@ -590,42 +574,42 @@ export function StudentsClient({
           <form action={handleEditSubmit} className="space-y-4">
             <input type="hidden" name="id" value={editingStudent.id} />
             {formError && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs text-red-600 font-medium">
+              <div className="rounded-xl border border-[#FF3B30]/20 bg-[#FF3B30]/10 p-3.5 text-xs text-[#FF3B30] font-medium">
                 {formError}
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-stone-900 dark:text-stone-100">Nama lengkap</label>
+              <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
               <input
                 name="full_name"
                 defaultValue={editingStudent.profiles?.full_name}
                 required
-                className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+                className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-stone-900 dark:text-stone-100">NIS</label>
+              <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
               <input
                 name="nis"
                 defaultValue={editingStudent.nis}
                 required
-                className="w-full min-h-[44px] rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50/60 dark:bg-zinc-800/60 px-3.5 py-2 text-sm font-mono text-stone-900 dark:text-stone-100 outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-500/15"
+                className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
               />
             </div>
 
             {/* Status Perangkat HP */}
-            <div className="rounded-xl border border-stone-200 dark:border-white/10 p-3.5 bg-stone-50 dark:bg-zinc-800/60 space-y-2">
+            <div className="rounded-xl border border-[rgba(60,60,67,0.12)] p-3.5 bg-[#F7F7F5] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">Status Kunci HP</span>
+                <span className="text-xs font-semibold text-[#1D1D1F]">Status Kunci HP</span>
                 {editingStudent.device_id ? (
-                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Terkunci ke 1 HP</span>
+                  <span className="text-xs font-semibold text-[#FF9F0A]">Terkunci ke 1 HP</span>
                 ) : (
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Bebas (Belum Terikat)</span>
+                  <span className="text-xs font-semibold text-[#34C759]">Bebas (Belum Terikat)</span>
                 )}
               </div>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400">
+              <p className="text-[11px] text-[#6E6E73]">
                 {editingStudent.device_id
                   ? "Siswa hanya bisa absen dari perangkat ini. Klik tombol di bawah jika siswa mengganti HP."
                   : "Siswa akan otomatis mengikat HP pertama yang digunakan saat absen."}
@@ -638,7 +622,7 @@ export function StudentsClient({
                     handleResetDevice(editingStudent.id, editingStudent.profiles?.full_name || "");
                     setEditingStudent({ ...editingStudent, device_id: null });
                   }}
-                  className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-500/20 bg-white dark:bg-zinc-800 text-xs font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
+                  className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-[rgba(60,60,67,0.16)] bg-white text-xs font-semibold text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Reset Kunci HP Siswa Ini
@@ -651,7 +635,7 @@ export function StudentsClient({
                 type="button"
                 variant="outline"
                 onClick={() => setEditingStudent(null)}
-                className="flex-1 min-h-[44px]"
+                className="flex-1"
               >
                 Batal
               </Button>
@@ -659,7 +643,7 @@ export function StudentsClient({
                 type="submit"
                 variant="primary"
                 disabled={isPending}
-                className="flex-1 min-h-[44px]"
+                className="flex-1"
               >
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                 Simpan Perubahan
@@ -669,7 +653,7 @@ export function StudentsClient({
         )}
       </BottomSheet>
 
-      {/* MOBILE ACTION & DETAIL SHEET FOR SELECTED STUDENT */}
+      {/* MOBILE ACTION SHEET FOR SELECTED STUDENT */}
       <BottomSheet
         isOpen={!!selectedMobileStudent}
         onClose={() => setSelectedMobileStudent(null)}
@@ -681,25 +665,21 @@ export function StudentsClient({
         }`}
       >
         {selectedMobileStudent && (
-          <div className="space-y-3.5">
-            <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-zinc-800/60 border border-stone-200 dark:border-white/10 space-y-2">
+          <div className="space-y-3">
+            <div className="p-3.5 rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.10)] space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-stone-500">Email Akun:</span>
-                <span className="font-mono font-medium text-stone-900 dark:text-stone-100">{selectedMobileStudent.profiles?.email || "—"}</span>
+                <span className="text-[#8E8E93]">Email Akun:</span>
+                <span className="font-mono text-[#1D1D1F]">{selectedMobileStudent.profiles?.email || "—"}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-stone-500">Nomor Induk:</span>
-                <span className="font-mono font-medium text-stone-900 dark:text-stone-100">{selectedMobileStudent.nis}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-stone-500">Status Perangkat:</span>
-                <span className={selectedMobileStudent.device_id ? "text-amber-600 font-semibold" : "text-emerald-600 font-semibold"}>
-                  {selectedMobileStudent.device_id ? "Terkunci (Terikat HP)" : "Bebas (Belum Terikat)"}
+                <span className="text-[#8E8E93]">Status Perangkat:</span>
+                <span className={selectedMobileStudent.device_id ? "text-[#FF9F0A] font-semibold" : "text-[#34C759] font-semibold"}>
+                  {selectedMobileStudent.device_id ? "Terkunci (Terikat HP)" : "Bebas"}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -707,9 +687,9 @@ export function StudentsClient({
                   setEditingStudent(selectedMobileStudent);
                   setSelectedMobileStudent(null);
                 }}
-                className="w-full justify-start gap-2.5 min-h-[44px]"
+                className="w-full justify-start gap-2.5"
               >
-                <Pencil className="h-4 w-4 text-orange-600" />
+                <Pencil className="h-4 w-4 text-[#007AFF]" />
                 <span>Edit Informasi Siswa</span>
               </Button>
 
@@ -719,9 +699,9 @@ export function StudentsClient({
                 onClick={() => {
                   window.open(`/admin/students/print-card/${selectedMobileStudent.id}`, "_blank");
                 }}
-                className="w-full justify-start gap-2.5 min-h-[44px]"
+                className="w-full justify-start gap-2.5"
               >
-                <Printer className="h-4 w-4 text-emerald-600" />
+                <Printer className="h-4 w-4 text-[#34C759]" />
                 <span>Cetak Kartu Absen (QR)</span>
               </Button>
 
@@ -733,7 +713,7 @@ export function StudentsClient({
                     handleResetDevice(selectedMobileStudent.id, selectedMobileStudent.profiles?.full_name || "");
                     setSelectedMobileStudent({ ...selectedMobileStudent, device_id: null });
                   }}
-                  className="w-full justify-start gap-2.5 text-amber-600 min-h-[44px]"
+                  className="w-full justify-start gap-2.5 text-[#FF9F0A]"
                 >
                   <RotateCcw className="h-4 w-4" />
                   <span>Reset Kunci HP Siswa</span>
@@ -746,7 +726,7 @@ export function StudentsClient({
                 onClick={() => {
                   handleDelete(selectedMobileStudent.id, selectedMobileStudent.profiles?.full_name || "");
                 }}
-                className="w-full justify-start gap-2.5 min-h-[44px]"
+                className="w-full justify-start gap-2.5"
               >
                 <Trash2 className="h-4 w-4" />
                 <span>Hapus Data Siswa</span>

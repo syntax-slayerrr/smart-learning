@@ -10,15 +10,15 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between pb-2">
       <div className="space-y-1">
         {eyebrow && (
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73]">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F] sm:text-3xl">
           {title}
         </h1>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-[#6E6E73]">{description}</p>
         )}
       </div>
       {action && (

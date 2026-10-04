@@ -111,20 +111,20 @@ export function StaticQrDialog({ classId, className, onClose }: StaticQrDialogPr
         <div className="mt-8 grid grid-cols-2 gap-3">
           <button
             onClick={handlePrint}
-            className="apple-press flex items-center justify-center gap-2 rounded-xl bg-primary py-3 min-h-[44px] text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
           >
             <Printer className="h-4 w-4" /> Cetak
           </button>
           <button
             onClick={handleDownload}
-            className="apple-press flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 min-h-[44px] text-sm font-semibold text-foreground hover:bg-muted/70 transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background py-3 text-sm font-semibold hover:bg-accent transition-colors"
           >
             <Download className="h-4 w-4" /> Unduh
           </button>
         </div>
         
-        <div className="mt-6 rounded-xl bg-primary/5 p-3 text-[11px] text-foreground/90 leading-relaxed border border-primary/20 font-medium">
-          <strong className="text-primary">💡 Tips:</strong> QR ini bersifat statis. Absensi hanya akan berhasil jika dilakukan pada jam pelajaran yang sesuai dengan jadwal yang telah diinput di sistem.
+        <div className="mt-6 rounded-lg bg-blue-50 p-3 text-[11px] text-blue-700 leading-relaxed border border-blue-100">
+          <strong>💡 Tips:</strong> QR ini bersifat statis. Absensi hanya akan berhasil jika dilakukan pada jam pelajaran yang sesuai dengan jadwal yang telah diinput di sistem.
         </div>
       </div>
     </div>
