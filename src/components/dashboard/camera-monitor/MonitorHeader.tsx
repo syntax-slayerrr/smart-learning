@@ -47,9 +47,9 @@ export function MonitorHeader({
   return (
     <>
 {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E7E2DA] bg-[#FBF9F5] px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C] shadow-2xs">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-primary shadow-2xs">
             <Zap className="h-5 w-5" />
           </div>
           <div>
@@ -58,7 +58,7 @@ export function MonitorHeader({
                 AI Classroom Vision & Live Monitor
               </h3>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
                   streamOnline
                     ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
                     : "bg-stone-200/60 text-stone-600 border border-stone-300"
@@ -72,7 +72,7 @@ export function MonitorHeader({
                 {streamOnline ? `LIVE STREAM AKTIF (${actualFps} FPS)` : "KAMERA STANDBY"}
               </span>
             </div>
-            <p className="text-[11px] text-stone-500">
+            <p className="text-xs text-stone-500">
               Deteksi multi-subjek real-time, klasifikasi postur duduk/berdiri, dan telemetri langsung
             </p>
           </div>
@@ -80,7 +80,7 @@ export function MonitorHeader({
 
         {/* View Mode & Actions Switcher */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border border-[#E7E2DA] bg-[#F5F2EB] p-0.5 shadow-2xs">
+          <div className="flex items-center rounded-lg border border-border bg-muted p-0.5 shadow-2xs">
             <button
               onClick={() => setViewMode("single")}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
@@ -96,7 +96,7 @@ export function MonitorHeader({
               onClick={() => setViewMode("quad")}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 viewMode === "quad"
-                  ? "bg-white text-[#EA580C] shadow-2xs font-bold"
+                  ? "bg-white text-primary shadow-2xs font-bold"
                   : "text-stone-500 hover:text-stone-900"
               }`}
             >
@@ -108,16 +108,16 @@ export function MonitorHeader({
           <button
             onClick={handleManualRefresh}
             title="Muat Ulang Telemetri"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E7E2DA] bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 apple-press shadow-2xs"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 apple-press shadow-2xs"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#EA580C]" : "text-stone-400"}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-primary" : "text-stone-400"}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
           <button
             onClick={toggleFullscreen}
             title="Layar Penuh"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E7E2DA] bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 apple-press shadow-2xs"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 apple-press shadow-2xs"
           >
             {isFullscreen ? (
               <>
@@ -135,10 +135,10 @@ export function MonitorHeader({
       </div>
 
       {/* Classroom Channel Selector */}
-      <div className="flex items-center justify-between border-b border-[#E7E2DA]/80 bg-white px-5 py-2 overflow-x-auto gap-3 text-xs">
+      <div className="flex items-center justify-between border-b border-border/80 bg-white px-5 py-2 overflow-x-auto gap-3 text-xs">
         <div className="flex items-center gap-2 shrink-0">
-          <span className="font-semibold text-stone-700 flex items-center gap-1 text-[11.5px]">
-            <Wifi className="h-3.5 w-3.5 text-[#EA580C]" /> Saluran:
+          <span className="font-semibold text-stone-700 flex items-center gap-1 text-xs">
+            <Wifi className="h-3.5 w-3.5 text-primary" /> Saluran:
           </span>
           <div className="flex items-center gap-1.5">
             {channels.map((cam, idx) => {
@@ -152,8 +152,8 @@ export function MonitorHeader({
                   }}
                   className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all font-mono ${
                     isSelected
-                      ? "bg-[#EA580C] text-white font-bold shadow-2xs"
-                      : "bg-[#F5F2EB] text-stone-600 hover:bg-[#EBE7DF]"
+                      ? "bg-primary text-white font-bold shadow-2xs"
+                      : "bg-muted text-stone-600 hover:bg-[#EBE7DF]"
                   }`}
                 >
                   <span
@@ -168,7 +168,7 @@ export function MonitorHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] font-mono text-stone-500 shrink-0">
+        <div className="flex items-center gap-3 text-xs font-mono text-stone-500 shrink-0">
           <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
             <Eye className="h-3.5 w-3.5" /> Indeks Fokus: {focusIndex}%
           </span>

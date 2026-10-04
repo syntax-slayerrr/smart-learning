@@ -73,18 +73,18 @@ export function TelemetryPanel({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                    <Activity className="h-4 w-4 text-[#EA580C]" />
+                    <Activity className="h-4 w-4 text-primary" />
                     Deteksi Subjek Real-Time
                   </h4>
-                  <p className="text-[11px] text-stone-500">
+                  <p className="text-xs text-stone-500">
                     Data multimodal riil subjek yang tertangkap kamera
                   </p>
                 </div>
 
-                <div className="flex items-center rounded-lg border border-[#E7E2DA] bg-[#F5F2EB] p-0.5">
+                <div className="flex items-center rounded-lg border border-border bg-muted p-0.5">
                   <button
                     onClick={() => setRightTab("digital_twin")}
-                    className={`rounded-md px-2 py-1 text-[11px] font-semibold transition-all ${
+                    className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
                       rightTab === "digital_twin" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
                     }`}
                   >
@@ -92,7 +92,7 @@ export function TelemetryPanel({
                   </button>
                   <button
                     onClick={() => setRightTab("analytics")}
-                    className={`rounded-md px-2 py-1 text-[11px] font-semibold transition-all ${
+                    className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
                       rightTab === "analytics" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
                     }`}
                   >
@@ -102,10 +102,10 @@ export function TelemetryPanel({
               </div>
 
               {/* Focus Index Gauge Banner */}
-              <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3 shadow-2xs transition-all duration-500">
+              <div className="rounded-xl border border-border bg-background p-3 shadow-2xs transition-all duration-500">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-[#EA580C]" /> Indeks Fokus Real-Time
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" /> Indeks Fokus Real-Time
                   </span>
                   <span className="text-base font-bold font-mono text-emerald-700 tabular-nums transition-all duration-300">
                     {focusIndex}%
@@ -127,35 +127,36 @@ export function TelemetryPanel({
               {/* TAB CONTENT 1: REAL DETECTED SUBJECTS */}
               {rightTab === "digital_twin" ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[10.5px] font-mono text-stone-500 px-1">
+                  <div className="flex items-center justify-between text-xs font-mono text-stone-500 px-1">
                     <span>AREA VISUAL KAMERA</span>
                     <span className="tabular-nums font-bold text-stone-700">{totalDetected} SUBJEK TERDETEKSI</span>
                   </div>
 
                   {subjects.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
                       {subjects.map((st) => {
                         const badge = getStatusBadge(st.activity);
                         const isAlert = st.activity === "sleep" || st.activity === "using_phone";
                         const isSelected = selectedSubject?.id === st.id;
 
                         return (
-                          <div
+                          <button
                             key={st.id}
+                            type="button"
                             onClick={() => setSelectedSubject(st)}
-                            className={`rounded-xl border p-3 text-left transition-all duration-500 ease-out cursor-pointer ${
+                            className={`w-full rounded-xl border p-3 text-left transition-all duration-500 ease-out cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-primary/40 ${
                               isAlert
                                 ? "border-red-300 bg-red-50/70 shadow-xs"
                                 : isSelected
-                                ? "border-[#EA580C] bg-orange-50/50 shadow-xs"
-                                : "border-[#E7E2DA] bg-[#FBF9F5] hover:bg-stone-50 hover:border-stone-300"
+                                ? "border-primary bg-orange-50/50 shadow-xs"
+                                : "border-border bg-background hover:bg-stone-50 hover:border-stone-300"
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[11px] font-mono font-bold text-stone-700">
+                              <span className="text-xs font-mono font-bold text-stone-700">
                                 #{st.anonymous_id || st.id}
                               </span>
-                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[9.5px] font-mono transition-all duration-500 ${badge.bg}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-mono transition-all duration-500 ${badge.bg}`}>
                                 <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${badge.dot}`} />
                                 {badge.label}
                               </span>
@@ -166,7 +167,7 @@ export function TelemetryPanel({
                             </p>
 
                             {/* Multi-parameter detail pills */}
-                            <div className="mt-2 pt-2 border-t border-[#E7E2DA]/70 grid grid-cols-2 gap-1 text-[9.5px] font-mono text-stone-600">
+                            <div className="mt-2 pt-2 border-t border-border/70 grid grid-cols-2 gap-1 text-[10px] font-mono text-stone-600">
                               <span className="truncate">
                                 <strong>Fokus:</strong> <span className="tabular-nums">{st.attention_score || 95}%</span>
                               </span>
@@ -182,19 +183,19 @@ export function TelemetryPanel({
                             </div>
 
                             {st.hand_raised && (
-                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-800 flex items-center gap-1 transition-all duration-300">
+                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-mono font-bold text-amber-800 flex items-center gap-1 transition-all duration-300">
                                 <span>✋ Tangan Terangkat (Bertanya)</span>
                               </div>
                             )}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl border border-dashed border-[#E7E2DA] bg-[#FBF9F5]">
+                    <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl border border-dashed border-border bg-background">
                       <Users className="h-7 w-7 text-stone-400 mb-2" />
                       <p className="text-xs font-bold text-stone-700">Belum Ada Subjek Terdeteksi</p>
-                      <p className="text-[11px] text-stone-500 max-w-xs mt-1">
+                      <p className="text-xs text-stone-500 max-w-xs mt-1">
                         Kamera aktif memindai. Begitu ada orang yang masuk dalam visual kamera, kartu subjek akan muncul otomatis di sini.
                       </p>
                     </div>
@@ -202,9 +203,9 @@ export function TelemetryPanel({
                 </div>
               ) : (
                 /* TAB CONTENT 2: FLOW ACTIVITY TIMELINE CHART */
-                <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3.5 shadow-2xs">
+                <div className="rounded-xl border border-border bg-background p-3.5 shadow-2xs">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider text-stone-700">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
                       Tren Aktivitas Subjek
                     </span>
                     <div className="flex items-center gap-3 text-[10px] font-mono">
@@ -238,7 +239,7 @@ export function TelemetryPanel({
                               if (active && payload && payload.length) {
                                 const d = payload[0].payload;
                                 return (
-                                  <div className="rounded-lg border border-[#E7E2DA] bg-white p-2 text-[10.5px] shadow-md font-mono">
+                                  <div className="rounded-lg border border-border bg-white p-2 text-xs shadow-md font-mono">
                                     <p className="font-bold text-stone-800 mb-1">{d.time}</p>
                                     <p className="text-emerald-700">Fokus: {d.attentive} subjek</p>
                                     <p className="text-sky-600">Meja: {d.writing} subjek</p>
@@ -265,10 +266,10 @@ export function TelemetryPanel({
             </div>
 
             {/* Hermes AI Pedagogical Nudge & Alerts */}
-            <div className="pt-2 border-t border-[#E7E2DA] space-y-2">
+            <div className="pt-2 border-t border-border space-y-2">
               {hermesNudge && (
                 <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-3 flex items-start gap-2.5 shadow-2xs">
-                  <div className="rounded-lg bg-orange-100 p-1.5 text-[#EA580C] shrink-0 mt-0.5">
+                  <div className="rounded-lg bg-orange-100 p-1.5 text-primary shrink-0 mt-0.5">
                     <Sparkles className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -280,10 +281,10 @@ export function TelemetryPanel({
                         </span>
                       </span>
                       {isNudgeLoading && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#EA580C] animate-ping" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
                       )}
                     </div>
-                    <p className="text-[11px] text-stone-700 leading-relaxed">
+                    <p className="text-xs text-stone-700 leading-relaxed">
                       {hermesNudge}
                     </p>
                   </div>
@@ -299,7 +300,7 @@ export function TelemetryPanel({
                     <span className="text-xs font-bold text-red-900 block">
                       ⚠️ Peringatan Kelelahan: Terdeteksi {counts.sleep} Subjek Menunduk
                     </span>
-                    <p className="text-[10.5px] text-red-700 leading-relaxed mt-0.5">
+                    <p className="text-xs text-red-700 leading-relaxed mt-0.5">
                       Subjek menunduk / tidak aktif di area meja lebih dari 3 detik.
                     </p>
                   </div>
@@ -307,14 +308,14 @@ export function TelemetryPanel({
               ) : totalDetected > 0 ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-2.5 flex items-center gap-2 text-xs text-emerald-800">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span className="text-[11px] font-medium truncate">
+                  <span className="text-xs font-medium truncate">
                     ✨ {totalDetected} subjek terdeteksi aktif dalam ruang pemantauan
                   </span>
                 </div>
               ) : (
                 <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 flex items-center gap-2 text-xs text-stone-600">
                   <Radio className="h-4 w-4 text-stone-400 shrink-0" />
-                  <span className="text-[11px] font-medium truncate">
+                  <span className="text-xs font-medium truncate">
                     Kamera Standby • Siap mendeteksi subjek yang memasuki frame
                   </span>
                 </div>

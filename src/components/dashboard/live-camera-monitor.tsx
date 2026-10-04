@@ -568,8 +568,8 @@ export function LiveCameraMonitor() {
   return (
     <div
       ref={containerRef}
-      className={`rounded-2xl border border-[#E7E2DA] bg-white shadow-2xs overflow-hidden transition-all duration-300 ${
-        isFullscreen ? "p-6 bg-[#FAF9F5] fixed inset-0 z-50 overflow-y-auto" : ""
+      className={`rounded-2xl border border-border bg-white shadow-2xs overflow-hidden transition-all duration-300 ${
+        isFullscreen ? "p-6 bg-background fixed inset-0 z-50 overflow-y-auto" : ""
       }`}
     >
       

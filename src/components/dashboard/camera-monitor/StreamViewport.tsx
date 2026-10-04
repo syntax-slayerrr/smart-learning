@@ -78,12 +78,12 @@ export function StreamViewport({
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-stone-800 flex items-center gap-1.5">
-                    <Video className="h-4 w-4 text-[#EA580C]" />
+                    <Video className="h-4 w-4 text-primary" />
                     Visual Feed: {activeChannel.name}
                   </span>
                   <button
                     onClick={onOpenModal}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 text-[11px] font-medium shadow-2xs transition-all active:scale-[0.98]"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 text-xs font-medium shadow-2xs transition-all active:scale-[0.98]"
                     title="Buka Pengaturan Kamera & Webcam"
                   >
                     <Camera className="h-3 w-3 text-orange-400" />
@@ -98,17 +98,17 @@ export function StreamViewport({
                     />
                   </button>
                 </div>
-                <span className="font-mono text-[11px] text-stone-400">
+                <span className="font-mono text-xs text-stone-400">
                   {activeChannel.ipAddress}
                 </span>
               </div>
 
               {/* Orientation & Aspect Ratio Controls for Phone Camera */}
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#F5F2EB] border border-[#E7E2DA] p-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted border border-border p-2 text-xs">
                 <div className="flex items-center gap-1.5 font-semibold text-stone-700">
-                  <RotateCw className="h-3.5 w-3.5 text-[#EA580C]" />
+                  <RotateCw className="h-3.5 w-3.5 text-primary" />
                   <span>Orientasi Kamera HP:</span>
-                  <span className="font-mono text-[10.5px] rounded bg-white px-1.5 py-0.5 border border-[#E7E2DA] text-stone-800 font-bold">
+                  <span className="font-mono text-xs rounded bg-white px-1.5 py-0.5 border border-border text-stone-800 font-bold">
                     {activeRotation}° {isFlipped ? "(Mirror)" : ""}
                   </span>
                 </div>
@@ -117,8 +117,8 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("0")}
                     title="Rotasi 0 Derajat (Normal)"
-                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
-                      activeRotation === "0" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                      activeRotation === "0" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
                     0°
@@ -126,8 +126,8 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("90")}
                     title="Rotasi 90 Derajat (Searah jarum jam)"
-                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
-                      activeRotation === "90" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                      activeRotation === "90" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
                     ↻ 90°
@@ -135,8 +135,8 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("180")}
                     title="Rotasi 180 Derajat (Terbalik)"
-                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
-                      activeRotation === "180" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                      activeRotation === "180" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
                     180°
@@ -144,8 +144,8 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("270")}
                     title="Rotasi 270 Derajat (Berlawanan jarum jam)"
-                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all ${
-                      activeRotation === "270" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                      activeRotation === "270" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
                     ↺ 270°
@@ -153,8 +153,8 @@ export function StreamViewport({
                   <button
                     onClick={toggleFlip}
                     title="Cermin Horizontal (Mirror)"
-                    className={`rounded px-2 py-0.5 text-[10.5px] font-mono font-medium transition-all flex items-center gap-1 ${
-                      isFlipped ? "bg-[#EA580C] text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-[#E7E2DA]"
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all flex items-center gap-1 ${
+                      isFlipped ? "bg-primary text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
                     <FlipHorizontal className="h-3 w-3" />
@@ -162,11 +162,11 @@ export function StreamViewport({
                   </button>
                   <button
                     onClick={() => setAspectRatioMode((m) => (m === "portrait" ? "landscape" : "portrait"))}
-                    className="ml-1 rounded px-2 py-0.5 text-[10.5px] font-medium bg-white text-stone-800 hover:bg-stone-100 border border-[#E7E2DA] flex items-center gap-1"
+                    className="ml-1 rounded px-2 py-0.5 text-xs font-medium bg-white text-stone-800 hover:bg-stone-100 border border-border flex items-center gap-1"
                   >
                     {aspectRatioMode === "portrait" ? (
                       <>
-                        <Smartphone className="h-3 w-3 text-[#EA580C]" />
+                        <Smartphone className="h-3 w-3 text-primary" />
                         <span>Mode Potret HP</span>
                       </>
                     ) : (
@@ -197,20 +197,20 @@ export function StreamViewport({
                     />
                     {/* Top Floating HUD Badges */}
                     <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-stone-950/80 backdrop-blur-md px-2.5 py-1 text-[11px] font-mono font-medium text-white border border-white/10 shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-stone-950/80 backdrop-blur-md px-2.5 py-1 text-xs font-mono font-medium text-white border border-white/10 shadow-sm">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                         LIVE • {activeChannel.name}
                       </span>
                     </div>
 
                     <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
-                      <span className="rounded-md bg-[#EA580C]/90 backdrop-blur-md px-2.5 py-1 text-[10.5px] font-mono font-bold text-white shadow-sm">
+                      <span className="rounded-md bg-primary/90 backdrop-blur-md px-2.5 py-1 text-xs font-mono font-bold text-white shadow-sm">
                         ⚡ {totalDetected} Subjek Terdeteksi
                       </span>
                     </div>
 
                     <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                      <div className="rounded-md bg-stone-950/80 backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-stone-200 border border-white/10 flex items-center gap-2 transition-all duration-500">
+                      <div className="rounded-md bg-stone-950/80 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-stone-200 border border-white/10 flex items-center gap-2 transition-all duration-500">
                         <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse shrink-0" />
                         <span>Kamera HP IP Webcam • Duduk: <strong className="font-mono tabular-nums text-white">{telemetry.sitting_count}</strong> | Berdiri: <strong className="font-mono tabular-nums text-white">{telemetry.standing_count}</strong></span>
                       </div>
@@ -253,32 +253,32 @@ export function StreamViewport({
             </div>
 
             {/* Quick Status Legend Bar */}
-            <div className="mt-3 pt-3 border-t border-[#E7E2DA]/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
+            <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="font-semibold text-stone-700">Status Real-Time:</span>
-                <span className="flex items-center gap-1 text-emerald-700 font-mono text-[10.5px] transition-all duration-300">
+                <span className="flex items-center gap-1 text-emerald-700 font-mono text-xs transition-all duration-300">
                   <span className="h-2 w-2 rounded-full bg-emerald-600 transition-colors duration-300" /> Duduk / Fokus (<strong className="tabular-nums font-bold">{counts.attentive}</strong>)
                 </span>
-                <span className="flex items-center gap-1 text-sky-700 font-mono text-[10.5px] transition-all duration-300">
+                <span className="flex items-center gap-1 text-sky-700 font-mono text-xs transition-all duration-300">
                   <span className="h-2 w-2 rounded-full bg-sky-500 transition-colors duration-300" /> Menulis (<strong className="tabular-nums font-bold">{counts.writing}</strong>)
                 </span>
                 {counts.sleep > 0 && (
-                  <span className="flex items-center gap-1 text-red-700 font-mono text-[10.5px] font-bold transition-all duration-300">
+                  <span className="flex items-center gap-1 text-red-700 font-mono text-xs font-bold transition-all duration-300">
                     <span className="h-2 w-2 rounded-full bg-red-700 animate-pulse" /> Tidur / Menunduk (<strong className="tabular-nums">{counts.sleep}</strong>)
                   </span>
                 )}
                 {counts.hand_raised > 0 && (
-                  <span className="flex items-center gap-1 text-amber-800 font-mono text-[10.5px] font-bold transition-all duration-300">
+                  <span className="flex items-center gap-1 text-amber-800 font-mono text-xs font-bold transition-all duration-300">
                     <span className="h-2 w-2 rounded-full bg-amber-500" /> Angkat Tangan (<strong className="tabular-nums">{counts.hand_raised}</strong>)
                   </span>
                 )}
                 {telemetry.standing_count > 0 && (
-                  <span className="flex items-center gap-1 text-blue-700 font-mono text-[10.5px] font-bold transition-all duration-300">
+                  <span className="flex items-center gap-1 text-blue-700 font-mono text-xs font-bold transition-all duration-300">
                     <span className="h-2 w-2 rounded-full bg-blue-600" /> Berdiri (<strong className="tabular-nums">{telemetry.standing_count}</strong>)
                   </span>
                 )}
               </div>
-              <div className="font-mono text-stone-400 text-[10.5px]">
+              <div className="font-mono text-stone-400 text-xs">
                 Update: {lastSyncTime.toLocaleTimeString("id-ID")}
               </div>
             </div>
