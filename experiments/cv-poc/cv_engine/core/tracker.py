@@ -143,8 +143,22 @@ class PelacakSubjekKelas:
                     "landmarks": pose
                 })
 
-        # 3. Spatial NMS Filter pada Kandidat Terpadu (Menghilangkan Bounding Box Ganda)
-        kandidat_terpadu = saring_kandidat_spasial(kandidat_terpadu, ambang_iou=0.35, ambang_jarak_pusat=100.0)
+        # 3. Spatial NMS Filter & Human Liveness Guardrail
+        # Mengeliminasi kandidat tanpa bukti biologis/anatomis manusia (jaket, baju dinding, kursi)
+        kandidat_tervalidasi = []
+        for cand in kandidat_terpadu:
+            memiliki_kerangka = cand.get("landmarks") is not None
+            skor_cand = cand.get("keyakinan", 0.0)
+
+            # Jika kerangka MediaPipe terdeteksi, ini adalah manusia hidup
+            if memiliki_kerangka:
+                kandidat_tervalidasi.append(cand)
+            # Jika tanpa kerangka MediaPipe, hanya lolos jika keyakinan sangat tinggi (>= 0.65)
+            # untuk mencegah objek mati (seperti jaket atau kursi) dideteksi sebagai siswa
+            elif skor_cand >= 0.65:
+                kandidat_tervalidasi.append(cand)
+
+        kandidat_terpadu = saring_kandidat_spasial(kandidat_tervalidasi, ambang_iou=0.35, ambang_jarak_pusat=100.0)
 
         for kandidat in kandidat_terpadu:
             px, py, pw, ph = kandidat["kotak"]
@@ -420,10 +434,10 @@ class PelacakSubjekKelas:
                 self.next_id = self.id_berikutnya
                 self.tracks[id_baru] = {
                     "id": id_baru,
-                    "student_name": "Zaldy (Siswa)",
-                    "is_recognized": True,
-                    "seat_latched": True,
-                    "identity_votes": {"Zaldy (Siswa)": MINIMAL_VOTING_IDENTITAS + 1},
+                    "student_name": f"Siswa #{id_baru}",
+                    "is_recognized": False,
+                    "seat_latched": False,
+                    "identity_votes": {},
                     "box": (px, py, pw, ph),
                     "center": (pusat_subjek_x, pusat_subjek_y),
                     "landmarks": landmarks,

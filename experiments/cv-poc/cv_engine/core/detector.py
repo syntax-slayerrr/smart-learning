@@ -59,7 +59,7 @@ class DetektorYOLO26:
     def deteksi_subjek_manusia(
         self,
         frame: np.ndarray,
-        ambang_keyakinan: float = 0.35,
+        ambang_keyakinan: float = 0.50,
         dimensi_input: int = 320
     ) -> List[Tuple[int, int, int, int, float]]:
         """

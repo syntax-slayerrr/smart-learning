@@ -212,17 +212,31 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                         if nama_cocok and len(subjek_aktif) > 0:
                             wajah_pusat_x = kotak_landmark_5[0] + kotak_landmark_5[2] / 2.0
                             wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
+                            
+                            subjek_terdekat = None
+                            jarak_terdekat = 280.0
                             for data_siswa in subjek_aktif:
                                 tcx, tcy = data_siswa["center"]
-                                if math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy) < 220.0:
-                                    # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
-                                    data_siswa.setdefault("identity_votes", {})
-                                    data_siswa["identity_votes"][nama_cocok] = data_siswa["identity_votes"].get(nama_cocok, 0) + 1
-                                    if data_siswa["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
-                                        data_siswa["student_name"] = nama_cocok
-                                        data_siswa["is_recognized"] = True
-                                        data_siswa["seat_latched"] = True
-                                    break
+                                jarak_wajah = math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy)
+                                if jarak_wajah < jarak_terdekat:
+                                    jarak_terdekat = jarak_wajah
+                                    subjek_terdekat = data_siswa
+
+                            if subjek_terdekat is not None:
+                                # Jamin keunikan identitas: cabut nama ini jika pernah melekat di track lain
+                                for s in subjek_aktif:
+                                    if s is not subjek_terdekat and s.get("student_name") == nama_cocok:
+                                        s["student_name"] = f"Siswa #{s['id']}"
+                                        s["is_recognized"] = False
+                                        s["seat_latched"] = False
+
+                                # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
+                                subjek_terdekat.setdefault("identity_votes", {})
+                                subjek_terdekat["identity_votes"][nama_cocok] = subjek_terdekat["identity_votes"].get(nama_cocok, 0) + 1
+                                if subjek_terdekat["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
+                                    subjek_terdekat["student_name"] = nama_cocok
+                                    subjek_terdekat["is_recognized"] = True
+                                    subjek_terdekat["seat_latched"] = True
                 except Exception:
                     pass
 

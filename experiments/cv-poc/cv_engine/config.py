@@ -139,7 +139,7 @@ class KonfigurasiEngine:
     flip_h: bool = False
     headless: bool = True
     target_fps: int = 30
-    yolo_conf_thresh: float = 0.35
+    yolo_conf_thresh: float = 0.50
     yolo_imgsz: int = 320
     face_sim_thresh: float = 0.38
 
