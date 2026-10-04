@@ -41,7 +41,7 @@ export function TeacherMobilityMap({ zones }: TeacherMobilityMapProps) {
   const maxCount = Math.max(...zones.map((z) => z.count), 1);
 
   return (
-    <div className="rounded-xl border border-border bg-white p-5 shadow-2xs">
+    <div className="rounded-xl border border-border bg-white p-5 shadow-2xs apple-card">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-primary" />

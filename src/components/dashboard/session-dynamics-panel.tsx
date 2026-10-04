@@ -153,7 +153,7 @@ export function SessionDynamicsPanel({
 
       {/* Timeline Chart */}
       {chartData.length > 0 ? (
-        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs apple-card">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">
               Timeline Aktivitas Belajar Mengajar
@@ -315,7 +315,7 @@ function StatPill({
   };
 
   return (
-    <div className={`rounded-xl border p-3.5 ${colorMap[color] || colorMap.stone} shadow-2xs transition-all duration-500 ease-out`}>
+    <div className={`rounded-xl border p-3.5 ${colorMap[color] || colorMap.stone} shadow-2xs apple-card`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`h-3.5 w-3.5 ${alert ? "animate-pulse text-red-600" : "text-stone-400"} transition-colors duration-300`} />
         <span className="text-xs font-bold uppercase tracking-wider text-stone-500 truncate">

@@ -84,7 +84,7 @@ export function TelemetryPanel({
                 <div className="flex items-center rounded-lg border border-border bg-muted p-0.5">
                   <button
                     onClick={() => setRightTab("digital_twin")}
-                    className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
+                    className={`rounded-md px-2 py-1 text-xs font-semibold apple-press ${
                       rightTab === "digital_twin" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
                     }`}
                   >
@@ -92,7 +92,7 @@ export function TelemetryPanel({
                   </button>
                   <button
                     onClick={() => setRightTab("analytics")}
-                    className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
+                    className={`rounded-md px-2 py-1 text-xs font-semibold apple-press ${
                       rightTab === "analytics" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
                     }`}
                   >
@@ -144,7 +144,7 @@ export function TelemetryPanel({
                             key={st.id}
                             type="button"
                             onClick={() => setSelectedSubject(st)}
-                            className={`w-full rounded-xl border p-3 text-left transition-all duration-500 ease-out cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-primary/40 ${
+                            className={`w-full rounded-xl border p-3 text-left apple-press apple-card cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-primary/40 ${
                               isAlert
                                 ? "border-red-300 bg-red-50/70 shadow-xs"
                                 : isSelected

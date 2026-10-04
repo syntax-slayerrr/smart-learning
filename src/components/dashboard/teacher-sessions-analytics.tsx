@@ -54,7 +54,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs apple-card">
           <div className="flex items-center gap-1.5 mb-1">
             <BarChart3 className="h-3.5 w-3.5 text-stone-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Total Sesi</span>
@@ -64,7 +64,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs apple-card">
           <div className="flex items-center gap-1.5 mb-1">
             <Activity className="h-3.5 w-3.5 text-stone-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Cakupan AI</span>
@@ -76,7 +76,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs apple-card">
           <div className="flex items-center gap-1.5 mb-1">
             <Hand className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Angkat Tangan</span>
@@ -86,7 +86,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs apple-card">
           <div className="flex items-center gap-1.5 mb-1">
             <Moon className={`h-3.5 w-3.5 ${data.total_sleep_alerts > 0 ? "text-red-600 animate-pulse" : "text-stone-400"}`} />
             <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Alert Tertidur</span>
@@ -99,7 +99,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
 
       {/* Recent Sessions List */}
       {data.recent_sessions.length > 0 && (
-        <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden">
+        <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden apple-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-background">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800">
               Sesi Mengajar Terkini

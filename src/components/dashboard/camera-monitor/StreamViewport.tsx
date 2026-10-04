@@ -83,7 +83,7 @@ export function StreamViewport({
                   </span>
                   <button
                     onClick={onOpenModal}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 text-xs font-medium shadow-2xs transition-all active:scale-[0.98]"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 text-xs font-medium shadow-2xs apple-press"
                     title="Buka Pengaturan Kamera & Webcam"
                   >
                     <Camera className="h-3 w-3 text-orange-400" />
@@ -117,7 +117,7 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("0")}
                     title="Rotasi 0 Derajat (Normal)"
-                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium apple-press ${
                       activeRotation === "0" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
@@ -126,7 +126,7 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("90")}
                     title="Rotasi 90 Derajat (Searah jarum jam)"
-                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium apple-press ${
                       activeRotation === "90" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
@@ -135,7 +135,7 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("180")}
                     title="Rotasi 180 Derajat (Terbalik)"
-                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium apple-press ${
                       activeRotation === "180" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
@@ -144,7 +144,7 @@ export function StreamViewport({
                   <button
                     onClick={() => rotateCamera("270")}
                     title="Rotasi 270 Derajat (Berlawanan jarum jam)"
-                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all ${
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium apple-press ${
                       activeRotation === "270" ? "bg-stone-900 text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
@@ -153,7 +153,7 @@ export function StreamViewport({
                   <button
                     onClick={toggleFlip}
                     title="Cermin Horizontal (Mirror)"
-                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium transition-all flex items-center gap-1 ${
+                    className={`rounded px-2 py-0.5 text-xs font-mono font-medium apple-press flex items-center gap-1 ${
                       isFlipped ? "bg-primary text-white" : "bg-white text-stone-700 hover:bg-stone-100 border border-border"
                     }`}
                   >
@@ -162,7 +162,7 @@ export function StreamViewport({
                   </button>
                   <button
                     onClick={() => setAspectRatioMode((m) => (m === "portrait" ? "landscape" : "portrait"))}
-                    className="ml-1 rounded px-2 py-0.5 text-xs font-medium bg-white text-stone-800 hover:bg-stone-100 border border-border flex items-center gap-1"
+                    className="ml-1 rounded px-2 py-0.5 text-xs font-medium bg-white text-stone-800 hover:bg-stone-100 border border-border flex items-center gap-1 apple-press"
                   >
                     {aspectRatioMode === "portrait" ? (
                       <>

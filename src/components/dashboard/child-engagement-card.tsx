@@ -31,7 +31,7 @@ interface ChildEngagementCardProps {
 
 export function ChildEngagementCard({ child }: ChildEngagementCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden card-hover transition-all">
+    <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden apple-card">
       {/* Header */}
       <div className="border-b border-border px-5 py-4 flex items-center justify-between bg-background">
         <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ function MiniStat({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-white p-3 shadow-2xs">
+    <div className="rounded-xl border border-border bg-white p-3 shadow-2xs apple-card">
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`h-3.5 w-3.5 ${alert ? "text-red-600 animate-pulse" : "text-stone-400"}`} />
         <span className="text-xs font-bold uppercase tracking-wider text-stone-500 truncate">

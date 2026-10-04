@@ -43,7 +43,7 @@ export function AtRiskStudentsTable({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden">
+    <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden apple-card">
       {/* Table Title Bar */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-white">
         <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">

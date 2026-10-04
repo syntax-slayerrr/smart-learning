@@ -83,7 +83,7 @@ export function MonitorHeader({
           <div className="flex items-center rounded-lg border border-border bg-muted p-0.5 shadow-2xs">
             <button
               onClick={() => setViewMode("single")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold apple-press ${
                 viewMode === "single"
                   ? "bg-white text-stone-900 shadow-2xs"
                   : "text-stone-500 hover:text-stone-900"
@@ -94,7 +94,7 @@ export function MonitorHeader({
             </button>
             <button
               onClick={() => setViewMode("quad")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold apple-press ${
                 viewMode === "quad"
                   ? "bg-white text-primary shadow-2xs font-bold"
                   : "text-stone-500 hover:text-stone-900"
@@ -150,7 +150,7 @@ export function MonitorHeader({
                     setActiveCamIndex(idx);
                     if (viewMode === "quad") setViewMode("single");
                   }}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all font-mono ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-mono apple-press ${
                     isSelected
                       ? "bg-primary text-white font-bold shadow-2xs"
                       : "bg-muted text-stone-600 hover:bg-muted"

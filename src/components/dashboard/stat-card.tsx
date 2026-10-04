@@ -24,7 +24,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-white p-5 card-hover shadow-2xs transition-all duration-200",
+        "rounded-xl border border-border bg-white p-5 apple-card shadow-2xs group",
         className
       )}
     >
@@ -53,7 +53,7 @@ export function StatCard({
             </p>
           )}
         </div>
-        <div className="rounded-lg bg-primary/[0.08] border border-primary/15 p-2.5 text-primary shrink-0">
+        <div className="rounded-lg bg-primary/[0.08] border border-primary/15 p-2.5 text-primary shrink-0 transition-transform duration-200 group-hover:scale-105">
           <Icon className="h-5 w-5" />
         </div>
       </div>

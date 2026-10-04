@@ -90,7 +90,7 @@ export function ClassroomIntelligenceOverview({ data }: ClassroomIntelligenceOve
 
       {/* Classes with Highest Sleep */}
       {data.classes_with_highest_sleep.length > 0 && (
-        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs apple-card">
           <div className="flex items-center justify-between mb-3.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 flex items-center gap-2">
               <Moon className="h-4 w-4 text-red-600" />
