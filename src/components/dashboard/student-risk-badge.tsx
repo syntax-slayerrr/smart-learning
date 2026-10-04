@@ -26,7 +26,7 @@ const riskConfig = {
     label: "At-Risk",
     color: "bg-orange-50 text-orange-800 border-orange-200",
     icon: AlertTriangle,
-    dotColor: "bg-[#EA580C]",
+    dotColor: "bg-primary",
   },
   critical: {
     label: "Kritis",
@@ -44,7 +44,7 @@ export function StudentRiskBadge({ riskLevel, riskScore, compact = false }: Stud
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold",
           config.color
         )}
       >
@@ -64,7 +64,7 @@ export function StudentRiskBadge({ riskLevel, riskScore, compact = false }: Stud
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span>{config.label}</span>
       {riskScore !== undefined && (
-        <span className="ml-1 border-l border-current/20 pl-1.5 font-mono text-[11px] opacity-80">
+        <span className="ml-1 border-l border-current/20 pl-1.5 font-mono text-xs opacity-80">
           {(riskScore * 100).toFixed(0)}%
         </span>
       )}

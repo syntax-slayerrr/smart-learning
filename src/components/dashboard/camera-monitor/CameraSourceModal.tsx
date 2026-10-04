@@ -211,7 +211,7 @@ export function CameraSourceModal({
                               <p className="text-xs font-bold text-stone-900 truncate">
                                 {cam.name}
                               </p>
-                              <p className="text-[10px] font-mono text-stone-500">
+                              <p className="text-xs font-mono text-stone-500">
                                 Indeks Device: #{cam.index} {cam.device_path ? `(${cam.device_path})` : ""}
                               </p>
                             </div>
@@ -315,12 +315,12 @@ export function CameraSourceModal({
                                       {cam.url}
                                     </span>
                                     {cam.battery !== undefined && cam.battery !== null && (
-                                      <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold font-mono">
+                                      <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-xs font-bold font-mono">
                                         🔋 {cam.battery}%
                                       </span>
                                     )}
                                     {cam.resolution && (
-                                      <span className="rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-mono">
+                                      <span className="rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-xs font-mono">
                                         📐 {cam.resolution}
                                       </span>
                                     )}
@@ -374,7 +374,7 @@ export function CameraSourceModal({
                       type="text"
                       value={customIpUrl}
                       onChange={(e) => setCustomIpUrl(e.target.value)}
-                      placeholder="http://192.168.1.15:8080/video"
+                      id="custom-ip-stream-url" aria-label="URL Stream Manual" placeholder="http://192.168.1.15:8080/video"
                       className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                     <button
@@ -440,7 +440,7 @@ export function CameraSourceModal({
                       type="text"
                       value={customEdgeInput}
                       onChange={(e) => setCustomEdgeInput(e.target.value)}
-                      placeholder="https://xxxx.loca.lt atau http://localhost:5000"
+                      id="custom-edge-server-url" aria-label="Alamat Edge Server Kamera" placeholder="https://xxxx.loca.lt atau http://localhost:5000"
                       className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                     <button
@@ -458,7 +458,7 @@ export function CameraSourceModal({
                   <div className="bg-stone-900 text-stone-100 rounded-lg p-2 font-mono text-xs select-all">
                     npx localtunnel --port 5000
                   </div>
-                  <p className="text-[10px] text-stone-500">
+                  <p className="text-xs text-stone-500">
                     Salin link <code>https://xxxx.loca.lt</code> yang muncul di terminal dan tempelkan di kotak di atas.
                   </p>
                 </div>

@@ -156,7 +156,7 @@ export function TelemetryPanel({
                               <span className="text-xs font-mono font-bold text-stone-700">
                                 #{st.anonymous_id || st.id}
                               </span>
-                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-mono transition-all duration-500 ${badge.bg}`}>
+                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-mono transition-all duration-500 ${badge.bg}`}>
                                 <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${badge.dot}`} />
                                 {badge.label}
                               </span>
@@ -167,7 +167,7 @@ export function TelemetryPanel({
                             </p>
 
                             {/* Multi-parameter detail pills */}
-                            <div className="mt-2 pt-2 border-t border-border/70 grid grid-cols-2 gap-1 text-[10px] font-mono text-stone-600">
+                            <div className="mt-2 pt-2 border-t border-border/70 grid grid-cols-2 gap-1 text-xs font-mono text-stone-600">
                               <span className="truncate">
                                 <strong>Fokus:</strong> <span className="tabular-nums">{st.attention_score || 95}%</span>
                               </span>
@@ -183,7 +183,7 @@ export function TelemetryPanel({
                             </div>
 
                             {st.hand_raised && (
-                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-mono font-bold text-amber-800 flex items-center gap-1 transition-all duration-300">
+                              <div className="mt-1.5 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-xs font-mono font-bold text-amber-800 flex items-center gap-1 transition-all duration-300">
                                 <span>✋ Tangan Terangkat (Bertanya)</span>
                               </div>
                             )}
@@ -208,7 +208,7 @@ export function TelemetryPanel({
                     <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
                       Tren Aktivitas Subjek
                     </span>
-                    <div className="flex items-center gap-3 text-[10px] font-mono">
+                    <div className="flex items-center gap-3 text-xs font-mono">
                       <span className="flex items-center gap-1 text-emerald-700">
                         <span className="h-2 w-2 rounded-full bg-emerald-600" /> Fokus
                       </span>
@@ -274,9 +274,9 @@ export function TelemetryPanel({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
                         Hermes Pedagogical Nudge
-                        <span className="rounded bg-orange-200/60 px-1.5 py-0.2 text-[9px] font-mono text-orange-900 font-semibold">
+                        <span className="rounded bg-orange-200/60 px-1.5 py-0.2 text-xs font-mono text-orange-900 font-semibold">
                           9Router AI
                         </span>
                       </span>

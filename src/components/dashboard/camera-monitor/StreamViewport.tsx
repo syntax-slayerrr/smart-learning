@@ -182,7 +182,7 @@ export function StreamViewport({
               {/* Video Player Box with dynamic portrait/landscape ratio */}
               <div
                 className={`relative w-full rounded-xl overflow-hidden bg-stone-950 border border-stone-800 shadow-inner flex items-center justify-center transition-all ${
-                  aspectRatioMode === "portrait" ? "aspect-[3/4] sm:aspect-[9/16] max-h-[580px]" : "aspect-video"
+                  aspectRatioMode === "portrait" ? "aspect-[3/4] sm:aspect-[9/16] max-h-[36rem]" : "aspect-video"
                 }`}
               >
                 {streamOnline ? (
@@ -240,7 +240,7 @@ export function StreamViewport({
                         <button
                           onClick={() => copyWifiCommand(activeCamIndex + 1, activeChannel.port)}
                           title="Salin Perintah"
-                          className="ml-2 inline-flex items-center gap-1 rounded bg-stone-800 px-2 py-1 text-[10px] text-stone-300 hover:text-white transition-colors"
+                          className="ml-2 inline-flex items-center gap-1 rounded bg-stone-800 px-2 py-1 text-xs text-stone-300 hover:text-white transition-colors"
                         >
                           {copiedCmd ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                           {copiedCmd ? "Tersalin" : "Salin"}

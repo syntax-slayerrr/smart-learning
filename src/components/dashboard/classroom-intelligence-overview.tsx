@@ -43,7 +43,7 @@ export function ClassroomIntelligenceOverview({ data }: ClassroomIntelligenceOve
     <div className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-[#EA580C] shadow-2xs">
+        <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-primary shadow-2xs">
           <Brain className="h-5 w-5" />
         </div>
         <div>
@@ -90,13 +90,13 @@ export function ClassroomIntelligenceOverview({ data }: ClassroomIntelligenceOve
 
       {/* Classes with Highest Sleep */}
       {data.classes_with_highest_sleep.length > 0 && (
-        <div className="rounded-xl border border-[#E7E2DA] bg-white p-5 shadow-2xs">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs">
           <div className="flex items-center justify-between mb-3.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 flex items-center gap-2">
               <Moon className="h-4 w-4 text-red-600" />
               Distribusi Kelas dengan Insiden Tidur Tertinggi
             </h4>
-            <span className="text-[10px] font-mono text-stone-400">Akumulasi Bulan Ini</span>
+            <span className="text-xs font-mono text-stone-400">Akumulasi Bulan Ini</span>
           </div>
           <div className="space-y-3">
             {data.classes_with_highest_sleep.map((cls, idx) => {
@@ -116,7 +116,7 @@ export function ClassroomIntelligenceOverview({ data }: ClassroomIntelligenceOve
                         {cls.count} insiden
                       </span>
                     </div>
-                    <div className="h-1.5 bg-[#F5F2EB] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-red-500 rounded-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
                         style={{ width: `${pct}%` }}
@@ -150,10 +150,10 @@ function QuickStat({
   alert?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-white px-4 py-3.5 shadow-2xs card-hover">
+    <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
       <div className="flex items-center gap-1.5 mb-1.5">
         <Icon className={`h-3.5 w-3.5 ${alert ? "text-red-600 animate-pulse" : "text-stone-400"}`} />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
+        <span className="text-xs font-bold uppercase tracking-wider text-stone-500 truncate">
           {label}
         </span>
       </div>

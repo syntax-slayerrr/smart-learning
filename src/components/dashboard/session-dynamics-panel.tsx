@@ -58,7 +58,7 @@ interface SessionDynamicsPanelProps {
 }
 
 const insightTypeConfig: Record<string, { icon: typeof Hand; label: string; color: string; border: string }> = {
-  participation: { icon: Hand, label: "Partisipasi", color: "text-[#EA580C] bg-orange-50", border: "border-orange-200" },
+  participation: { icon: Hand, label: "Partisipasi", color: "text-primary bg-orange-50", border: "border-orange-200" },
   mobility: { icon: Activity, label: "Mobilitas", color: "text-stone-700 bg-stone-100", border: "border-stone-200" },
   group_work: { icon: Users, label: "Kerja Kelompok", color: "text-indigo-700 bg-indigo-50", border: "border-indigo-200" },
   pacing: { icon: BookOpen, label: "Pacing Belajar", color: "text-amber-700 bg-amber-50", border: "border-amber-200" },
@@ -87,7 +87,7 @@ export function SessionDynamicsPanel({
     if (active && payload?.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-stone-900 border border-stone-800 text-white p-3 shadow-xl rounded-xl space-y-1.5 min-w-[170px]">
+        <div className="bg-stone-900 border border-stone-800 text-white p-3 shadow-xl rounded-xl space-y-1.5 min-w-44">
           <p className="font-semibold text-xs text-stone-200 border-b border-stone-800 pb-1 font-mono">
             {label} WIB
           </p>
@@ -106,7 +106,7 @@ export function SessionDynamicsPanel({
             </span>
           </div>
           {data.teacher_zone && (
-            <p className="text-[10px] text-stone-400 border-t border-stone-800 pt-1 mt-1 font-mono">
+            <p className="text-xs text-stone-400 border-t border-stone-800 pt-1 mt-1 font-mono">
               Zona Guru: <span className="font-semibold text-stone-200">{data.teacher_zone}</span>
             </p>
           )}
@@ -122,7 +122,7 @@ export function SessionDynamicsPanel({
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-base font-bold tracking-tight text-stone-900 flex items-center gap-2">
-            <Activity className="h-4.5 w-4.5 text-[#EA580C]" />
+            <Activity className="h-4.5 w-4.5 text-primary" />
             Dinamika Kelas & Telemetri
           </h3>
           <p className="text-xs text-stone-500 mt-0.5">
@@ -153,14 +153,14 @@ export function SessionDynamicsPanel({
 
       {/* Timeline Chart */}
       {chartData.length > 0 ? (
-        <div className="rounded-xl border border-[#E7E2DA] bg-white p-5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white p-5 shadow-2xs card-hover">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">
               Timeline Aktivitas Belajar Mengajar
             </h4>
-            <span className="text-[11px] font-mono text-stone-400">Bucket 1 Menit</span>
+            <span className="text-xs font-mono text-stone-400">Bucket 1 Menit</span>
           </div>
-          <div className="h-[280px] w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -192,7 +192,7 @@ export function SessionDynamicsPanel({
                 <Legend
                   iconType="circle"
                   iconSize={7}
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px", color: "#57534E" }}
+                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px", color: "currentColor" }}
                 />
                 <Area
                   type="monotone"
@@ -227,12 +227,12 @@ export function SessionDynamicsPanel({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-[#E7E2DA] bg-white p-10 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-white p-10 text-center">
           <Activity className="h-8 w-8 mx-auto text-stone-300 mb-2" />
           <p className="text-xs text-stone-500 font-medium">
             Belum ada data telemetri kamera untuk sesi ini
           </p>
-          <p className="text-[11px] text-stone-400 mt-1">
+          <p className="text-xs text-stone-400 mt-1">
             Data akan otomatis masuk saat kamera edge box mendeteksi ruang kelas
           </p>
         </div>
@@ -242,7 +242,7 @@ export function SessionDynamicsPanel({
       {insights.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#EA580C]" />
+            <Sparkles className="h-4 w-4 text-primary" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">
               Refleksi & Rekomendasi Pedagogis AI
             </h4>
@@ -254,7 +254,7 @@ export function SessionDynamicsPanel({
               return (
                 <div
                   key={insight.id}
-                  className="rounded-xl border border-[#E7E2DA] bg-white p-4 shadow-2xs hover:border-orange-200 transition-colors border-l-4 border-l-[#EA580C]"
+                  className="rounded-xl border border-border bg-white p-4 shadow-2xs hover:border-orange-200 transition-colors border-l-4 border-l-[#EA580C]"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`shrink-0 h-8 w-8 rounded-lg flex items-center justify-center ${config.color} border ${config.border}`}>
@@ -262,10 +262,10 @@ export function SessionDynamicsPanel({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${config.color} px-2 py-0.5 rounded-md border ${config.border}`}>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${config.color} px-2 py-0.5 rounded-md border ${config.border}`}>
                           {config.label}
                         </span>
-                        <span className="text-[10px] font-mono text-stone-400">
+                        <span className="text-xs font-mono text-stone-400">
                           Tingkat Keyakinan: {insight.confidence}
                         </span>
                         {insight.reviewed && (
@@ -275,7 +275,7 @@ export function SessionDynamicsPanel({
                       <p className="text-xs text-stone-900 font-semibold leading-relaxed">
                         {insight.summary}
                       </p>
-                      <div className="mt-2 rounded-lg bg-[#FBF9F5] border border-[#E7E2DA] p-2.5 text-xs text-stone-600 leading-relaxed">
+                      <div className="mt-2 rounded-lg bg-background border border-border p-2.5 text-xs text-stone-600 leading-relaxed">
                         <span className="font-semibold text-stone-800">Saran Tindak Lanjut Guru: </span>
                         {insight.prompt}
                       </div>
@@ -309,8 +309,8 @@ function StatPill({
   alert?: boolean;
 }) {
   const colorMap: Record<string, string> = {
-    stone: "bg-white text-stone-800 border-[#E7E2DA]",
-    orange: "bg-orange-50/60 text-[#EA580C] border-orange-200",
+    stone: "bg-white text-stone-800 border-border",
+    orange: "bg-orange-50/60 text-primary border-orange-200",
     red: "bg-red-50 text-red-700 border-red-200",
   };
 
@@ -318,7 +318,7 @@ function StatPill({
     <div className={`rounded-xl border p-3.5 ${colorMap[color] || colorMap.stone} shadow-2xs transition-all duration-500 ease-out`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className={`h-3.5 w-3.5 ${alert ? "animate-pulse text-red-600" : "text-stone-400"} transition-colors duration-300`} />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">
+        <span className="text-xs font-bold uppercase tracking-wider text-stone-500 truncate">
           {label}
         </span>
       </div>

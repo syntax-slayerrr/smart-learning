@@ -29,16 +29,16 @@ export function MultiCameraGrid({
               return (
                 <div
                   key={cam.id}
-                  className="rounded-xl border border-[#E7E2DA] bg-white overflow-hidden shadow-2xs card-hover flex flex-col justify-between"
+                  className="rounded-xl border border-border bg-white overflow-hidden shadow-2xs card-hover flex flex-col justify-between"
                 >
-                  <div className="flex items-center justify-between border-b border-[#E7E2DA] bg-[#FBF9F5] px-3.5 py-2 text-xs">
+                  <div className="flex items-center justify-between border-b border-border bg-background px-3.5 py-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-stone-900">
                         CAM #{idx + 1} — {cam.name}
                       </span>
                     </div>
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-mono font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-mono font-bold ${
                         isCamOnline
                           ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
                           : "bg-stone-100 text-stone-600"
@@ -59,7 +59,7 @@ export function MultiCameraGrid({
                           className="w-full h-full object-contain"
                         />
                         <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
-                          <span className="rounded bg-stone-950/80 backdrop-blur-md px-2 py-0.5 text-[9.5px] font-mono font-bold text-white border border-white/10">
+                          <span className="rounded bg-stone-950/80 backdrop-blur-md px-2 py-0.5 text-xs font-mono font-bold text-white border border-white/10">
                             🔴 CAM #{idx + 1} • {totalDetected} Subjek
                           </span>
                         </div>
@@ -68,13 +68,13 @@ export function MultiCameraGrid({
                       <div className="p-4 text-center text-white">
                         <Smartphone className="h-7 w-7 text-stone-500 mx-auto mb-1.5" />
                         <p className="text-xs font-bold text-stone-300">{cam.name}</p>
-                        <p className="text-[10.5px] font-mono text-stone-400 mt-0.5">{cam.ipAddress}</p>
+                        <p className="text-xs font-mono text-stone-400 mt-0.5">{cam.ipAddress}</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="p-3 bg-[#FBF9F5] border-t border-[#E7E2DA] flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3 font-mono text-[11px]">
+                  <div className="p-3 bg-background border-t border-border flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3 font-mono text-xs">
                       <span className="text-stone-700">
                         <strong>{idx === 0 ? totalDetected : 0}</strong> Subjek
                       </span>
@@ -87,7 +87,7 @@ export function MultiCameraGrid({
                         setActiveCamIndex(idx);
                         setViewMode("single");
                       }}
-                      className="inline-flex items-center gap-1 rounded-md bg-stone-900 text-white px-2.5 py-1 text-[11px] font-medium hover:bg-stone-800 apple-press"
+                      className="inline-flex items-center gap-1 rounded-md bg-stone-900 text-white px-2.5 py-1 text-xs font-medium hover:bg-stone-800 apple-press"
                     >
                       <Square className="h-3 w-3" />
                       <span>Fokuskan</span>

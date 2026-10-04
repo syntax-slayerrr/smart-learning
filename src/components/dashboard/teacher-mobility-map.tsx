@@ -26,12 +26,12 @@ const zonePositions: Record<string, { x: number; y: number; label: string }> = {
 export function TeacherMobilityMap({ zones }: TeacherMobilityMapProps) {
   if (!zones || zones.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#E7E2DA] bg-white p-8 text-center shadow-2xs">
+      <div className="rounded-xl border border-dashed border-border bg-white p-8 text-center shadow-2xs">
         <MapPin className="h-8 w-8 mx-auto text-stone-300 mb-2" />
         <p className="text-xs text-stone-500 font-medium">
           Belum ada data mobilitas pergerakan guru
         </p>
-        <p className="text-[10px] text-stone-400 mt-1">
+        <p className="text-xs text-stone-400 mt-1">
           Kamera edge akan mendeteksi zona mengajar guru saat sesi aktif
         </p>
       </div>
@@ -41,20 +41,20 @@ export function TeacherMobilityMap({ zones }: TeacherMobilityMapProps) {
   const maxCount = Math.max(...zones.map((z) => z.count), 1);
 
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-white p-5 shadow-2xs">
+    <div className="rounded-xl border border-border bg-white p-5 shadow-2xs">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-[#EA580C]" />
+          <MapPin className="h-4 w-4 text-primary" />
           Peta Mobilitas & Radar Posisi Guru
         </h4>
-        <span className="text-[10px] font-mono text-stone-400">Classroom Heatmap</span>
+        <span className="text-xs font-mono text-stone-400">Classroom Heatmap</span>
       </div>
 
-      <div className="relative w-full aspect-[4/3] bg-[#FBF9F5] rounded-xl border border-[#E7E2DA] overflow-hidden">
+      <div className="relative w-full aspect-[4/3] bg-background rounded-xl border border-border overflow-hidden">
         {/* Classroom layout */}
         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
           {/* Whiteboard area */}
-          <rect x="10" y="2" width="80" height="6" rx="1.5" className="fill-[#E7E2DA]" />
+          <rect x="10" y="2" width="80" height="6" rx="1.5" className="fill-muted stroke-border" />
           <text x="50" y="6.5" textAnchor="middle" className="fill-stone-500 text-[3px] font-bold tracking-wider">
             PAPAN TULIS & MEJA GURU
           </text>
@@ -69,7 +69,7 @@ export function TeacherMobilityMap({ zones }: TeacherMobilityMapProps) {
                 width="12"
                 height="6"
                 rx="1"
-                className="fill-white stroke-[#E7E2DA]"
+                className="fill-white stroke-border"
                 strokeWidth="0.5"
               />
             ))
@@ -130,9 +130,9 @@ export function TeacherMobilityMap({ zones }: TeacherMobilityMapProps) {
             return (
               <span
                 key={z.zone}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E2DA] bg-[#FBF9F5] px-2.5 py-1 text-[11px] font-medium text-stone-700"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-stone-700"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#EA580C]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 {pos?.label || z.zone}: <span className="font-mono font-bold text-stone-900">{z.count}×</span>
               </span>
             );

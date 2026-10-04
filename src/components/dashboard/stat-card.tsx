@@ -24,13 +24,13 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[#E7E2DA] bg-white p-5 card-hover shadow-2xs transition-all duration-200",
+        "rounded-xl border border-border bg-white p-5 card-hover shadow-2xs transition-all duration-200",
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1.5 min-w-0">
-          <p className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-stone-500 truncate">
+          <p className="text-xs font-bold uppercase tracking-[0.06em] text-stone-500 truncate">
             {title}
           </p>
           <p className="text-3xl font-bold tracking-tight text-stone-900 tabular-nums">
@@ -42,18 +42,18 @@ export function StatCard({
           {trend && (
             <p
               className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-medium font-mono",
+                "inline-flex items-center gap-1 text-xs font-medium font-mono",
                 trend.positive ? "text-emerald-700" : "text-red-600"
               )}
             >
               <span>{trend.positive ? "↑" : "↓"} {Math.abs(trend.value)}%</span>
-              <span className="text-stone-400 font-sans text-[10px]">
+              <span className="text-stone-400 font-sans text-xs">
                 vs periode lalu
               </span>
             </p>
           )}
         </div>
-        <div className="rounded-lg bg-[#EA580C]/[0.08] border border-[#EA580C]/15 p-2.5 text-[#EA580C] shrink-0">
+        <div className="rounded-lg bg-primary/[0.08] border border-primary/15 p-2.5 text-primary shrink-0">
           <Icon className="h-5 w-5" />
         </div>
       </div>

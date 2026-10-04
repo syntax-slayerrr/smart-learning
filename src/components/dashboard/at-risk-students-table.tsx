@@ -28,14 +28,14 @@ export function AtRiskStudentsTable({
 }: AtRiskStudentsTableProps) {
   if (!students || students.length === 0) {
     return (
-      <div className="rounded-xl border border-[#E7E2DA] bg-white p-8 text-center shadow-2xs">
+      <div className="rounded-xl border border-border bg-white p-8 text-center shadow-2xs">
         <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 mb-2">
           <ShieldAlert className="h-5 w-5 text-emerald-600" />
         </div>
         <p className="text-xs font-semibold text-emerald-800">
           Seluruh Siswa dalam Kondisi Optimal
         </p>
-        <p className="text-[11px] text-stone-500 mt-0.5">
+        <p className="text-xs text-stone-500 mt-0.5">
           Tidak ada indikasi siswa tertidur berulang atau presensi di bawah ambang batas
         </p>
       </div>
@@ -43,14 +43,14 @@ export function AtRiskStudentsTable({
   }
 
   return (
-    <div className="rounded-xl border border-[#E7E2DA] bg-white shadow-2xs overflow-hidden">
+    <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden">
       {/* Table Title Bar */}
-      <div className="flex items-center justify-between border-b border-[#E7E2DA] px-5 py-3.5 bg-white">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-white">
         <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-          <TrendingDown className="h-4 w-4 text-[#EA580C]" />
+          <TrendingDown className="h-4 w-4 text-primary" />
           {title}
         </h3>
-        <span className="text-[11px] font-mono text-stone-600 bg-[#F5F2EB] border border-[#E7E2DA] px-2.5 py-0.5 rounded-md font-semibold">
+        <span className="text-xs font-mono text-stone-600 bg-muted border border-border px-2.5 py-0.5 rounded-md font-semibold">
           {students.length} Terdeteksi
         </span>
       </div>
@@ -58,25 +58,25 @@ export function AtRiskStudentsTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-[#E7E2DA] bg-[#FBF9F5]">
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+            <tr className="border-b border-border bg-background">
+              <th className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500">
                 Nama Siswa
               </th>
               {showClassColumn && (
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500">
                   Kelas
                 </th>
               )}
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 text-center">
+              <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500 text-center">
                 Kehadiran
               </th>
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 text-center">
+              <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500 text-center">
                 Alpha
               </th>
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 text-center">
+              <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500 text-center">
                 Insiden Tidur
               </th>
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-stone-500 text-right">
+              <th className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-stone-500 text-right">
                 Tingkat Risiko
               </th>
             </tr>
@@ -85,13 +85,13 @@ export function AtRiskStudentsTable({
             {students.map((student) => (
               <tr
                 key={student.student_id}
-                className="hover:bg-[#FBF9F5] transition-colors duration-75"
+                className="hover:bg-background transition-colors duration-75"
               >
                 <td className="px-5 py-3">
                   <p className="font-semibold text-stone-900 text-xs">
                     {student.student_name}
                   </p>
-                  <p className="text-[10px] font-mono text-stone-400">
+                  <p className="text-xs font-mono text-stone-400">
                     NIS: {student.nis}
                   </p>
                 </td>

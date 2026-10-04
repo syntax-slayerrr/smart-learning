@@ -39,7 +39,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-[#EA580C] shadow-2xs">
+        <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-primary shadow-2xs">
           <Brain className="h-5 w-5" />
         </div>
         <div>
@@ -54,20 +54,20 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-[#E7E2DA] bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
           <div className="flex items-center gap-1.5 mb-1">
             <BarChart3 className="h-3.5 w-3.5 text-stone-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Total Sesi</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Total Sesi</span>
           </div>
           <p className="text-2xl font-bold tabular-nums text-stone-900 font-sans">
             {data.total_sessions}
           </p>
         </div>
 
-        <div className="rounded-xl border border-[#E7E2DA] bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
           <div className="flex items-center gap-1.5 mb-1">
             <Activity className="h-3.5 w-3.5 text-stone-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Cakupan AI</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Cakupan AI</span>
           </div>
           <p className="text-2xl font-bold tabular-nums text-stone-900 font-sans">
             {data.total_sessions > 0
@@ -76,20 +76,20 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
           </p>
         </div>
 
-        <div className="rounded-xl border border-[#E7E2DA] bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
           <div className="flex items-center gap-1.5 mb-1">
-            <Hand className="h-3.5 w-3.5 text-[#EA580C]" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Angkat Tangan</span>
+            <Hand className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Angkat Tangan</span>
           </div>
-          <p className="text-2xl font-bold tabular-nums text-[#EA580C] font-sans">
+          <p className="text-2xl font-bold tabular-nums text-primary font-sans">
             {data.total_hand_raises}
           </p>
         </div>
 
-        <div className="rounded-xl border border-[#E7E2DA] bg-white px-4 py-3.5 shadow-2xs card-hover">
+        <div className="rounded-xl border border-border bg-white px-4 py-3.5 shadow-2xs card-hover">
           <div className="flex items-center gap-1.5 mb-1">
             <Moon className={`h-3.5 w-3.5 ${data.total_sleep_alerts > 0 ? "text-red-600 animate-pulse" : "text-stone-400"}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Alert Tertidur</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Alert Tertidur</span>
           </div>
           <p className={`text-2xl font-bold tabular-nums font-sans ${data.total_sleep_alerts > 0 ? "text-red-600" : "text-stone-900"}`}>
             {data.total_sleep_alerts}
@@ -99,25 +99,25 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
 
       {/* Recent Sessions List */}
       {data.recent_sessions.length > 0 && (
-        <div className="rounded-xl border border-[#E7E2DA] bg-white shadow-2xs overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#E7E2DA] px-5 py-3.5 bg-[#FBF9F5]">
+        <div className="rounded-xl border border-border bg-white shadow-2xs overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-background">
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800">
               Sesi Mengajar Terkini
             </h4>
-            <span className="text-[11px] font-mono text-stone-400">Klik untuk melihat detail & grafik</span>
+            <span className="text-xs font-mono text-stone-400">Klik untuk melihat detail & grafik</span>
           </div>
           <div className="divide-y divide-[#E7E2DA]/60">
             {data.recent_sessions.map((session) => (
               <Link
                 key={session.id}
                 href={`/teacher/attendance/${session.id}`}
-                className="flex items-center justify-between px-5 py-3 hover:bg-[#FBF9F5] transition-colors duration-75 group apple-press"
+                className="flex items-center justify-between px-5 py-3 hover:bg-background transition-colors duration-75 group apple-press"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-stone-900 truncate group-hover:text-[#EA580C] transition-colors">
+                  <p className="text-xs font-semibold text-stone-900 truncate group-hover:text-primary transition-colors">
                     {session.subject}
                   </p>
-                  <p className="text-[11px] text-stone-500">
+                  <p className="text-xs text-stone-500">
                     {session.class_name} • <span className="font-mono">{session.date}</span>
                   </p>
                 </div>
@@ -126,7 +126,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
                   {session.has_telemetry ? (
                     <>
                       <div className="flex items-center gap-1 text-xs">
-                        <Hand className="h-3 w-3 text-[#EA580C]" />
+                        <Hand className="h-3 w-3 text-primary" />
                         <span className="font-mono font-medium text-stone-700">{session.hand_raises}</span>
                       </div>
                       {session.sleep_incidents > 0 && (
@@ -138,9 +138,9 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
                       <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-xs" title="Data telemetri lengkap" />
                     </>
                   ) : (
-                    <span className="text-[10px] text-stone-400 font-medium">Tanpa Kamera</span>
+                    <span className="text-xs text-stone-400 font-medium">Tanpa Kamera</span>
                   )}
-                  <ArrowRight className="h-4 w-4 text-stone-300 group-hover:text-[#EA580C] transition-colors" />
+                  <ArrowRight className="h-4 w-4 text-stone-300 group-hover:text-primary transition-colors" />
                 </div>
               </Link>
             ))}

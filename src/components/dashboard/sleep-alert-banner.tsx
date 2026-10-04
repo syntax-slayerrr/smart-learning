@@ -26,7 +26,7 @@ export function SleepAlertBanner({ alerts }: SleepAlertBannerProps) {
             <AlertTriangle className="h-4 w-4 text-red-600" />
             Peringatan: Siswa Tertidur di Jam Pelajaran
           </h3>
-          <span className="text-[10px] font-mono text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-md font-semibold">
+          <span className="text-xs font-mono text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-md font-semibold">
             {alerts.length} Sesi Terdeteksi
           </span>
         </div>
@@ -45,7 +45,7 @@ export function SleepAlertBanner({ alerts }: SleepAlertBannerProps) {
                   <p className="font-semibold text-stone-900 truncate">
                     {alert.subject} — <span className="font-normal text-stone-600">{alert.class_name}</span>
                   </p>
-                  <p className="text-[10px] text-stone-400 font-mono">
+                  <p className="text-xs text-stone-400 font-mono">
                     {alert.session_date}
                   </p>
                 </div>

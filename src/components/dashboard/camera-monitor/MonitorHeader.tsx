@@ -153,7 +153,7 @@ export function MonitorHeader({
                   className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-all font-mono ${
                     isSelected
                       ? "bg-primary text-white font-bold shadow-2xs"
-                      : "bg-muted text-stone-600 hover:bg-[#EBE7DF]"
+                      : "bg-muted text-stone-600 hover:bg-muted"
                   }`}
                 >
                   <span

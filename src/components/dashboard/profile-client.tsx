@@ -65,7 +65,7 @@ export default function ProfileClient({
           </div>
           <div className="flex justify-between items-center border-b border-border/80 pb-2.5">
             <span className="text-muted-foreground font-medium">Role Sistem</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-[11px] capitalize border border-primary/20">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-xs capitalize border border-primary/20">
               {userProfile.role}
             </span>
           </div>
@@ -101,7 +101,7 @@ export default function ProfileClient({
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimal 6 karakter"
+                id="new-password" aria-label="Kata Sandi Baru" placeholder="Minimal 6 karakter"
                 className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
                 required
               />
@@ -116,7 +116,7 @@ export default function ProfileClient({
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Ulangi kata sandi baru"
+                id="confirm-new-password" aria-label="Konfirmasi Kata Sandi Baru" placeholder="Ulangi kata sandi baru"
                 className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
                 required
               />
