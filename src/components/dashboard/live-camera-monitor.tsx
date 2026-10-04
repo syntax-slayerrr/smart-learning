@@ -29,6 +29,7 @@ import {
   AlertCircle,
   X,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 import {
   AreaChart,
@@ -212,12 +213,43 @@ export function LiveCameraMonitor() {
   const [customIpUrl, setCustomIpUrl] = useState<string>("http://10.10.10.33:8080/video");
   const [isSwitchingCamera, setIsSwitchingCamera] = useState<boolean>(false);
   const [cameraSwitchNotice, setCameraSwitchNotice] = useState<string | null>(null);
-  const [cameraModalTab, setCameraModalTab] = useState<"webcam" | "ip">("webcam");
+  const [cameraModalTab, setCameraModalTab] = useState<"webcam" | "ip" | "cloud">("webcam");
   const [feedTimestamp, setFeedTimestamp] = useState<number>(Date.now());
+
+  // Dynamic Edge Server Base URL (Defaults to localhost:5000, can be set to Tunnel HTTPS URL on Vercel)
+  const [edgeServerUrl, setEdgeServerUrl] = useState<string>("http://localhost:5000");
+  const [customEdgeInput, setCustomEdgeInput] = useState<string>("http://localhost:5000");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
+      if (saved) {
+        setEdgeServerUrl(saved);
+        setCustomEdgeInput(saved);
+      } else if (window.location.protocol === "https:" && !window.location.hostname.includes("localhost")) {
+        // Mode Vercel / Cloud terdeteksi
+        setCameraModalTab("cloud");
+      }
+    }
+  }, []);
+
+  const updateEdgeServerUrl = (url: string) => {
+    const cleaned = url.trim().replace(/\/$/, "");
+    setEdgeServerUrl(cleaned);
+    setCustomEdgeInput(cleaned);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", cleaned);
+    }
+    setCameraSwitchNotice(`Alamat Server Kamera diperbarui: ${cleaned}`);
+    setTimeout(() => {
+      fetchAvailableCameras();
+      checkStreamStatus();
+    }, 200);
+  };
 
   const fetchAvailableCameras = async () => {
     try {
-      const res = await fetch("http://localhost:5000/camera_sources", { mode: "cors" });
+      const res = await fetch(`${edgeServerUrl}/camera_sources`, { mode: "cors" });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.available_cameras)) {
@@ -240,7 +272,7 @@ export function LiveCameraMonitor() {
     setCameraSwitchNotice(null);
     try {
       const encoded = encodeURIComponent(String(newSource).trim());
-      const res = await fetch(`http://localhost:5000/switch_camera?source=${encoded}`, { mode: "cors" });
+      const res = await fetch(`${edgeServerUrl}/switch_camera?source=${encoded}`, { mode: "cors" });
       const data = await res.json();
       if (data?.success) {
         setCurrentCameraSource(data.current_source ?? newSource);
@@ -251,7 +283,7 @@ export function LiveCameraMonitor() {
         setCameraSwitchNotice(data?.message || "Gagal mengalihkan sumber kamera.");
       }
     } catch (err) {
-      setCameraSwitchNotice("Gagal menghubungi server kamera di port 5000. Pastikan engine Python aktif.");
+      setCameraSwitchNotice(`Gagal menghubungi server kamera di ${edgeServerUrl}. Pastikan engine aktif.`);
     } finally {
       setIsSwitchingCamera(false);
     }
@@ -260,7 +292,7 @@ export function LiveCameraMonitor() {
   const rotateCamera = async (deg: string) => {
     setCameraRotation(deg);
     try {
-      await fetch(`http://localhost:5000/rotate?deg=${deg}`);
+      await fetch(`${edgeServerUrl}/rotate?deg=${deg}`, { mode: "cors" });
     } catch (e) {
       console.warn("[LiveCameraMonitor] Gagal mengirim rotasi ke server:", e);
     }
@@ -270,7 +302,7 @@ export function LiveCameraMonitor() {
     const nextVal = !isFlipped;
     setIsFlipped(nextVal);
     try {
-      await fetch(`http://localhost:5000/rotate?flip=${nextVal ? "1" : "0"}`);
+      await fetch(`${edgeServerUrl}/rotate?flip=${nextVal ? "1" : "0"}`, { mode: "cors" });
     } catch (e) {
       console.warn("[LiveCameraMonitor] Gagal mengirim mirror ke server:", e);
     }
@@ -282,7 +314,7 @@ export function LiveCameraMonitor() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const targetUrl = activeChannel.statusUrl || "http://localhost:5000/status";
+      const targetUrl = `${edgeServerUrl}/status`;
       const res = await fetch(targetUrl, {
         signal: controller.signal,
         mode: "cors",
@@ -849,7 +881,7 @@ export function LiveCameraMonitor() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       ref={videoImgRef}
-                      src={`${activeChannel.streamUrl}?t=${feedTimestamp}`}
+                      src={`${edgeServerUrl}/video_feed?t=${feedTimestamp}`}
                       alt={`Live Stream ${activeChannel.name}`}
                       className="w-full h-full object-contain"
                       onError={() => setStreamOnline(false)}
@@ -1254,12 +1286,12 @@ export function LiveCameraMonitor() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex rounded-lg bg-stone-200/60 p-1 text-xs font-semibold">
+            <div className="flex rounded-lg bg-stone-200/60 p-1 text-xs font-semibold gap-1">
               <button
                 onClick={() => setCameraModalTab("webcam")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
                   cameraModalTab === "webcam"
-                    ? "bg-white text-stone-900 shadow-2xs"
+                    ? "bg-white text-stone-900 shadow-2xs font-bold"
                     : "text-stone-600 hover:text-stone-900"
                 }`}
               >
@@ -1270,12 +1302,23 @@ export function LiveCameraMonitor() {
                 onClick={() => setCameraModalTab("ip")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
                   cameraModalTab === "ip"
-                    ? "bg-white text-stone-900 shadow-2xs"
+                    ? "bg-white text-stone-900 shadow-2xs font-bold"
                     : "text-stone-600 hover:text-stone-900"
                 }`}
               >
                 <Smartphone className="h-3.5 w-3.5 text-[#EA580C]" />
-                <span>Kamera HP / Nirkabel (IP)</span>
+                <span>Kamera HP (WiFi)</span>
+              </button>
+              <button
+                onClick={() => setCameraModalTab("cloud")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
+                  cameraModalTab === "cloud"
+                    ? "bg-white text-stone-900 shadow-2xs font-bold"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5 text-[#EA580C]" />
+                <span>Vercel / Cloud</span>
               </button>
             </div>
 
@@ -1401,6 +1444,62 @@ export function LiveCameraMonitor() {
                       Kembali ke Webcam Laptop (0)
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3 Content: Vercel / Cloud Tunnel Setup */}
+            {cameraModalTab === "cloud" && (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900">
+                  <div className="flex items-center gap-1.5 font-bold mb-1">
+                    <Globe className="h-4 w-4 text-blue-700" />
+                    <span>Akses Kamera dari Domain Vercel (HTTPS)</span>
+                  </div>
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    Saat membuka dashboard dari <strong>https://smart-learning-black.vercel.app</strong>, browser memblokir <em>http://localhost:5000</em> (Mixed Content). Gunakan URL HTTPS tunnel gratis di bawah ini.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    Alamat Edge Server Kamera (Localhost / HTTPS Tunnel)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customEdgeInput}
+                      onChange={(e) => setCustomEdgeInput(e.target.value)}
+                      placeholder="https://xxxx.loca.lt atau http://localhost:5000"
+                      className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <button
+                      onClick={() => updateEdgeServerUrl(customEdgeInput)}
+                      className="rounded-xl bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 text-xs font-bold transition-all active:scale-[0.98] shrink-0"
+                    >
+                      Simpan Alamat
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-stone-200 bg-stone-100/70 p-3 text-[11px] text-stone-700 space-y-1.5">
+                  <p className="font-bold text-stone-900">💡 Cara Buat URL HTTPS Tunnel Gratis (1 Menit):</p>
+                  <p className="text-stone-600">Jalankan perintah ini di terminal laptop tempat kamera berada:</p>
+                  <div className="bg-stone-900 text-stone-100 rounded-lg p-2 font-mono text-[10.5px] select-all">
+                    npx localtunnel --port 5000
+                  </div>
+                  <p className="text-[10px] text-stone-500">
+                    Salin link <code>https://xxxx.loca.lt</code> yang muncul di terminal dan tempelkan di kotak di atas.
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => updateEdgeServerUrl("http://localhost:5000")}
+                    className="text-xs text-stone-600 hover:text-stone-900 hover:underline"
+                  >
+                    Reset ke default (http://localhost:5000)
+                  </button>
                 </div>
               </div>
             )}
