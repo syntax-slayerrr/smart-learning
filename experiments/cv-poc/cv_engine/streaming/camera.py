@@ -62,6 +62,15 @@ class KameraUtasTerpisah:
             self.cap = self.penangkap
             self.penangkap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             self.penangkap.set(cv2.CAP_PROP_FPS, self.fps_target)
+
+            # Optimasi timeout I/O untuk stream nirkabel (HTTP/RTSP) agar tidak pernah memblokir thread
+            if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
+                try:
+                    self.penangkap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
+                    self.penangkap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500)
+                except Exception:
+                    pass
+
             self.apakah_terhubung = self.penangkap.isOpened()
             self.is_connected = self.apakah_terhubung
             if self.apakah_terhubung:
@@ -185,20 +194,22 @@ class KameraUtasTerpisah:
         return hasil
 
     @staticmethod
-    def pindai_kamera_jaringan(rentang_port: Tuple[int, ...] = (8080, 4747, 8000), batas_waktu: float = 0.25) -> Dict[str, Any]:
+    def pindai_kamera_jaringan(rentang_port: Tuple[int, ...] = (8080, 4747, 8000), batas_waktu: float = 0.22) -> Dict[str, Any]:
         """
-        Memindai subnet WiFi lokal secara multithreaded untuk mendeteksi kamera IP nirkabel (HP Android, DroidCam, CCTV).
+        Memindai subnet WiFi lokal secara multithreaded cerdas dengan prioritas Hotspot Gateway & Probe Metadata.
         
         Analisis Struktur Data & Algoritma:
         ----------------------------------
         - Kompleksitas Waktu: O((N * P) / W) dengan N=254 host, P=port target, W=64 pekerja konkuren.
-          Dapat menyelesaikan pemindaian seluruh subnet kelas dalam waktu ~1-2 detik.
-        - Non-Blocking: Menjaga timeout I/O soket tetap rendah (250ms) agar antarmuka web tetap responsif.
+        - Prioritas Gateway: Memeriksa host '.1' (gateway/hotspot HP) dan host terdekat terlebih dahulu.
+        - Inspeksi Telemetri: Membaca status baterai dan resolusi kamera dari endpoint /status.json secara non-blocking.
         """
         import socket
+        import urllib.request
+        import json
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        # Deteksi IP antarmuka jaringan aktif pada laptop/komputer lokal
+        # 1. Deteksi IP antarmuka jaringan aktif pada komputer lokal
         ip_lokal = "127.0.0.1"
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -212,11 +223,35 @@ class KameraUtasTerpisah:
 
         bagian = ip_lokal.split(".")
         prefiks_subnet = "127.0.0."
+        daftar_ip = []
+
         if len(bagian) == 4 and ip_lokal != "127.0.0.1":
             prefiks_subnet = f"{bagian[0]}.{bagian[1]}.{bagian[2]}."
-            daftar_ip = [f"{prefiks_subnet}{i}" for i in range(1, 255)]
+            lokal_nomor = int(bagian[3])
+
+            # Prioritas 1: Gateway HP (Host .1 sering kali adalah HP penyedia Hotspot)
+            daftar_ip.append(f"{prefiks_subnet}1")
+
+            # Prioritas 2: Host di sekitar IP laptop (DHCP clustering range +/- 15)
+            range_dekat = set()
+            for off in range(-15, 16):
+                nomor = lokal_nomor + off
+                if 1 <= nomor <= 254 and nomor != 1:
+                    range_dekat.add(f"{prefiks_subnet}{nomor}")
+            daftar_ip.extend(sorted(list(range_dekat)))
+
+            # Prioritas 3: Sisa seluruh host pada subnet /24
+            set_terdaftar = set(daftar_ip)
+            for i in range(2, 255):
+                calon_ip = f"{prefiks_subnet}{i}"
+                if calon_ip not in set_terdaftar:
+                    daftar_ip.append(calon_ip)
         else:
             daftar_ip = ["127.0.0.1"]
+
+        # Sertakan juga localhost untuk pengujian adb port-forwarding
+        if "127.0.0.1" not in daftar_ip:
+            daftar_ip.append("127.0.0.1")
 
         daftar_kamera_ditemukan = []
 
@@ -225,25 +260,48 @@ class KameraUtasTerpisah:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(batas_waktu)
                     if sock.connect_ex((target_ip, port)) == 0:
-                        # Port terbuka! Identifikasi jenis aplikasi
+                        # Port terbuka! Lakukan probe metadata
+                        baterai = None
+                        resolusi = None
+                        tipe = "Kamera IP Generic"
+                        nama = f"Kamera IP ({target_ip}:{port})"
+
                         if port == 8080:
                             tipe = "Android IP Webcam"
-                            nama = f"Kamera HP Android ({target_ip}:8080)"
-                            url = f"http://{target_ip}:8080/video"
+                            # Coba baca metadata baterai & resolusi langsung dari aplikasi IP Webcam
+                            try:
+                                req = urllib.request.Request(
+                                    f"http://{target_ip}:8080/status.json",
+                                    headers={"User-Agent": "SyntaxSlayer-Edge/1.0"}
+                                )
+                                with urllib.request.urlopen(req, timeout=0.25) as resp:
+                                    if resp.status == 200:
+                                        data_status = json.loads(resp.read().decode("utf-8"))
+                                        baterai = data_status.get("battery")
+                                        resolusi = data_status.get("cursize")
+                            except Exception:
+                                pass
+
+                            detail_extra = []
+                            if baterai is not None:
+                                detail_extra.append(f"🔋 {baterai}%")
+                            if resolusi:
+                                detail_extra.append(f"📐 {resolusi}")
+                            
+                            extra_str = f" • {' '.join(detail_extra)}" if detail_extra else ""
+                            nama = f"Kamera HP Android ({target_ip}:8080){extra_str}"
                         elif port == 4747:
                             tipe = "DroidCam"
                             nama = f"DroidCam Wireless ({target_ip}:4747)"
-                            url = f"http://{target_ip}:4747/video"
-                        else:
-                            tipe = "Kamera IP Generic"
-                            nama = f"Kamera IP WiFi ({target_ip}:{port})"
-                            url = f"http://{target_ip}:{port}/video"
+
                         return {
                             "ip": target_ip,
                             "port": port,
                             "type": tipe,
                             "name": nama,
-                            "url": url,
+                            "url": f"http://{target_ip}:{port}/video",
+                            "battery": baterai,
+                            "resolution": resolusi,
                         }
             except Exception:
                 pass
@@ -260,8 +318,8 @@ class KameraUtasTerpisah:
                 if res is not None:
                     daftar_kamera_ditemukan.append(res)
 
-        # Urutkan berdasarkan alamat IP
-        daftar_kamera_ditemukan.sort(key=lambda x: [int(b) for b in x["ip"].split(".") if b.isdigit()])
+        # Urutkan berdasarkan alamat IP secara natural
+        daftar_kamera_ditemukan.sort(key=lambda x: [int(b) if b.isdigit() else 0 for b in x["ip"].split(".")])
         return {
             "success": True,
             "local_ip": ip_lokal,

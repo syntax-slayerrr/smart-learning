@@ -224,6 +224,8 @@ export function LiveCameraMonitor() {
     name: string;
     url: string;
     type?: string;
+    battery?: number | null;
+    resolution?: string | null;
   }
   const [isScanningNetwork, setIsScanningNetwork] = useState<boolean>(false);
   const [detectedNetworkCameras, setDetectedNetworkCameras] = useState<NetworkCameraDevice[]>([]);
@@ -243,6 +245,12 @@ export function LiveCameraMonitor() {
       } else if (window.location.protocol === "https:" && !window.location.hostname.includes("localhost")) {
         // Mode Vercel / Cloud terdeteksi
         setCameraModalTab("cloud");
+      }
+
+      // Pulihkan alamat kamera IP terakhir jika tersedia
+      const lastIp = localStorage.getItem("SYNTAX_SLAYER_LAST_IP_CAM");
+      if (lastIp) {
+        setCustomIpUrl(lastIp);
       }
     }
   }, []);
@@ -320,7 +328,16 @@ export function LiveCameraMonitor() {
         setCurrentCameraSource(data.current_source ?? newSource);
         setIsCameraHardwareConnected(Boolean(data.camera_connected));
         setCameraSwitchNotice(data.message || `Berhasil beralih ke: ${newSource}`);
+
+        // Simpan riwayat kamera IP terakhir untuk kemudahan sesi berikutnya
+        if (typeof window !== "undefined" && typeof newSource === "string" && newSource.startsWith("http")) {
+          localStorage.setItem("SYNTAX_SLAYER_LAST_IP_CAM", newSource);
+        }
+
+        // Paksa refresh video feed bertahap (0ms, 500ms, 1200ms) untuk transisi super mulus
         setFeedTimestamp(Date.now());
+        setTimeout(() => setFeedTimestamp(Date.now()), 500);
+        setTimeout(() => setFeedTimestamp(Date.now()), 1200);
       } else {
         setCameraSwitchNotice(data?.message || "Gagal mengalihkan sumber kamera.");
       }
@@ -1341,7 +1358,12 @@ export function LiveCameraMonitor() {
                 <span>Webcam USB / Laptop</span>
               </button>
               <button
-                onClick={() => setCameraModalTab("ip")}
+                onClick={() => {
+                  setCameraModalTab("ip");
+                  if (!hasScannedNetwork && !isScanningNetwork) {
+                    scanNetworkCameras();
+                  }
+                }}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
                   cameraModalTab === "ip"
                     ? "bg-white text-stone-900 shadow-2xs font-bold"
@@ -1502,9 +1524,21 @@ export function LiveCameraMonitor() {
                                     <span>{cam.name}</span>
                                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                   </p>
-                                  <p className="text-[10.5px] font-mono text-stone-500 truncate">
-                                    {cam.url}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span className="text-[10.5px] font-mono text-stone-500 truncate">
+                                      {cam.url}
+                                    </span>
+                                    {cam.battery !== undefined && cam.battery !== null && (
+                                      <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9.5px] font-bold font-mono">
+                                        🔋 {cam.battery}%
+                                      </span>
+                                    )}
+                                    {cam.resolution && (
+                                      <span className="rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[9.5px] font-mono">
+                                        📐 {cam.resolution}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
