@@ -116,6 +116,18 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-edge-device-key")
         self.end_headers()
 
+    def do_POST(self):
+        # Ekstrak muatan JSON jika dikirim oleh klien
+        self._muatan_json = {}
+        try:
+            panjang_konten = int(self.headers.get("Content-Length", 0))
+            if panjang_konten > 0:
+                data_mentah = self.rfile.read(panjang_konten)
+                self._muatan_json = json.loads(data_mentah.decode("utf-8"))
+        except Exception:
+            pass
+        return self.do_GET()
+
     def do_GET(self):
         state = self.state
         if state is None:
@@ -174,7 +186,19 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        # 2b. Endpoint Alihkan Sumber Kamera Secara Dinamis
+        # 2b. Endpoint Pemindai Kamera Jaringan WiFi (Network Scanner)
+        if jalur_url in ("/scan_network_cameras", "/camera/scan_network"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+            from cv_engine.streaming.camera import KameraUtasTerpisah
+            hasil_pindai = KameraUtasTerpisah.pindai_kamera_jaringan()
+            self.wfile.write(json.dumps(hasil_pindai).encode("utf-8"))
+            return
+
+        # 2c. Endpoint Alihkan Sumber Kamera Secara Dinamis
         if jalur_url in ("/switch_camera", "/camera/switch"):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -182,6 +206,10 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.end_headers()
 
             sumber_baru = parameter.get("source", [None])[0] or parameter.get("src", [None])[0]
+            # Cek jika sumber_baru dikirim via JSON body (POST)
+            if sumber_baru is None and hasattr(self, "_muatan_json") and isinstance(self._muatan_json, dict):
+                sumber_baru = self._muatan_json.get("source") or self._muatan_json.get("src")
+
             if sumber_baru is not None and state.kamera and hasattr(state.kamera, "ganti_sumber"):
                 sukses, pesan = state.kamera.ganti_sumber(sumber_baru)
                 jawaban = {

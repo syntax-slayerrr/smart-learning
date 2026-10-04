@@ -184,6 +184,92 @@ class KameraUtasTerpisah:
             hasil.append({"index": 0, "name": "Webcam 0 (Default Integrated)", "device_path": "/dev/video0"})
         return hasil
 
+    @staticmethod
+    def pindai_kamera_jaringan(rentang_port: Tuple[int, ...] = (8080, 4747, 8000), batas_waktu: float = 0.25) -> Dict[str, Any]:
+        """
+        Memindai subnet WiFi lokal secara multithreaded untuk mendeteksi kamera IP nirkabel (HP Android, DroidCam, CCTV).
+        
+        Analisis Struktur Data & Algoritma:
+        ----------------------------------
+        - Kompleksitas Waktu: O((N * P) / W) dengan N=254 host, P=port target, W=64 pekerja konkuren.
+          Dapat menyelesaikan pemindaian seluruh subnet kelas dalam waktu ~1-2 detik.
+        - Non-Blocking: Menjaga timeout I/O soket tetap rendah (250ms) agar antarmuka web tetap responsif.
+        """
+        import socket
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # Deteksi IP antarmuka jaringan aktif pada laptop/komputer lokal
+        ip_lokal = "127.0.0.1"
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 80))
+                ip_lokal = s.getsockname()[0]
+        except Exception:
+            try:
+                ip_lokal = socket.gethostbyname(socket.gethostname())
+            except Exception:
+                ip_lokal = "127.0.0.1"
+
+        bagian = ip_lokal.split(".")
+        prefiks_subnet = "127.0.0."
+        if len(bagian) == 4 and ip_lokal != "127.0.0.1":
+            prefiks_subnet = f"{bagian[0]}.{bagian[1]}.{bagian[2]}."
+            daftar_ip = [f"{prefiks_subnet}{i}" for i in range(1, 255)]
+        else:
+            daftar_ip = ["127.0.0.1"]
+
+        daftar_kamera_ditemukan = []
+
+        def periksa_target(target_ip: str, port: int):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(batas_waktu)
+                    if sock.connect_ex((target_ip, port)) == 0:
+                        # Port terbuka! Identifikasi jenis aplikasi
+                        if port == 8080:
+                            tipe = "Android IP Webcam"
+                            nama = f"Kamera HP Android ({target_ip}:8080)"
+                            url = f"http://{target_ip}:8080/video"
+                        elif port == 4747:
+                            tipe = "DroidCam"
+                            nama = f"DroidCam Wireless ({target_ip}:4747)"
+                            url = f"http://{target_ip}:4747/video"
+                        else:
+                            tipe = "Kamera IP Generic"
+                            nama = f"Kamera IP WiFi ({target_ip}:{port})"
+                            url = f"http://{target_ip}:{port}/video"
+                        return {
+                            "ip": target_ip,
+                            "port": port,
+                            "type": tipe,
+                            "name": nama,
+                            "url": url,
+                        }
+            except Exception:
+                pass
+            return None
+
+        with ThreadPoolExecutor(max_workers=64) as eksekutor:
+            tugas = [
+                eksekutor.submit(periksa_target, ip, port)
+                for ip in daftar_ip
+                for port in rentang_port
+            ]
+            for t in as_completed(tugas):
+                res = t.result()
+                if res is not None:
+                    daftar_kamera_ditemukan.append(res)
+
+        # Urutkan berdasarkan alamat IP
+        daftar_kamera_ditemukan.sort(key=lambda x: [int(b) for b in x["ip"].split(".") if b.isdigit()])
+        return {
+            "success": True,
+            "local_ip": ip_lokal,
+            "subnet": f"{prefiks_subnet}0/24" if prefiks_subnet != "127.0.0." else "localhost",
+            "total_found": len(daftar_kamera_ditemukan),
+            "cameras": daftar_kamera_ditemukan,
+        }
+
     def lepaskan(self) -> None:
         """Menghentikan penangkapan dan membebaskan sumber daya hardware kamera."""
         self.apakah_berhenti = True
@@ -201,6 +287,7 @@ class KameraUtasTerpisah:
     read = baca_bingkai
     switch_source = ganti_sumber
     detect_available_cameras = deteksi_kamera_tersedia
+    scan_network_cameras = pindai_kamera_jaringan
     release = lepaskan
 
 
