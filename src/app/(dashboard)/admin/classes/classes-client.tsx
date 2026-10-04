@@ -179,19 +179,23 @@ export function ClassesClient({ classes, teachers }: { classes: ClassRow[]; teac
         )}
         <form id="form-add-class" action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Nama Kelas</label>
+            <label htmlFor="add-class-name" className="text-xs font-semibold text-foreground">Nama Kelas</label>
             <input
+              id="add-class-name"
               name="name"
               required
+              aria-label="Nama Kelas"
               placeholder="Contoh: X RPL 1"
               className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Tingkat</label>
+            <label htmlFor="add-class-grade" className="text-xs font-semibold text-foreground">Tingkat</label>
             <select
+              id="add-class-grade"
               name="grade"
               required
+              aria-label="Tingkat Kelas"
               className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
               <option value="">Pilih tingkat...</option>
@@ -203,18 +207,22 @@ export function ClassesClient({ classes, teachers }: { classes: ClassRow[]; teac
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Tahun Ajaran</label>
+            <label htmlFor="add-academic-year" className="text-xs font-semibold text-foreground">Tahun Ajaran</label>
             <input
+              id="add-academic-year"
               name="academic_year"
               required
+              aria-label="Tahun Ajaran"
               defaultValue={CURRENT_ACADEMIC_YEAR}
               className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Wali Kelas</label>
+            <label htmlFor="add-homeroom-teacher" className="text-xs font-semibold text-foreground">Wali Kelas</label>
             <select
+              id="add-homeroom-teacher"
               name="homeroom_teacher_id"
+              aria-label="Wali Kelas"
               className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
               <option value="">Pilih wali kelas...</option>
@@ -264,20 +272,24 @@ export function ClassesClient({ classes, teachers }: { classes: ClassRow[]; teac
           <form id="form-edit-class" action={handleEditSubmit} className="space-y-4">
             <input type="hidden" name="id" value={editingClass.id} />
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Nama Kelas</label>
+              <label htmlFor="edit-class-name" className="text-xs font-semibold text-foreground">Nama Kelas</label>
               <input
+                id="edit-class-name"
                 name="name"
                 required
+                aria-label="Nama Kelas"
                 defaultValue={editingClass.name}
                 placeholder="Contoh: X RPL 1"
                 className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Tingkat</label>
+              <label htmlFor="edit-class-grade" className="text-xs font-semibold text-foreground">Tingkat</label>
               <select
+                id="edit-class-grade"
                 name="grade"
                 required
+                aria-label="Tingkat Kelas"
                 defaultValue={editingClass.grade}
                 className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
@@ -290,18 +302,22 @@ export function ClassesClient({ classes, teachers }: { classes: ClassRow[]; teac
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Tahun Ajaran</label>
+              <label htmlFor="edit-academic-year" className="text-xs font-semibold text-foreground">Tahun Ajaran</label>
               <input
+                id="edit-academic-year"
                 name="academic_year"
                 required
+                aria-label="Tahun Ajaran"
                 defaultValue={editingClass.academic_year}
                 className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Wali Kelas</label>
+              <label htmlFor="edit-homeroom-teacher" className="text-xs font-semibold text-foreground">Wali Kelas</label>
               <select
+                id="edit-homeroom-teacher"
                 name="homeroom_teacher_id"
+                aria-label="Wali Kelas"
                 defaultValue={editingClass.homeroom_teacher_id || ""}
                 className="w-full min-h-[44px] rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               >

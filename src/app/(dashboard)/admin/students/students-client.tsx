@@ -244,6 +244,7 @@ export function StudentsClient({
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
             <input
               type="text"
+              aria-label="Cari siswa atau NIS"
               placeholder="Cari siswa atau NIS..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -252,6 +253,7 @@ export function StudentsClient({
           </div>
           <div className="relative sm:w-48 shrink-0">
             <select
+              aria-label="Filter berdasarkan Kelas"
               value={selectedClassFilter}
               onChange={(e) => setSelectedClassFilter(e.target.value)}
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none transition-all focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
@@ -281,6 +283,7 @@ export function StudentsClient({
 
           <input
             type="file"
+            aria-label="Unggah file spreadsheet siswa"
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
             ref={fileInputRef}
             onChange={handleFileUpload}
@@ -351,10 +354,11 @@ export function StudentsClient({
             "Belum ada kelas";
 
           return (
-            <div
+            <button
+              type="button"
               key={s.id}
               onClick={() => setSelectedMobileStudent(s)}
-              className="min-h-[58px] flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] active:bg-[#F2F2F0] active:scale-[0.99] transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+              className="w-full text-left min-h-[58px] flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] active:bg-[#F2F2F0] active:scale-[0.99] transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
             >
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-[#1D1D1F]">
@@ -372,7 +376,7 @@ export function StudentsClient({
                 )}
                 <ChevronRight className="h-4 w-4 text-[#C7C7CC]" />
               </div>
-            </div>
+            </button>
           );
         })}
 
@@ -506,9 +510,11 @@ export function StudentsClient({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
+            <label htmlFor="create_full_name" className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
             <input
+              id="create_full_name"
               name="full_name"
+              aria-label="Nama lengkap siswa"
               required
               placeholder="Contoh: Andi Pratama"
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
@@ -516,9 +522,11 @@ export function StudentsClient({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
+            <label htmlFor="create_nis" className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
             <input
+              id="create_nis"
               name="nis"
+              aria-label="Nomor Induk Siswa"
               required
               placeholder="Contoh: 20250001"
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
@@ -526,9 +534,11 @@ export function StudentsClient({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#1D1D1F]">Kelas</label>
+            <label htmlFor="create_class_id" className="text-xs font-semibold text-[#1D1D1F]">Kelas</label>
             <select
+              id="create_class_id"
               name="class_id"
+              aria-label="Pilih kelas siswa"
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             >
               <option value="">Pilih kelas...</option>
@@ -583,9 +593,11 @@ export function StudentsClient({
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
+              <label htmlFor="edit_full_name" className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
               <input
+                id="edit_full_name"
                 name="full_name"
+                aria-label="Nama lengkap siswa"
                 defaultValue={editingStudent.profiles?.full_name}
                 required
                 className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
@@ -593,9 +605,11 @@ export function StudentsClient({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
+              <label htmlFor="edit_nis" className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
               <input
+                id="edit_nis"
                 name="nis"
+                aria-label="Nomor Induk Siswa"
                 defaultValue={editingStudent.nis}
                 required
                 className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"

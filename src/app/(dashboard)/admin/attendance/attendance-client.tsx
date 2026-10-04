@@ -261,12 +261,14 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
+            <label htmlFor="filter-date" className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
               Tanggal
             </label>
             <input
+              id="filter-date"
               type="date"
+              aria-label="Pilih tanggal laporan absensi"
               value={localDate}
               onChange={(e) => setLocalDate(e.target.value)}
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15 transition-all"
@@ -274,11 +276,13 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
+            <label htmlFor="filter-class" className="text-xs font-semibold text-[#6E6E73] flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
               Kelas
             </label>
             <select
+              id="filter-class"
+              aria-label="Filter berdasarkan kelas"
               value={localClass}
               onChange={(e) => setLocalClass(e.target.value)}
               className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15 transition-all"
@@ -321,6 +325,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8E8E93]" />
         <input
           type="text"
+          aria-label="Cari siswa"
           placeholder="Cari siswa..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -336,7 +341,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
           const mySessions = classSessions[student.class_id] || [];
 
           return (
-            <div
+            <article
               key={student.id}
               className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-3"
             >
@@ -377,7 +382,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                   );
                 })}
               </div>
-            </div>
+            </article>
           );
         })}
 

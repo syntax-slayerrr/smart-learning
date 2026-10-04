@@ -68,15 +68,17 @@ export function TeachersClient({ teachers, subjects }: { teachers: TeacherRow[];
   return (
     <div className="space-y-4">
       {/* Header Bar */}
+      {/* Action Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Cari nama atau NIP..."
+            aria-label="Cari nama, NIP, atau mapel guru"
+            placeholder="Cari nama, NIP, atau mapel..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full min-h-[44px] rounded-xl border border-input bg-card pl-10 pr-4 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-xs"
           />
         </div>
         <button
@@ -84,14 +86,89 @@ export function TeachersClient({ teachers, subjects }: { teachers: TeacherRow[];
             setFormError("");
             setShowAddModal(true);
           }}
-          className="apple-press inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover min-h-[44px] cursor-pointer"
+          className="apple-press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover min-h-[44px] cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Tambah Guru
         </button>
       </div>
 
-      {/* Teachers Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* MOBILE CARD VIEW (Under 640px) */}
+      <div className="sm:hidden space-y-3">
+        {filtered.map((t) => {
+          const subjects = t.teacher_subjects?.length
+            ? t.teacher_subjects
+                .map((ts) => (Array.isArray(ts.subjects) ? ts.subjects[0]?.name : ts.subjects?.name))
+                .filter(Boolean)
+                .join(", ")
+            : "—";
+
+          return (
+            <div
+              key={t.id}
+              className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3 transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold text-foreground text-sm truncate">
+                    {t.profiles?.full_name || "Tanpa Nama"}
+                  </h4>
+                  <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                    NIP: {t.nip}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingTeacher(t);
+                      setFormError("");
+                    }}
+                    disabled={isPending}
+                    className="apple-press rounded-xl p-2.5 text-muted-foreground hover:bg-amber-50 hover:text-amber-600 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
+                    title="Edit Guru"
+                    aria-label={`Edit ${t.profiles?.full_name || ""}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeletingTeacher({ id: t.id, name: t.profiles?.full_name || t.nip })}
+                    disabled={isPending}
+                    className="apple-press rounded-xl p-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    title="Hapus Guru"
+                    aria-label={`Hapus ${t.profiles?.full_name || ""}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50 text-xs space-y-1">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Mata Pelajaran:</span>
+                  <span className="font-medium text-foreground text-right">{subjects}</span>
+                </div>
+                {t.profiles?.email && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Email:</span>
+                    <span className="text-foreground truncate max-w-[200px] text-right">{t.profiles.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
+            {search ? "Tidak ditemukan guru yang cocok" : "Belum ada data guru"}
+          </div>
+        )}
+      </div>
+
+      {/* Teachers Table (Desktop 640px and up) */}
+      <div className="hidden sm:block rounded-xl border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

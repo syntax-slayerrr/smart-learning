@@ -358,20 +358,20 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
               </div>
               <div className="grid gap-4 max-w-xl">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nama Sekolah</label>
-                  <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} className={inputClass} />
+                  <label htmlFor="setting-school-name" className="text-sm font-medium">Nama Sekolah</label>
+                  <input id="setting-school-name" type="text" aria-label="Nama Sekolah" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} className={inputClass} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Alamat</label>
-                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Jl. Contoh No. 123" className={inputClass} />
+                  <label htmlFor="setting-school-address" className="text-sm font-medium">Alamat</label>
+                  <input id="setting-school-address" type="text" aria-label="Alamat Sekolah" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Jl. Contoh No. 123" className={inputClass} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Telepon</label>
-                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="021-1234567" className={inputClass} />
+                  <label htmlFor="setting-school-phone" className="text-sm font-medium">Telepon</label>
+                  <input id="setting-school-phone" type="text" aria-label="Telepon Sekolah" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="021-1234567" className={inputClass} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Toleransi Keterlambatan (Menit)</label>
-                  <input type="number" value={lateTolerance} onChange={(e) => setLateTolerance(e.target.value)} placeholder="15" className={inputClass} min="0" />
+                  <label htmlFor="setting-late-tolerance" className="text-sm font-medium">Toleransi Keterlambatan (Menit)</label>
+                  <input id="setting-late-tolerance" type="number" aria-label="Toleransi Keterlambatan dalam Menit" value={lateTolerance} onChange={(e) => setLateTolerance(e.target.value)} placeholder="15" className={inputClass} min="0" />
                   <p className="text-xs text-muted-foreground">Siswa dianggap terlambat jika absen melewati batas menit ini setelah jam masuk.</p>
                 </div>
               </div>
@@ -405,16 +405,16 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase">Latitude</label>
-                    <input type="text" value={latitude} onChange={(e) => setLatitude(e.target.value)} className={inputClass} />
+                    <label htmlFor="geo-latitude" className="text-xs font-semibold text-muted-foreground uppercase">Latitude</label>
+                    <input id="geo-latitude" type="text" aria-label="Latitude Lokasi Sekolah" value={latitude} onChange={(e) => setLatitude(e.target.value)} className={inputClass} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase">Longitude</label>
-                    <input type="text" value={longitude} onChange={(e) => setLongitude(e.target.value)} className={inputClass} />
+                    <label htmlFor="geo-longitude" className="text-xs font-semibold text-muted-foreground uppercase">Longitude</label>
+                    <input id="geo-longitude" type="text" aria-label="Longitude Lokasi Sekolah" value={longitude} onChange={(e) => setLongitude(e.target.value)} className={inputClass} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase">Radius (Meter)</label>
-                    <input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} className={inputClass} />
+                    <label htmlFor="geo-radius" className="text-xs font-semibold text-muted-foreground uppercase">Radius (Meter)</label>
+                    <input id="geo-radius" type="number" aria-label="Radius Geofencing dalam Meter" value={radius} onChange={(e) => setRadius(e.target.value)} className={inputClass} />
                   </div>
                 </div>
 
@@ -489,9 +489,11 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                 {waProvider === "wablas" ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium">Domain Server Wablas</label>
+                      <label htmlFor="wablas-domain" className="text-sm font-medium">Domain Server Wablas</label>
                       <input 
+                        id="wablas-domain"
                         type="text" 
+                        aria-label="Domain Server Wablas"
                         value={wablasDomain} 
                         onChange={(e) => setWablasDomain(e.target.value)} 
                         placeholder="Contoh: solo.wablas.com" 
@@ -499,9 +501,11 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">API Token Wablas</label>
+                      <label htmlFor="wablas-token" className="text-sm font-medium">API Token Wablas</label>
                       <input 
+                        id="wablas-token"
                         type="password" 
+                        aria-label="API Token Wablas"
                         value={wablasToken} 
                         onChange={(e) => setWablasToken(e.target.value)} 
                         placeholder="Masukkan API Token" 
@@ -509,9 +513,11 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Secret Key Wablas</label>
+                      <label htmlFor="wablas-secret" className="text-sm font-medium">Secret Key Wablas</label>
                       <input 
+                        id="wablas-secret"
                         type="password" 
+                        aria-label="Secret Key Wablas"
                         value={wablasSecret} 
                         onChange={(e) => setWablasSecret(e.target.value)} 
                         placeholder="Masukkan Secret Key" 
@@ -522,9 +528,11 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                 ) : waProvider === "twilio" ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Account SID</label>
+                      <label htmlFor="twilio-sid" className="text-sm font-medium">Account SID</label>
                       <input 
+                        id="twilio-sid"
                         type="text" 
+                        aria-label="Twilio Account SID"
                         value={twilioAccountSid} 
                         onChange={(e) => setTwilioAccountSid(e.target.value)} 
                         placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxx" 
@@ -532,9 +540,11 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Auth Token</label>
+                      <label htmlFor="twilio-auth" className="text-sm font-medium">Auth Token</label>
                       <input 
+                        id="twilio-auth"
                         type="password" 
+                        aria-label="Twilio Auth Token"
                         value={twilioAuthToken} 
                         onChange={(e) => setTwilioAuthToken(e.target.value)} 
                         placeholder="Masukkan Auth Token rahasia" 
@@ -542,12 +552,14 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium">Nomor Pengirim (From)</label>
+                      <label htmlFor="twilio-from" className="text-sm font-medium">Nomor Pengirim (From)</label>
                       <input 
+                        id="twilio-from"
                         type="text" 
+                        aria-label="Nomor Pengirim Twilio"
                         value={twilioFromNumber} 
                         onChange={(e) => setTwilioFromNumber(e.target.value)} 
-                        placeholder="Contoh: +14155238886" 
+                        placeholder="Contoh: +141****8886" 
                         className={inputClass} 
                       />
                       <p className="text-xs text-muted-foreground mt-1">Gunakan nomor resmi Twilio Sandbox Anda, termasuk tanda plus (+).</p>
@@ -555,8 +567,8 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">API Token</label>
-                    <input type="password" value={waToken} onChange={(e) => setWaToken(e.target.value)} placeholder={initialSettings?.wa_token ? "••••••••••••••••" : "Masukkan token API"} className={inputClass} />
+                    <label htmlFor="wa-api-token" className="text-sm font-medium">API Token</label>
+                    <input id="wa-api-token" type="password" aria-label="WhatsApp API Token" value={waToken} onChange={(e) => setWaToken(e.target.value)} placeholder={initialSettings?.wa_token ? "••••••••••••••••" : "Masukkan token API"} className={inputClass} />
                   </div>
                 )}
                 
@@ -566,6 +578,7 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                   <div className="flex gap-2">
                     <input 
                       type="text" 
+                      aria-label="Nomor HP untuk testing"
                       placeholder="Nomor HP (0812...)" 
                       value={testPhone} 
                       onChange={(e) => setTestPhone(e.target.value)}
@@ -634,6 +647,7 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                   <div className="flex items-center gap-4 pt-2">
                     <input 
                       type="number" 
+                      aria-label="Jumlah maksimal siswa per perangkat"
                       value={maxPerDevice} 
                       onChange={(e) => setMaxPerDevice(e.target.value)} 
                       className={`${inputClass} w-24 bg-white`}
@@ -697,12 +711,14 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input 
                     type="date" 
+                    aria-label="Tanggal libur"
                     value={holidayDate} 
                     onChange={(e) => setHolidayDate(e.target.value)}
                     className={inputClass}
                   />
                   <input 
                     type="text" 
+                    aria-label="Keterangan hari libur"
                     placeholder="Keterangan (misal: Lebaran Hari 1)" 
                     value={holidayDesc} 
                     onChange={(e) => setHolidayDesc(e.target.value)}

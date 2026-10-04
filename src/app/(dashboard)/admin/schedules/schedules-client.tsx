@@ -148,7 +148,88 @@ export function SchedulesClient({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* MOBILE CARD VIEW (Under 640px) */}
+      <div className="sm:hidden space-y-3">
+        {filteredSchedules.map((s) => {
+          const dayLabel = DAYS.find((d) => d.value === s.day_of_week)?.label || "—";
+          const className = Array.isArray(s.classes) ? s.classes[0]?.name : s.classes?.name || "—";
+          const teacherName = Array.isArray(s.teachers)
+            ? s.teachers[0]?.profiles?.full_name
+            : s.teachers?.profiles?.full_name || "—";
+          const subjectName = Array.isArray(s.subjects) ? s.subjects[0]?.name : s.subjects?.name || "—";
+
+          return (
+            <div
+              key={s.id}
+              className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3 transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {dayLabel}
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {s.start_time?.substring(0, 5)} - {s.end_time?.substring(0, 5)}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-foreground text-sm mt-1 truncate">
+                    {subjectName}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(s)}
+                    disabled={isPending}
+                    className="apple-press rounded-xl p-2.5 text-muted-foreground hover:bg-amber-50 hover:text-amber-600 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
+                    title="Edit Jadwal"
+                    aria-label={`Edit jadwal ${subjectName}`}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDeletingSchedule({
+                        id: s.id,
+                        name: `${subjectName} (${className} - ${dayLabel})`,
+                      })
+                    }
+                    disabled={isPending}
+                    className="apple-press rounded-xl p-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    title="Hapus Jadwal"
+                    aria-label={`Hapus jadwal ${subjectName}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50 text-xs space-y-1">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Kelas:</span>
+                  <span className="font-medium text-foreground">{className}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Guru Pengampu:</span>
+                  <span className="font-medium text-foreground">{teacherName}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredSchedules.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
+            Tidak ada jadwal pelajaran ditemukan
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP TABLE (640px and up) */}
+      <div className="hidden sm:block rounded-xl border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
