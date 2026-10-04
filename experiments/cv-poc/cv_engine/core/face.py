@@ -1,8 +1,12 @@
 """
-AI Classroom Intelligence — ArcFace 512-d Biometric Engine & Face Pipeline
-==========================================================================
+AI Classroom Intelligence — Mesin Biometrik ArcFace 512-Dimensi & Detektor Wajah
+================================================================================
 Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengelola pengenalan identitas siswa menggunakan ekstraksi fitur
+biometrik 512-dimensi InsightFace MobileFaceNet ArcFace yang distandarisasi
+dengan perataan afinitas 5 titik wajah kanonis.
 """
 
 import os
@@ -13,183 +17,219 @@ import numpy as np
 from cv_engine.config import ARCFACE_MBF_PATH, YUNET_ONNX_PATH, SFACE_ONNX_PATH
 
 
-class ArcFaceEngine:
+class MesinBiometrikArcFace:
     """
-    InsightFace ArcFace 512-dimension Deep Feature Extractor (MobileFaceNet ONNX).
-    Industry standard in Asian EduAI (SenseTime/Megvii) for robust student identity recognition.
-    Extracts L2-normalized 512-dimensional embeddings via 5-point affine facial alignment.
+    Ekstraktor Fitur Wajah 512-Dimensi ArcFace berbasis MobileFaceNet ONNX.
+    
+    Analisis Struktur Data & Algoritma:
+    ----------------------------------
+    - Struktur Data Masukan: Matriks Wajah Terpotong 112x112 piksel berorientasi lurus.
+    - Struktur Data Keluaran: Vektor V berdimensi 512 Float32 ternormalisasi L2 (||V|| = 1.0).
+    - Algoritma: 
+        1. Estimasi Matriks Afinitas Parsial 2D (Umeyama Similarity Transform) memetakan
+           5 landmark wajah ke koordinat kanonis.
+        2. Inferensi Deep Feature Projection via MobileFaceNet.
+        3. Cosine Dot Product Scoring: sim = V1 . V2 (rentang -1.0 hingga +1.0).
+    - Kompleksitas Waktu: O(D) di mana D=512 operasi perkalian titik per pencocokan.
+    - Kompleksitas Ruang: O(D) ruang penyimpanan memori sangat ringkas (~2 KB per profil).
     """
-    def __init__(self, model_path: Optional[str] = None):
-        if model_path is None:
-            model_path = ARCFACE_MBF_PATH
-        self.model_path = model_path
+    def __init__(self, jalur_model: Optional[str] = None):
+        if jalur_model is None:
+            jalur_model = ARCFACE_MBF_PATH
+        self.jalur_model = jalur_model
         self.session = None
 
-        # Standard InsightFace 112x112 5-point reference landmarks
-        self.ref_pts = np.array([
-            [38.2946, 51.6963],  # Left eye
-            [73.5318, 51.5014],  # Right eye
-            [56.0252, 71.7366],  # Nose tip
-            [41.5493, 92.3655],  # Left mouth corner
-            [70.7299, 92.2041]   # Right mouth corner
+        # 5 Titik Landmark Referensi Standar InsightFace (Ukuran 112 x 112 piksel)
+        self.titik_referensi_kanonis = np.array([
+            [38.2946, 51.6963],  # Mata Kiri
+            [73.5318, 51.5014],  # Mata Kanan
+            [56.0252, 71.7366],  # Ujung Hidung
+            [41.5493, 92.3655],  # Sudut Bibir Kiri
+            [70.7299, 92.2041]   # Sudut Bibir Kanan
         ], dtype=np.float32)
 
-        if os.path.exists(model_path):
+        if os.path.exists(jalur_model):
             try:
                 import onnxruntime as ort
-                opts = ort.SessionOptions()
-                opts.intra_op_num_threads = 2
-                opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-                self.session = ort.InferenceSession(model_path, opts, providers=['CPUExecutionProvider'])
-                self.input_name = self.session.get_inputs()[0].name
-                self.output_name = self.session.get_outputs()[0].name
-                print(f"[+] ArcFace 512-d Biometric Engine (InsightFace w600k_mbf) Active!")
+                opsi = ort.SessionOptions()
+                opsi.intra_op_num_threads = 2
+                opsi.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+                self.session = ort.InferenceSession(jalur_model, opsi, providers=['CPUExecutionProvider'])
+                self.nama_input = self.session.get_inputs()[0].name
+                self.nama_output = self.session.get_outputs()[0].name
+                print(f"[+] ArcFace 512-d Biometric Engine Aktif ({os.path.basename(jalur_model)})!")
             except Exception as e:
-                print(f"[!] Warning: Failed to initialize ArcFace: {e}")
+                print(f"[!] Peringatan: Gagal memuat model ArcFace: {e}")
 
-    def is_available(self) -> bool:
+    def apakah_siap(self) -> bool:
+        """Memeriksa kesiapan sesi ONNX ArcFace."""
         return self.session is not None
 
-    def align_face(self, img: np.ndarray, landmarks_5: np.ndarray) -> Optional[np.ndarray]:
+    def ratakan_wajah(self, frame: np.ndarray, lima_titik_landmark: np.ndarray) -> Optional[np.ndarray]:
         """
-        Warps and aligns facial region to canonical 112x112 coordinate space using similarity transform.
+        Mentransformasikan dan memotong area wajah ke ruang kanonis 112x112 menggunakan
+        transformasi afinitas parsial (rotasi + penskalaan + translasi).
         """
         try:
-            tform, _ = cv2.estimateAffinePartial2D(landmarks_5, self.ref_pts)
-            if tform is None:
+            matriks_transformasi, _ = cv2.estimateAffinePartial2D(lima_titik_landmark, self.titik_referensi_kanonis)
+            if matriks_transformasi is None:
                 return None
-            return cv2.warpAffine(img, tform, (112, 112), borderValue=0.0)
+            return cv2.warpAffine(frame, matriks_transformasi, (112, 112), borderValue=0.0)
         except Exception:
             return None
 
-    def extract_feature(self, aligned_bgr: Optional[np.ndarray]) -> Optional[np.ndarray]:
+    def ekstraksi_fitur_vektor(self, citra_wajah_112x112: Optional[np.ndarray]) -> Optional[np.ndarray]:
         """
-        Extracts L2-normalized 512-d embedding vector.
+        Mengekstrak representasi vektor biometrik 512-dimensi yang telah ternormalisasi L2.
         """
-        if self.session is None or aligned_bgr is None:
+        if self.session is None or citra_wajah_112x112 is None:
             return None
         try:
-            rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB).astype(np.float32)
-            norm = (rgb - 127.5) / 128.0
-            chw = np.transpose(norm, (2, 0, 1))[np.newaxis, ...]
-            feat = self.session.run([self.output_name], {self.input_name: chw})[0][0]
-            norm_val = np.linalg.norm(feat)
-            if norm_val > 1e-6:
-                feat = feat / norm_val
-            return feat
+            citra_rgb = cv2.cvtColor(citra_wajah_112x112, cv2.COLOR_BGR2RGB).astype(np.float32)
+            ternormalisasi = (citra_rgb - 127.5) / 128.0
+            tensor_chw = np.transpose(ternormalisasi, (2, 0, 1))[np.newaxis, ...]
+
+            vektor_keluaran = self.session.run([self.nama_output], {self.nama_input: tensor_chw})[0][0]
+            norma_vektor = np.linalg.norm(vektor_keluaran)
+            if norma_vektor > 1e-6:
+                vektor_keluaran = vektor_keluaran / norma_vektor
+            return vektor_keluaran
         except Exception:
             return None
 
     @staticmethod
-    def compute_similarity(feat1: Any, feat2: Any) -> float:
+    def hitung_kemiripan_kosinus(vektor_a: Any, vektor_b: Any) -> float:
         """
-        Cosine similarity between two biometric feature vectors (range -1.0 to 1.0).
+        Menghitung kesamaan kosinus (Cosine Similarity) antara 2 vektor biometrik.
+        Rentang: -1.0 (sangat berbeda) hingga 1.0 (identik sempurna).
         """
-        if feat1 is None or feat2 is None:
+        if vektor_a is None or vektor_b is None:
             return 0.0
-        f1 = np.asarray(feat1, dtype=np.float32)
-        f2 = np.asarray(feat2, dtype=np.float32)
-        if f1.shape != f2.shape:
+        v1 = np.asarray(vektor_a, dtype=np.float32)
+        v2 = np.asarray(vektor_b, dtype=np.float32)
+        if v1.shape != v2.shape:
             return 0.0
-        return float(np.dot(f1, f2))
+        return float(np.dot(v1, v2))
+
+    # Alias kompatibilitas bahasa Inggris
+    is_available = apakah_siap
+    align_face = ratakan_wajah
+    extract_feature = ekstraksi_fitur_vektor
+    compute_similarity = hitung_kemiripan_kosinus
 
 
-class FacePipeline:
+# Alias kelas
+ArcFaceEngine = MesinBiometrikArcFace
+
+
+class SaluranPipaDeteksiWajah:
     """
-    Orchestrates YuNet Face Detector + ArcFace / SFace Feature Extractor.
+    Penyedia layanan terpadu: Detektor Wajah YuNet + Ekstraktor Fitur ArcFace / SFace.
     """
     def __init__(
         self,
-        arcface_path: Optional[str] = None,
-        yunet_path: Optional[str] = None,
-        sface_path: Optional[str] = None
+        jalur_arcface: Optional[str] = None,
+        jalur_yunet: Optional[str] = None,
+        jalur_sface: Optional[str] = None
     ):
-        self.arcface = ArcFaceEngine(arcface_path)
+        self.mesin_arcface = MesinBiometrikArcFace(jalur_arcface)
 
-        # YuNet Face Detector
-        yp = yunet_path or YUNET_ONNX_PATH
-        self.yunet = None
+        # Inisialisasi Detektor Wajah YuNet (OpenCV C++ Native)
+        yp = jalur_yunet or YUNET_ONNX_PATH
+        self.detektor_yunet = None
         if os.path.exists(yp) and hasattr(cv2, "FaceDetectorYN"):
             try:
-                self.yunet = cv2.FaceDetectorYN.create(
+                self.detektor_yunet = cv2.FaceDetectorYN.create(
                     model=yp,
                     config="",
                     input_size=(320, 240),
                     score_threshold=0.38,
                     nms_threshold=0.30
                 )
-                print("[+] Face Detector: YuNet Facial Landmark Detector Ready!")
+                print("[+] Detektor Wajah YuNet Siap!")
             except Exception as e:
-                print(f"[!] Warning: Failed to initialize YuNet: {e}")
+                print(f"[!] Peringatan: Gagal memuat YuNet: {e}")
 
-        # Fallback SFace Recognizer
-        sp = sface_path or SFACE_ONNX_PATH
-        self.sface = None
+        # Inisialisasi Cadangan SFace (128-d)
+        sp = jalur_sface or SFACE_ONNX_PATH
+        self.pengenal_sface = None
         if os.path.exists(sp) and hasattr(cv2, "FaceRecognizerSF"):
             try:
-                self.sface = cv2.FaceRecognizerSF.create(model=sp, config="")
+                self.pengenal_sface = cv2.FaceRecognizerSF.create(model=sp, config="")
             except Exception:
                 pass
 
-    def is_available(self) -> bool:
-        return self.yunet is not None and (self.arcface.is_available() or self.sface is not None)
+    def apakah_siap(self) -> bool:
+        return self.detektor_yunet is not None and (self.mesin_arcface.apakah_siap() or self.pengenal_sface is not None)
 
-    def detect_and_extract(
+    def deteksi_dan_ekstraksi_wajah(
         self,
         frame: np.ndarray,
-        infer_width: int = 400
+        lebar_inferensi: int = 400
     ) -> List[Tuple[np.ndarray, np.ndarray]]:
         """
-        Detects faces in frame and extracts biometric feature vectors.
-        Returns: List of tuples (detected_face_rect_and_landmarks, feature_vector).
+        Mendeteksi seluruh wajah pada frame dan mengekstrak vektor fiturnya.
+        
+        Mengembalikan:
+        --------------
+        Daftar tuple: (data_kotak_dan_5_landmark, vektor_fitur_biometrik)
         """
-        if self.yunet is None or frame is None:
+        if self.detektor_yunet is None or frame is None:
             return []
 
-        h, w = frame.shape[:2]
-        fw_infer = min(w, infer_width)
-        fh_infer = int(fw_infer * h / float(w))
-        small_f = cv2.resize(frame, (fw_infer, fh_infer))
-        scale_x = w / float(fw_infer)
-        scale_y = h / float(fh_infer)
+        tinggi_asli, lebar_asli = frame.shape[:2]
+        lebar_resize = min(lebar_asli, lebar_inferensi)
+        tinggi_resize = int(lebar_resize * tinggi_asli / float(lebar_asli))
+        citra_kecil = cv2.resize(frame, (lebar_resize, tinggi_resize))
 
-        self.yunet.setInputSize((fw_infer, fh_infer))
-        _, d_faces = self.yunet.detect(small_f)
+        skala_x = lebar_asli / float(lebar_resize)
+        skala_y = tinggi_asli / float(tinggi_resize)
 
-        results = []
-        if d_faces is None or len(d_faces) == 0:
-            return results
+        self.detektor_yunet.setInputSize((lebar_resize, tinggi_resize))
+        _, wajah_terdeteksi = self.detektor_yunet.detect(citra_kecil)
 
-        for rf in d_faces:
-            if float(rf[-1]) < 0.38:
+        daftar_hasil = []
+        if wajah_terdeteksi is None or len(wajah_terdeteksi) == 0:
+            return daftar_hasil
+
+        for wajah_mentah in wajah_terdeteksi:
+            if float(wajah_mentah[-1]) < 0.38:
                 continue
 
-            sf = rf.copy()
-            sf[0] *= scale_x
-            sf[1] *= scale_y
-            sf[2] *= scale_x
-            sf[3] *= scale_y
-            for lk in range(4, 14, 2):
-                sf[lk] *= scale_x
-                sf[lk + 1] *= scale_y
+            wajah_skala = wajah_mentah.copy()
+            wajah_skala[0] *= skala_x
+            wajah_skala[1] *= skala_y
+            wajah_skala[2] *= skala_x
+            wajah_skala[3] *= skala_y
+            for idx_titik in range(4, 14, 2):
+                wajah_skala[idx_titik] *= skala_x
+                wajah_skala[idx_titik + 1] *= skala_y
 
-            feat = None
-            if self.arcface.is_available():
-                lms5 = np.array([
-                    [sf[4], sf[5]],
-                    [sf[6], sf[7]],
-                    [sf[8], sf[9]],
-                    [sf[10], sf[11]],
-                    [sf[12], sf[13]]
+            vektor_fitur = None
+            if self.mesin_arcface.apakah_siap():
+                lima_titik = np.array([
+                    [wajah_skala[4], wajah_skala[5]],
+                    [wajah_skala[6], wajah_skala[7]],
+                    [wajah_skala[8], wajah_skala[9]],
+                    [wajah_skala[10], wajah_skala[11]],
+                    [wajah_skala[12], wajah_skala[13]]
                 ], dtype=np.float32)
-                aligned_face = self.arcface.align_face(frame, lms5)
-                feat = self.arcface.extract_feature(aligned_face)
+                wajah_terkalibrasi = self.mesin_arcface.ratakan_wajah(frame, lima_titik)
+                vektor_fitur = self.mesin_arcface.ekstraksi_fitur_vektor(wajah_terkalibrasi)
 
-            if feat is None and self.sface is not None:
-                aligned_face = self.sface.alignCrop(frame, sf)
-                feat = self.sface.feature(aligned_face).flatten()
+            if vektor_fitur is None and self.pengenal_sface is not None:
+                wajah_terpotong = self.pengenal_sface.alignCrop(frame, wajah_skala)
+                vektor_fitur = self.pengenal_sface.feature(wajah_terpotong).flatten()
 
-            if feat is not None:
-                results.append((sf, feat))
+            if vektor_fitur is not None:
+                daftar_hasil.append((wajah_skala, vektor_fitur))
 
-        return results
+        return daftar_hasil
+
+    # Alias kompatibilitas bahasa Inggris
+    is_available = apakah_siap
+    detect_and_extract = deteksi_dan_ekstraksi_wajah
+
+
+# Alias kelas
+FacePipeline = SaluranPipaDeteksiWajah

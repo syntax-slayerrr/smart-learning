@@ -1,8 +1,16 @@
 """
-AI Classroom Intelligence — Master Pipeline Orchestrator
-=========================================================
+AI Classroom Intelligence — Saluran Pipa Utama (Master Pipeline Orchestrator)
+=============================================================================
 Syntax Slayer — Smart Learning Platform
-Connects Core AI Vision (Dev 1), Telemetry & Contracts (Dev 2), and Streaming Server (Dev 3).
+Menghubungkan Core AI Vision (Dev 1), Telemetri & Kontrak (Dev 2), dan Server Streaming (Dev 3).
+
+Alur Algoritma Pipeline Spasio-Temporal:
+1. Penangkapan Bingkai Kamera Multi-Sumber (ThreadedCamera)
+2. Inferensi Asinkronus Paralel (YOLO26n + MediaPipe Heavy 3D + ArcFace 512-d)
+3. Fusi Pelacakan Spasio-Temporal & 5 Enterprise Guardrails (PelacakSubjekKelas)
+4. Rasterisasi Antarmuka HUD & Kerangka Anatomi Neon (Streaming HUD)
+5. Distribusi Video MJPEG Multi-Klien 45 FPS (ThreadingHTTPServer)
+6. Pengiriman Asinkronus Telemetri JSON ke Next.js & Supabase Cloud (Bounded Queue)
 """
 
 from datetime import datetime, timezone
@@ -14,302 +22,326 @@ import cv2
 import numpy as np
 
 from cv_engine.config import (
+    KonfigurasiEngine,
     EngineConfig,
-    COLOR_RED,
-    COLOR_AMBER,
-    COLOR_SKY,
-    COLOR_BLUE,
-    COLOR_EMERALD,
-    GUARDRAIL_ARCFACE_MATCH_VOTES
+    WARNA_MERAH,
+    WARNA_AMBER,
+    WARNA_LANGIT_SKY,
+    WARNA_BIRU,
+    WARNA_EMERALD,
+    MINIMAL_VOTING_IDENTITAS
 )
 from cv_engine.core import (
-    YOLO26Detector,
-    MediaPipePoseDetector,
-    FacePipeline,
-    SubjectTracker
+    DetektorYOLO26,
+    DetektorPoseMediaPipe,
+    SaluranPipaDeteksiWajah,
+    PelacakSubjekKelas
 )
 from cv_engine.telemetry import (
-    FaceGalleryManager,
-    TelemetryDispatcher,
-    TelemetryPayload
+    ManajerGaleriWajah,
+    PengirimTelemetriAsinkron,
+    MuatanTelemetri
 )
 from cv_engine.streaming import (
-    ThreadedCamera,
-    apply_orientation,
-    draw_neon_skeleton,
-    draw_tech_box,
-    draw_hud
+    KameraUtasTerpisah,
+    terapkan_orientasi,
+    gambar_kerangka_neon,
+    gambar_kotak_cerdas,
+    gambar_banner_hud
 )
 from cv_engine.server import (
-    StreamServerState,
-    start_mjpeg_server
+    StatusServerStreaming,
+    jalankan_server_mjpeg
 )
 
 
-def run_pipeline(config: EngineConfig) -> None:
+def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     """
-    Main execution loop running the Edge CV pipeline.
+    Fungsi orkestrasi utama yang menjalankan loop pemrosesan video berkecepatan tinggi.
     """
-    print(f"[*] Initializing AI Classroom Intelligence Engine (SYNTAX SLAYER)...")
-    print(f"[*] Config: Source={config.source}, Port={config.port}, Interval={config.interval}s, Rotation={config.rotate}")
+    print(f"[*] Menginisialisasi AI Classroom Intelligence Engine (SYNTAX SLAYER)...")
+    print(f"[*] Konfigurasi: Sumber={konfigurasi.source}, Port={konfigurasi.port}, Interval={konfigurasi.interval}s, Rotasi={konfigurasi.rotate}")
 
-    # 1. Initialize Subsystems (Dev 1: Core AI Vision)
-    yolo_detector = YOLO26Detector()
-    pose_detector = MediaPipePoseDetector()
-    face_pipeline = FacePipeline()
-    tracker = SubjectTracker()
+    # ==========================================================================
+    # 1. Inisialisasi Subsistem Core AI & Vision (Developer 1)
+    # ==========================================================================
+    detektor_yolo = DetektorYOLO26()
+    detektor_pose = DetektorPoseMediaPipe()
+    saluran_wajah = SaluranPipaDeteksiWajah()
+    pelacak_subjek = PelacakSubjekKelas()
 
-    # 2. Initialize Subsystems (Dev 2: Telemetry & Face Gallery)
-    gallery_manager = FaceGalleryManager()
-    dispatcher = TelemetryDispatcher(
-        primary_url=config.api_url,
-        cloud_url=config.cloud_url,
-        device_key=config.device_key
-    ).start()
+    # ==========================================================================
+    # 2. Inisialisasi Subsistem Telemetri & Galeri Wajah (Developer 2)
+    # ==========================================================================
+    manajer_galeri = ManajerGaleriWajah()
+    pengirim_telemetri = PengirimTelemetriAsinkron(
+        url_primer=konfigurasi.api_url,
+        url_cloud=konfigurasi.cloud_url,
+        kunci_perangkat=konfigurasi.device_key
+    ).mulai()
 
-    # 3. Initialize Subsystems (Dev 3: Camera & Streaming Server)
-    server_state = StreamServerState(
-        gallery_manager=gallery_manager,
-        sync_status_fn=dispatcher.get_sync_status
+    # ==========================================================================
+    # 3. Inisialisasi Subsistem Kamera, Streaming & Server (Developer 3)
+    # ==========================================================================
+    status_server = StatusServerStreaming(
+        manajer_galeri=manajer_galeri,
+        fungsi_status_sinkronisasi=pengirim_telemetri.ambil_status_sinkronisasi
     )
-    server_state.set_orientation(rotation=config.rotate, flip_h=config.flip_h)
+    status_server.atur_orientasi(rotasi=konfigurasi.rotate, cermin_h=konfigurasi.flip_h)
 
-    server = start_mjpeg_server(config.port, server_state)
-    camera = ThreadedCamera(src=config.source, target_fps=config.target_fps).start()
+    server_http = jalankan_server_mjpeg(konfigurasi.port, status_server)
+    kamera_aliran = KameraUtasTerpisah(sumber=konfigurasi.source, fps_target=konfigurasi.target_fps).mulai()
 
-    # Decoupled Inference Worker State
-    pose_shared_lock = threading.Lock()
-    latest_pose_landmarks: List[Any] = []
-    latest_yolo_boxes: List[Any] = []
-    latest_infer_ms: float = 25.0
-    worker_running: bool = True
-    new_frame_to_infer: Optional[np.ndarray] = None
-    infer_event = threading.Event()
+    # ==========================================================================
+    # 4. Utas Pekerja Inferensi Asinkronus (Decoupled Multi-Threaded Inference)
+    # Menghindari penurunan frame rate kamera saat model deep learning berjalan
+    # ==========================================================================
+    kunci_pose_bersama = threading.Lock()
+    daftar_landmark_terkini: List[Any] = []
+    daftar_kotak_yolo_terkini: List[Any] = []
+    latensi_inferensi_ms: float = 25.0
+    status_pekerja_aktif: bool = True
+    bingkai_siap_inferensi: Optional[np.ndarray] = None
+    sinyal_inferensi = threading.Event()
 
-    def pose_worker_loop():
-        nonlocal latest_pose_landmarks, latest_yolo_boxes, latest_infer_ms, new_frame_to_infer
-        while worker_running:
-            infer_event.wait(timeout=0.1)
-            infer_event.clear()
+    def lingkaran_kerja_inferensi_ai():
+        nonlocal daftar_landmark_terkini, daftar_kotak_yolo_terkini, latensi_inferensi_ms, bingkai_siap_inferensi
+        while status_pekerja_aktif:
+            sinyal_inferensi.wait(timeout=0.1)
+            sinyal_inferensi.clear()
 
-            with pose_shared_lock:
-                frame_for_ai = None if new_frame_to_infer is None else new_frame_to_infer.copy()
+            with kunci_pose_bersama:
+                frame_ai = None if bingkai_siap_inferensi is None else bingkai_siap_inferensi.copy()
 
-            if frame_for_ai is None:
+            if frame_ai is None:
                 continue
 
-            t_start = time.perf_counter()
+            waktu_mulai = time.perf_counter()
             try:
-                # 1. Macro YOLO26n Detection
-                y_boxes = []
-                if yolo_detector.is_available():
-                    y_boxes = yolo_detector.detect_persons(
-                        frame_for_ai,
-                        conf_thresh=config.yolo_conf_thresh,
-                        imgsz=config.yolo_imgsz
+                # 1. Deteksi Spasial Makro YOLO26n (NMS-Free Head)
+                kotak_yolo = []
+                if detektor_yolo.apakah_siap():
+                    kotak_yolo = detektor_yolo.deteksi_subjek_manusia(
+                        frame_ai,
+                        ambang_keyakinan=konfigurasi.yolo_conf_thresh,
+                        dimensi_input=konfigurasi.yolo_imgsz
                     )
 
-                # 2. Micro MediaPipe Heavy 33-point Skeletons
-                mp_poses = []
-                if pose_detector.is_available():
-                    mp_poses = pose_detector.detect_poses(frame_for_ai, infer_width=360)
+                # 2. Estimasi Sendi Mikro Anatomi MediaPipe Heavy (33 Points 3D)
+                pose_mediapipe = []
+                if detektor_pose.apakah_siap():
+                    pose_mediapipe = detektor_pose.deteksi_kerangka_anatomi(frame_ai, lebar_inferensi_target=360)
 
-                dur_ms = (time.perf_counter() - t_start) * 1000.0
+                waktu_durasi_ms = (time.perf_counter() - waktu_mulai) * 1000.0
 
-                with pose_shared_lock:
-                    latest_yolo_boxes = y_boxes
-                    latest_pose_landmarks = mp_poses
-                    latest_infer_ms = dur_ms
+                with kunci_pose_bersama:
+                    daftar_kotak_yolo_terkini = kotak_yolo
+                    daftar_landmark_terkini = pose_mediapipe
+                    latensi_inferensi_ms = waktu_durasi_ms
             except Exception:
                 pass
 
-    t_pose = threading.Thread(target=pose_worker_loop, daemon=True)
-    t_pose.start()
+    utas_inferensi = threading.Thread(target=lingkaran_kerja_inferensi_ai, daemon=True)
+    utas_inferensi.start()
 
-    prev_time = time.time()
-    last_json_time = time.time()
-    frame_count = 0
+    waktu_sebelumnya = time.time()
+    waktu_telemetri_terakhir = time.time()
+    pencacah_frame = 0
 
-    print(f"[+] Engine running successfully at http://localhost:{config.port}/video_feed")
+    print(f"[+] Engine Berjalan Sempurna! Siaran Live Stream: http://localhost:{konfigurasi.port}/video_feed")
 
     try:
         while True:
-            grabbed, raw_frame = camera.read()
-            if not grabbed or raw_frame is None:
-                # Standby placeholder frame while camera connects
-                rec_frame = np.full((720, 1280, 3), (25, 27, 32), dtype=np.uint8)
-                cv2.putText(rec_frame, "MENUNGGU STREAM KAMERA (STANDBY)...", (320, 350),
+            berhasil, frame_mentah = kamera_aliran.baca_bingkai()
+            if not berhasil or frame_mentah is None:
+                # Tampilkan frame standby jika kamera sedang menyambung ulang
+                frame_siaga = np.full((720, 1280, 3), (25, 27, 32), dtype=np.uint8)
+                cv2.putText(frame_siaga, "MENUNGGU STREAM KAMERA (STANDBY)...", (320, 350),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (220, 220, 220), 2, cv2.LINE_AA)
-                cv2.putText(rec_frame, f"Source: {config.source}", (380, 390),
+                cv2.putText(frame_siaga, f"Sumber: {konfigurasi.source}", (380, 390),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1, cv2.LINE_AA)
-                _, jpeg = cv2.imencode('.jpg', rec_frame, [cv2.IMWRITE_JPEG_QUALITY, 76])
-                server_state.update_frame(jpeg.tobytes())
+                _, jpeg_siaga = cv2.imencode('.jpg', frame_siaga, [cv2.IMWRITE_JPEG_QUALITY, 76])
+                status_server.perbarui_bingkai(jpeg_siaga.tobytes())
                 time.sleep(0.1)
                 continue
 
-            frame_count += 1
-            curr_time = time.time()
-            fps = 1.0 / max(1e-5, (curr_time - prev_time))
-            prev_time = curr_time
+            pencacah_frame += 1
+            waktu_sekarang = time.time()
+            laju_fps = 1.0 / max(1e-5, (waktu_sekarang - waktu_sebelumnya))
+            waktu_sebelumnya = waktu_sekarang
 
-            # Retrieve dynamic orientation
-            rot_setting, flip_setting = server_state.get_orientation()
-            frame = apply_orientation(raw_frame, rot_setting, flip_setting)
-            h, w = frame.shape[:2]
+            # Terapkan rotasi spasial frame jika diatur
+            setelan_rotasi, setelan_cermin = status_server.ambil_orientasi()
+            frame = terapkan_orientasi(frame_mentah, setelan_rotasi, setelan_cermin)
+            tinggi_frame, lebar_frame = frame.shape[:2]
 
-            # Trigger asynchronous AI worker
-            with pose_shared_lock:
-                new_frame_to_infer = frame
-                infer_event.set()
-                active_pose_list = list(latest_pose_landmarks)
-                active_yolo_boxes = list(latest_yolo_boxes)
-                curr_infer_ms = latest_infer_ms
+            # Kirim frame ke pekerja inferensi asinkronus
+            with kunci_pose_bersama:
+                bingkai_siap_inferensi = frame
+                sinyal_inferensi.set()
+                pose_aktif = list(daftar_landmark_terkini)
+                kotak_yolo_aktif = list(daftar_kotak_yolo_terkini)
+                latensi_saat_ini = latensi_inferensi_ms
 
-            # Hybrid Tracking & 5 Enterprise Guardrails
-            active_tracks = tracker.update_hybrid(active_yolo_boxes, active_pose_list, frame.shape, curr_time)
+            # Penjejakan Hibrida & Penerapan 5 Guardrails Enterprise
+            subjek_aktif = pelacak_subjek.perbarui_posisi_hibrida(
+                kotak_yolo_aktif,
+                pose_aktif,
+                frame.shape,
+                waktu_sekarang
+            )
 
-            # Face Recognition & Enrollment (Every 4th frame or on /register_face trigger)
-            if face_pipeline.is_available() and (frame_count % 4 == 0 or gallery_manager.trigger_event.is_set()):
+            # Pengenalan Wajah ArcFace & Pendaftaran Biometrik (Setiap 4 frame atau saat tombol web ditekan)
+            if saluran_wajah.apakah_siap() and (pencacah_frame % 4 == 0 or manajer_galeri.peristiwa_pemicu.is_set()):
                 try:
-                    face_matches = face_pipeline.detect_and_extract(frame, infer_width=400)
-                    for (rect_lms, feat) in face_matches:
-                        # Enrollment trigger
-                        if gallery_manager.trigger_event.is_set():
-                            p_name = gallery_manager.get_pending_name() or "Zaldy (Siswa)"
-                            gallery_manager.register_face(p_name, feat)
-                            gallery_manager.clear_trigger()
+                    hasil_wajah = saluran_wajah.deteksi_dan_ekstraksi_wajah(frame, lebar_inferensi=400)
+                    for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
+                        # 1. Pendaftaran profil wajah baru jika dipicu
+                        if manajer_galeri.peristiwa_pemicu.is_set():
+                            nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
+                            manajer_galeri.daftarkan_wajah(nama_siswa, vektor_fitur)
+                            manajer_galeri.bersihkan_pemicu()
 
-                        # Cosine similarity matching
-                        best_sname, best_sim = gallery_manager.find_match(feat, thresh=config.face_sim_thresh)
-                        if best_sname and len(active_tracks) > 0:
-                            fcx = rect_lms[0] + rect_lms[2] / 2.0
-                            fcy = rect_lms[1] + rect_lms[3] / 2.0
-                            for trk in active_tracks:
-                                tcx, tcy = trk["center"]
-                                if math.hypot(fcx - tcx, fcy - tcy) < 220.0:
-                                    # Guardrail 3: Temporal Identity Voting Buffer & Seat Latching
-                                    trk.setdefault("identity_votes", {})
-                                    trk["identity_votes"][best_sname] = trk["identity_votes"].get(best_sname, 0) + 1
-                                    if trk["identity_votes"][best_sname] >= GUARDRAIL_ARCFACE_MATCH_VOTES:
-                                        trk["student_name"] = best_sname
-                                        trk["is_recognized"] = True
-                                        trk["seat_latched"] = True
+                        # 2. Pencocokan biometrik kemiripan kosinus terhadap galeri
+                        nama_cocok, skor_cocok = manajer_galeri.cari_kemiripan_wajah(
+                            vektor_fitur,
+                            ambang_batas=konfigurasi.face_sim_thresh
+                        )
+
+                        if nama_cocok and len(subjek_aktif) > 0:
+                            wajah_pusat_x = kotak_landmark_5[0] + kotak_landmark_5[2] / 2.0
+                            wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
+                            for data_siswa in subjek_aktif:
+                                tcx, tcy = data_siswa["center"]
+                                if math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy) < 220.0:
+                                    # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
+                                    data_siswa.setdefault("identity_votes", {})
+                                    data_siswa["identity_votes"][nama_cocok] = data_siswa["identity_votes"].get(nama_cocok, 0) + 1
+                                    if data_siswa["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
+                                        data_siswa["student_name"] = nama_cocok
+                                        data_siswa["is_recognized"] = True
+                                        data_siswa["seat_latched"] = True
                                     break
                 except Exception:
                     pass
 
-            # Classroom Summary Statistics
-            stats = {
-                "total": len(active_tracks),
-                "sitting": sum(1 for t in active_tracks if t["posture"] == "sitting"),
-                "standing": sum(1 for t in active_tracks if t["posture"] == "standing"),
-                "hands_raised": sum(1 for t in active_tracks if t["is_hand_raised"]),
-                "desk_focused": sum(1 for t in active_tracks if t["activity"] in ("attentive", "writing")),
-                "sleep_detected": sum(1 for t in active_tracks if t["is_sleep"]),
-                "active_clusters": 1 if len(active_tracks) > 0 else 0,
-                "teacher_zone": "zone-center" if any(t["posture"] == "standing" for t in active_tracks) else "zone-front"
+            # Agregasi Ringkasan Statistik Kelas
+            statistik_kelas = {
+                "total": len(subjek_aktif),
+                "sitting": sum(1 for s in subjek_aktif if s["posture"] == "sitting"),
+                "standing": sum(1 for s in subjek_aktif if s["posture"] == "standing"),
+                "hands_raised": sum(1 for s in subjek_aktif if s["is_hand_raised"]),
+                "desk_focused": sum(1 for s in subjek_aktif if s["activity"] in ("attentive", "writing")),
+                "sleep_detected": sum(1 for s in subjek_aktif if s["is_sleep"]),
+                "active_clusters": 1 if len(subjek_aktif) > 0 else 0,
+                "teacher_zone": "zone-center" if any(s["posture"] == "standing" for s in subjek_aktif) else "zone-front"
             }
 
-            telemetry_tracks = []
-            for trk in active_tracks:
-                tid = trk["id"]
-                bx, by, bw, bh = trk["box"]
-                posture = trk["posture"]
-                activity = trk["activity"]
-                conf = trk["conf"]
-                sub_label = trk.get("sub_label", "")
-                hand_box = trk.get("hand_box")
-                landmarks = trk.get("landmarks", [])
-                st_name = trk.get("student_name", f"Siswa #{tid}")
-                is_rec = trk.get("is_recognized", False)
+            rekaman_telemetri = []
+            for subjek in subjek_aktif:
+                id_subjek = subjek["id"]
+                bx, by, bw, bh = subjek["box"]
+                postur = subjek["posture"]
+                aktivitas = subjek["activity"]
+                keyakinan = subjek["conf"]
+                sub_label = subjek.get("sub_label", "")
+                kotak_tangan = subjek.get("hand_box")
+                landmarks = subjek.get("landmarks", [])
+                nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
+                terkenal = subjek.get("is_recognized", False)
 
-                if trk["is_sleep"]:
-                    color = COLOR_RED
-                    act_tag = "[TIDUR]"
-                elif trk["is_hand_raised"]:
-                    color = COLOR_AMBER
-                    act_tag = "[ANGKAT TANGAN]"
-                elif activity == "writing":
-                    color = COLOR_SKY
-                    act_tag = "[FOKUS MEJA]"
-                elif posture == "standing":
-                    color = COLOR_BLUE
-                    act_tag = "[BERDIRI]"
+                # Kalibrasi Warna Indikator Perilaku Pedagogis
+                if subjek["is_sleep"]:
+                    warna_indikator = WARNA_MERAH
+                    tag_aktivitas = "[TIDUR]"
+                elif subjek["is_hand_raised"]:
+                    warna_indikator = WARNA_AMBER
+                    tag_aktivitas = "[ANGKAT TANGAN]"
+                elif aktivitas == "writing":
+                    warna_indikator = WARNA_LANGIT_SKY
+                    tag_aktivitas = "[FOKUS MEJA]"
+                elif postur == "standing":
+                    warna_indikator = WARNA_BIRU
+                    tag_aktivitas = "[BERDIRI]"
                 else:
-                    color = COLOR_EMERALD
-                    act_tag = "[FOKUS BELAJAR]"
+                    warna_indikator = WARNA_EMERALD
+                    tag_aktivitas = "[FOKUS BELAJAR]"
 
-                label = f"{st_name} • {act_tag}" if is_rec else f"#{tid} {act_tag}"
+                label_tampilan = f"{nama_siswa} • {tag_aktivitas}" if terkenal else f"#{id_subjek} {tag_aktivitas}"
 
-                # Draw anatomical glowing skeleton
+                # 1. Gambar Kerangka Anatomi Neon Bercahaya (MediaPipe Heavy 3D)
                 if landmarks:
-                    draw_neon_skeleton(
+                    gambar_kerangka_neon(
                         frame,
                         landmarks,
-                        color=color,
-                        hand_raised=trk["is_hand_raised"],
-                        is_sleep=trk["is_sleep"]
+                        warna=warna_indikator,
+                        tangan_terangkat=subjek["is_hand_raised"],
+                        status_tidur=subjek["is_sleep"]
                     )
 
-                # Draw tech bounding box and metrics badge
-                draw_tech_box(
+                # 2. Gambar Kotak Pembatas Cerdas (Cyber-HUD)
+                gambar_kotak_cerdas(
                     frame,
                     bx, by, bw, bh,
-                    color,
-                    label,
-                    conf,
+                    warna_indikator,
+                    label_tampilan,
+                    keyakinan,
                     sub_label=sub_label,
-                    hand_box=hand_box
+                    kotak_tangan=kotak_tangan
                 )
 
-                telemetry_tracks.append({
-                    "id": f"P-{tid}",
-                    "anonymous_id": f"P{tid}",
-                    "label": f"{st_name} ({act_tag})",
-                    "student_name": st_name,
-                    "is_recognized": is_rec,
-                    "posture": posture,
-                    "activity": activity,
-                    "action_text": trk.get("action_text", ""),
-                    "confidence": round(conf, 2),
-                    "hand_raised": trk["is_hand_raised"],
-                    "sleep": trk["is_sleep"],
-                    "head_tilt_deg": trk.get("head_tilt", 0.0),
-                    "gaze_direction": trk.get("gaze_dir", "Depan"),
-                    "attention_score": trk.get("attention_score", 95),
+                rekaman_telemetri.append({
+                    "id": f"P-{id_subjek}",
+                    "anonymous_id": f"P{id_subjek}",
+                    "label": f"{nama_siswa} ({tag_aktivitas})",
+                    "student_name": nama_siswa,
+                    "is_recognized": terkenal,
+                    "posture": postur,
+                    "activity": aktivitas,
+                    "action_text": subjek.get("action_text", ""),
+                    "confidence": round(keyakinan, 2),
+                    "hand_raised": subjek["is_hand_raised"],
+                    "sleep": subjek["is_sleep"],
+                    "head_tilt_deg": subjek.get("head_tilt", 0.0),
+                    "gaze_direction": subjek.get("gaze_dir", "Depan"),
+                    "attention_score": subjek.get("attention_score", 95),
                     "box": [bx, by, bw, bh]
                 })
 
-            # Render top status bar
-            draw_hud(
+            # Gambar Bilah Status HUD Atas
+            gambar_banner_hud(
                 frame,
-                stats,
-                fps,
-                config.session_id,
-                dispatcher.get_sync_status(),
-                f"{rot_setting}°",
-                infer_ms=curr_infer_ms
+                statistik_kelas,
+                laju_fps,
+                konfigurasi.session_id,
+                pengirim_telemetri.ambil_status_sinkronisasi(),
+                f"{setelan_rotasi}°",
+                latensi_inferensi_ms=latensi_saat_ini
             )
 
-            # Compress JPEG for MJPEG streamer
-            _, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 76, cv2.IMWRITE_JPEG_OPTIMIZE, 1])
-            server_state.update_frame(jpeg.tobytes())
+            # Kompresi Turbo JPEG untuk Streaming Video MJPEG
+            _, jpeg_kompresi = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 76, cv2.IMWRITE_JPEG_OPTIMIZE, 1])
+            status_server.perbarui_bingkai(jpeg_kompresi.tobytes())
 
-            # Periodic Telemetry Dispatch
-            if curr_time - last_json_time >= config.interval:
-                payload = TelemetryPayload(
-                    session_id=config.session_id,
+            # Pengiriman Telemetri Berkala ke Next.js Backend
+            if waktu_sekarang - waktu_telemetri_terakhir >= konfigurasi.interval:
+                muatan_telemetri = MuatanTelemetri(
+                    session_id=konfigurasi.session_id,
                     timestamp=datetime.now(timezone.utc).isoformat(),
-                    frame_id=frame_count,
-                    summary=stats,
-                    anonymized_tracks=telemetry_tracks
-                ).to_dict()
-                dispatcher.enqueue(payload)
-                last_json_time = curr_time
+                    frame_id=pencacah_frame,
+                    summary=statistik_kelas,
+                    anonymized_tracks=rekaman_telemetri
+                ).konversi_ke_dict()
+                pengirim_telemetri.masukkan_antrean(muatan_telemetri)
+                waktu_telemetri_terakhir = waktu_sekarang
 
     finally:
-        worker_running = False
-        dispatcher.stop()
-        camera.release()
-        server_state.stop_event.set()
-        print("[*] Engine stopped cleanly.")
+        status_pekerja_aktif = False
+        pengirim_telemetri.berhenti()
+        kamera_aliran.lepaskan()
+        status_server.peristiwa_berhenti.set()
+        print("[*] Engine Berhenti Secara Bersih dan Aman.")
+
+
+# Alias kompatibilitas bahasa Inggris
+run_pipeline = jalankan_saluran_pipa_cv

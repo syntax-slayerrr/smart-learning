@@ -1,8 +1,14 @@
 """
-AI Classroom Intelligence — HUD Renderer & Anatomical Visualizer
-================================================================
+AI Classroom Intelligence — Renderer HUD & Visualisasi Anatomi Neon
+====================================================================
 Developer 3: Edge Server, Ingestion, Streaming & Live HUD UI Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengelola rasterisasi grafis antarmuka cyberpunk / EduAI:
+1. Transformasi rotasi spasial dan pencerminan frame.
+2. Gambar kerangka anatomi neon bercahaya (SenseTime / Megvii Style).
+3. Gambar kotak pintar (Tech Bounding Box) dengan lencana skor atensi.
+4. Banner status HUD telemetri atas (FPS, headcount, sync status).
 """
 
 from typing import List, Tuple, Dict, Any, Optional
@@ -10,176 +16,196 @@ import cv2
 import numpy as np
 
 from cv_engine.config import (
-    COLOR_CYAN,
-    COLOR_WHITE,
-    COLOR_AMBER,
-    COLOR_RED,
-    COLOR_DARK,
-    COLOR_EMERALD,
-    POSE_CONNECTIONS
+    WARNA_CYAN,
+    WARNA_PUTIH,
+    WARNA_AMBER,
+    WARNA_MERAH,
+    WARNA_GELAP,
+    WARNA_EMERALD,
+    KONEKSI_SENDI_ANATOMI
 )
 
 
-def apply_orientation(frame: np.ndarray, rotation: str = "auto", flip_h: bool = False) -> np.ndarray:
+def terapkan_orientasi(frame: np.ndarray, rotasi: str = "auto", cermin_horizontal: bool = False) -> np.ndarray:
     """
-    Applies 90/180/270/auto rotation and horizontal flip to input frame.
+    Menerapkan transformasi rotasi sudut (90, 180, 270 derajat) dan pencerminan horizontal.
+    
+    Analisis Algoritma:
+    -------------------
+    - Kompleksitas Waktu: O(W * H) transposisi matriks piksel OpenCV.
+    - Kompleksitas Ruang: O(1) in-place atau salinan tunggal buffer matriks.
     """
     if frame is None:
         return frame
 
-    if rotation == "90":
-        out = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-    elif rotation == "180":
-        out = cv2.rotate(frame, cv2.ROTATE_180)
-    elif rotation == "270":
-        out = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    elif rotation == "auto":
+    if rotasi == "90":
+        keluaran = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    elif rotasi == "180":
+        keluaran = cv2.rotate(frame, cv2.ROTATE_180)
+    elif rotasi == "270":
+        keluaran = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    elif rotasi == "auto":
+        # Otomatis tegakkan jika HP dalam orientasi lanskap namun terbalik
         if frame.shape[1] > frame.shape[0]:
-            out = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            keluaran = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         else:
-            out = frame
+            keluaran = frame
     else:
-        out = frame
+        keluaran = frame
 
-    if flip_h:
-        out = cv2.flip(out, 1)
+    if cermin_horizontal:
+        keluaran = cv2.flip(keluaran, 1)
 
-    return out
+    return keluaran
 
 
-def draw_neon_skeleton(
+def gambar_kerangka_neon(
     frame: np.ndarray,
-    landmarks: List[Any],
-    color: Tuple[int, int, int] = COLOR_CYAN,
-    hand_raised: bool = False,
-    is_sleep: bool = False
+    daftar_sendi: List[Any],
+    warna: Tuple[int, int, int] = WARNA_CYAN,
+    tangan_terangkat: bool = False,
+    status_tidur: bool = False
 ) -> None:
     """
-    Renders high-visibility glowing anatomical skeleton ala SenseTime / Megvii Smart Surveillance.
-    Raised arm automatically glows in vibrant amber/gold.
+    Menggambar kerangka anatomi neon berlapis (Glow Effect) untuk visualisasi pergerakan siswa.
+    Lengan yang terangkat otomatis memancarkan pendar emas amber.
     """
-    h, w = frame.shape[:2]
+    tinggi_frame, lebar_frame = frame.shape[:2]
 
-    # Draw Bone Connections (Layered Glow Effect)
-    for p1_idx, p2_idx in POSE_CONNECTIONS:
-        if p1_idx < len(landmarks) and p2_idx < len(landmarks):
-            p1 = landmarks[p1_idx]
-            p2 = landmarks[p2_idx]
-            vis1 = getattr(p1, 'visibility', 0.5)
-            vis2 = getattr(p2, 'visibility', 0.5)
+    # 1. Gambar Ruas Tulang (Bone Connections)
+    for idx_sendi_1, idx_sendi_2 in KONEKSI_SENDI_ANATOMI:
+        if idx_sendi_1 < len(daftar_sendi) and idx_sendi_2 < len(daftar_sendi):
+            sendi_1 = daftar_sendi[idx_sendi_1]
+            sendi_2 = daftar_sendi[idx_sendi_2]
+            visibilitas_1 = getattr(sendi_1, 'visibility', 0.5)
+            visibilitas_2 = getattr(sendi_2, 'visibility', 0.5)
 
-            if vis1 > 0.22 and vis2 > 0.22:
-                pt1 = (int(p1.x * w), int(p1.y * h))
-                pt2 = (int(p2.x * w), int(p2.y * h))
+            if visibilitas_1 > 0.22 and visibilitas_2 > 0.22:
+                titik_1 = (int(sendi_1.x * lebar_frame), int(sendi_1.y * tinggi_frame))
+                titik_2 = (int(sendi_2.x * lebar_frame), int(sendi_2.y * tinggi_frame))
 
-                bone_color = color
-                is_arm = (
-                    (p1_idx in (11, 13, 15) and p2_idx in (11, 13, 15)) or
-                    (p1_idx in (12, 14, 16) and p2_idx in (12, 14, 16))
+                warna_tulang = warna
+                apakah_ruas_lengan = (
+                    (idx_sendi_1 in (11, 13, 15) and idx_sendi_2 in (11, 13, 15)) or
+                    (idx_sendi_1 in (12, 14, 16) and idx_sendi_2 in (12, 14, 16))
                 )
 
-                if hand_raised and is_arm:
-                    bone_color = COLOR_AMBER
-                elif is_sleep:
-                    bone_color = COLOR_RED
+                if tangan_terangkat and apakah_ruas_lengan:
+                    warna_tulang = WARNA_AMBER
+                elif status_tidur:
+                    warna_tulang = WARNA_MERAH
 
-                # Outer thin white line + inner neon core line
-                cv2.line(frame, pt1, pt2, COLOR_WHITE, 3, cv2.LINE_AA)
-                cv2.line(frame, pt1, pt2, bone_color, 2, cv2.LINE_AA)
+                # Lapisan luar tipis putih + inti neon berwarna (Anti-Aliased)
+                cv2.line(frame, titik_1, titik_2, WARNA_PUTIH, 3, cv2.LINE_AA)
+                cv2.line(frame, titik_1, titik_2, warna_tulang, 2, cv2.LINE_AA)
 
-    # Draw Joint Nodes
-    for idx, lm in enumerate(landmarks[:25]):
-        vis = getattr(lm, 'visibility', 0.5)
-        if vis > 0.22:
-            cx, cy = int(lm.x * w), int(lm.y * h)
-            node_color = color
-            node_rad = 5
+    # 2. Gambar Simpul Sendi Anatomi (Joint Nodes)
+    for indeks_simpul, sendi in enumerate(daftar_sendi[:25]):
+        visibilitas = getattr(sendi, 'visibility', 0.5)
+        if visibilitas > 0.22:
+            pusat_x = int(sendi.x * lebar_frame)
+            pusat_y = int(sendi.y * tinggi_frame)
+            warna_simpul = warna
+            radius_simpul = 5
 
-            if hand_raised and idx in (15, 16):
-                node_color = COLOR_AMBER
-                node_rad = 8  # Pulse on raised wrist
-            elif is_sleep:
-                node_color = COLOR_RED
+            if tangan_terangkat and indeks_simpul in (15, 16):
+                warna_simpul = WARNA_AMBER
+                radius_simpul = 8  # Denyut pulsa pada pergelangan tangan yang bertanya
+            elif status_tidur:
+                warna_simpul = WARNA_MERAH
 
-            cv2.circle(frame, (cx, cy), node_rad, node_color, -1, cv2.LINE_AA)
-            cv2.circle(frame, (cx, cy), max(2, node_rad - 3), COLOR_WHITE, -1, cv2.LINE_AA)
+            cv2.circle(frame, (pusat_x, pusat_y), radius_simpul, warna_simpul, -1, cv2.LINE_AA)
+            cv2.circle(frame, (pusat_x, pusat_y), max(2, radius_simpul - 3), WARNA_PUTIH, -1, cv2.LINE_AA)
 
 
-def draw_tech_box(
+def gambar_kotak_cerdas(
     frame: np.ndarray,
     x: int,
     y: int,
-    w: int,
-    h: int,
-    color: Tuple[int, int, int],
+    lebar: int,
+    tinggi: int,
+    warna: Tuple[int, int, int],
     label: str,
-    conf: float = 0.95,
+    keyakinan: float = 0.95,
     sub_label: Optional[str] = None,
-    hand_box: Optional[Tuple[int, int, int, int]] = None
+    kotak_tangan: Optional[Tuple[int, int, int, int]] = None
 ) -> None:
     """
-    Renders sleek cyberpunk-inspired bounding box with bracketed corners and metric badges.
+    Menggambar kotak pembatas presisi bergaya cyberpunk dengan sudut siku beraksen tebal.
     """
-    corner_len = min(22, w // 4, h // 4)
-    cv2.line(frame, (x, y), (x + corner_len, y), color, 2)
-    cv2.line(frame, (x, y), (x, y + corner_len), color, 2)
-    cv2.line(frame, (x + w, y), (x + w - corner_len, y), color, 2)
-    cv2.line(frame, (x + w, y), (x + w, y + corner_len), color, 2)
-    cv2.line(frame, (x, y + h), (x + corner_len, y + h), color, 2)
-    cv2.line(frame, (x, y + h), (x, y + h - corner_len), color, 2)
-    cv2.line(frame, (x + w, y + h), (x + w - corner_len, y + h), color, 2)
-    cv2.line(frame, (x + w, y + h), (x + w, y + h - corner_len), color, 2)
+    panjang_sudut = min(22, lebar // 4, tinggi // 4)
 
-    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 1, cv2.LINE_AA)
+    # Gambar Aksen 4 Sudut Kotak
+    cv2.line(frame, (x, y), (x + panjang_sudut, y), warna, 2)
+    cv2.line(frame, (x, y), (x, y + panjang_sudut), warna, 2)
+    cv2.line(frame, (x + lebar, y), (x + lebar - panjang_sudut, y), warna, 2)
+    cv2.line(frame, (x + lebar, y), (x + lebar, y + panjang_sudut), warna, 2)
+    cv2.line(frame, (x, y + tinggi), (x + panjang_sudut, y + tinggi), warna, 2)
+    cv2.line(frame, (x, y + tinggi), (x, y + tinggi - panjang_sudut), warna, 2)
+    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar - panjang_sudut, y + tinggi), warna, 2)
+    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar, y + tinggi - panjang_sudut), warna, 2)
 
-    tag = f"{label} {int(conf * 100)}%"
-    (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
-    badge_y = max(0, y - th - 8)
-    cv2.rectangle(frame, (x, badge_y), (x + tw + 12, y), COLOR_DARK, -1)
-    cv2.rectangle(frame, (x, badge_y), (x + tw + 12, y), color, 1)
-    cv2.putText(frame, tag, (x + 6, y - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.42, COLOR_WHITE, 1, cv2.LINE_AA)
+    cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 1, cv2.LINE_AA)
 
+    # Lencana Label & Persentase Keyakinan
+    teks_lencana = f"{label} {int(keyakinan * 100)}%"
+    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_lencana, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
+    posisi_y_lencana = max(0, y - tinggi_teks - 8)
+    cv2.rectangle(frame, (x, posisi_y_lencana), (x + lebar_teks + 12, y), WARNA_GELAP, -1)
+    cv2.rectangle(frame, (x, posisi_y_lencana), (x + lebar_teks + 12, y), warna, 1)
+    cv2.putText(frame, teks_lencana, (x + 6, y - 5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.42, WARNA_PUTIH, 1, cv2.LINE_AA)
+
+    # Sub-lencana Detail (Postur, Tatapan, Atensi)
     if sub_label:
-        (stw, sth), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.36, 1)
-        sub_y1 = y + h
-        sub_y2 = sub_y1 + sth + 8
+        (lebar_sub, tinggi_sub), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.36, 1)
+        sub_y1 = y + tinggi
+        sub_y2 = sub_y1 + tinggi_sub + 8
         if sub_y2 < frame.shape[0]:
-            cv2.rectangle(frame, (x, sub_y1), (x + stw + 10, sub_y2), (25, 27, 32), -1)
-            cv2.rectangle(frame, (x, sub_y1), (x + stw + 10, sub_y2), (60, 64, 72), 1)
+            cv2.rectangle(frame, (x, sub_y1), (x + lebar_sub + 10, sub_y2), (25, 27, 32), -1)
+            cv2.rectangle(frame, (x, sub_y1), (x + lebar_sub + 10, sub_y2), (60, 64, 72), 1)
             cv2.putText(frame, sub_label, (x + 5, sub_y2 - 4),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 215, 225), 1, cv2.LINE_AA)
 
-    if hand_box is not None:
-        hx, hy, hw_box, hh_box = hand_box
-        cv2.rectangle(frame, (hx, hy), (hx + hw_box, hy + hh_box), COLOR_AMBER, 2, cv2.LINE_AA)
-        cv2.putText(frame, "HAND [ANGKAT]", (hx, max(12, hy - 4)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, COLOR_AMBER, 1, cv2.LINE_AA)
+    # Sorotan Kotak Tangan Mengangkat
+    if kotak_tangan is not None:
+        tx, ty, tw, th = kotak_tangan
+        cv2.rectangle(frame, (tx, ty), (tx + tw, ty + th), WARNA_AMBER, 2, cv2.LINE_AA)
+        cv2.putText(frame, "HAND [ANGKAT]", (tx, max(12, ty - 4)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, WARNA_AMBER, 1, cv2.LINE_AA)
 
 
-def draw_hud(
+def gambar_banner_hud(
     frame: np.ndarray,
-    stats: Dict[str, Any],
+    statistik: Dict[str, Any],
     fps: float,
-    session_id: str,
-    sync_status: str,
-    rot_info: str,
-    infer_ms: float = 0.0
+    id_sesi: str,
+    status_sinkronisasi: str,
+    info_rotasi: str,
+    latensi_inferensi_ms: float = 0.0
 ) -> None:
     """
-    Renders top status banner with real-time FPS, latency, headcount, and synchronization indicator.
+    Menggambar bilah status HUD atas dengan indikator operasional real-time.
     """
-    h, w = frame.shape[:2]
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (0, 0), (w, 36), COLOR_DARK, -1)
-    cv2.addWeighted(overlay, 0.78, frame, 0.22, 0, frame)
+    tinggi_frame, lebar_frame = frame.shape[:2]
+    lapisan_transparan = frame.copy()
+    cv2.rectangle(lapisan_transparan, (0, 0), (lebar_frame, 36), WARNA_GELAP, -1)
+    cv2.addWeighted(lapisan_transparan, 0.78, frame, 0.22, 0, frame)
 
-    cv2.circle(frame, (16, 18), 5, COLOR_EMERALD, -1)
-    cv2.putText(frame, "AI CLASSROOM v4.0 (YOLO26 + MediaPipe Heavy + ArcFace)", (28, 22),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.44, COLOR_WHITE, 1, cv2.LINE_AA)
+    # Indikator Status Aktif
+    cv2.circle(frame, (16, 18), 5, WARNA_EMERALD, -1)
+    cv2.putText(frame, "AI CLASSROOM v4.1 (YOLO26 + MediaPipe Heavy + ArcFace)", (28, 22),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.44, WARNA_PUTIH, 1, cv2.LINE_AA)
 
-    detected = stats.get("total", 0)
-    info = f"{fps:.1f} FPS ({infer_ms:.0f}ms) | {detected} Subjek | Rot: {rot_info} | Sync: {sync_status}"
-    (iw, _), _ = cv2.getTextSize(info, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
-    cv2.putText(frame, info, (max(10, w - iw - 16), 22),
+    jumlah_subjek = statistik.get("total", 0)
+    info_telemetri = f"{fps:.1f} FPS ({latensi_inferensi_ms:.0f}ms) | {jumlah_subjek} Subjek | Rot: {info_rotasi} | Sync: {status_sinkronisasi}"
+    (lebar_info, _), _ = cv2.getTextSize(info_telemetri, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
+    cv2.putText(frame, info_telemetri, (max(10, lebar_frame - lebar_info - 16), 22),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 225, 185), 1, cv2.LINE_AA)
+
+
+# Alias kompatibilitas bahasa Inggris
+apply_orientation = terapkan_orientasi
+draw_neon_skeleton = gambar_kerangka_neon
+draw_tech_box = gambar_kotak_cerdas
+draw_hud = gambar_banner_hud

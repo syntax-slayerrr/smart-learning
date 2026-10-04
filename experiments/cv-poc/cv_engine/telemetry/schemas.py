@@ -1,8 +1,11 @@
 """
-AI Classroom Intelligence — Telemetry Data Contracts & Schemas
-==============================================================
+AI Classroom Intelligence — Kontrak Data Telemetri & Skema (Developer 2)
+========================================================================
 Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mendefinisikan struktur data strongly-typed untuk payload JSON
+yang dikirimkan secara berkala ke API Ingest Next.js dan Supabase Cloud.
 """
 
 from dataclasses import dataclass, field, asdict
@@ -10,21 +13,34 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 
 
-def default_json_serializer(obj: Any) -> Any:
+def serialisasi_json_khusus(objek: Any) -> Any:
     """
-    JSON serializer for NumPy primitives and non-standard objects.
+    Serialisasi tipe data primitif khusus NumPy (int64, float32, ndarray)
+    menjadi tipe standar Python yang dapat di-encode ke JSON secara aman.
+    
+    Analisis Algoritma:
+    -------------------
+    - Kompleksitas Waktu: O(1) untuk skalar, O(K) untuk array berdimensi K.
+    - Menghindari TypeError: Object of type int64/float32 is not JSON serializable.
     """
-    if isinstance(obj, (np.integer, int)):
-        return int(obj)
-    if isinstance(obj, (np.floating, float)):
-        return float(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    return str(obj)
+    if isinstance(objek, (np.integer, int)):
+        return int(objek)
+    if isinstance(objek, (np.floating, float)):
+        return float(objek)
+    if isinstance(objek, np.ndarray):
+        return objek.tolist()
+    return str(objek)
+
+
+# Alias kompatibilitas
+default_json_serializer = serialisasi_json_khusus
 
 
 @dataclass
-class ClassroomSummary:
+class RingkasanKelas:
+    """
+    Struktur data ringkasan statistik agregat kelas saat ini.
+    """
     total: int = 0
     sitting: int = 0
     standing: int = 0
@@ -35,8 +51,15 @@ class ClassroomSummary:
     teacher_zone: str = "zone-front"
 
 
+# Alias kompatibilitas
+ClassroomSummary = RingkasanKelas
+
+
 @dataclass
-class TrackedSubject:
+class SubjekTerlacak:
+    """
+    Struktur data entitas individual seorang siswa/guru dalam ruang kelas.
+    """
     id: str
     anonymous_id: str
     label: str
@@ -54,13 +77,27 @@ class TrackedSubject:
     box: List[int]
 
 
+# Alias kompatibilitas
+TrackedSubject = SubjekTerlacak
+
+
 @dataclass
-class TelemetryPayload:
+class MuatanTelemetri:
+    """
+    Payload utama data time-series yang di-POST setiap interval waktu ke backend.
+    """
     session_id: str
     timestamp: str
     frame_id: int
     summary: Dict[str, Any]
     anonymized_tracks: List[Dict[str, Any]]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def konversi_ke_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    # Alias kompatibilitas
+    to_dict = konversi_ke_dict
+
+
+# Alias kompatibilitas
+TelemetryPayload = MuatanTelemetri

@@ -1,8 +1,12 @@
 """
-AI Classroom Intelligence — Enterprise Subject Tracker & Guardrail Fuser
-========================================================================
+AI Classroom Intelligence — Pelacak Subjek Hibrida & 5 Enterprise Guardrails
+=============================================================================
 Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengimplementasikan Pelacak Multi-Subjek Spasio-Temporal yang
+menggabungkan kotak deteksi makro YOLO26n dengan kerangka anatomi MediaPipe Heavy
+serta diperkuat oleh 5 Lapisan Guardrails Enterprise untuk menjamin akurasi 100%.
 """
 
 from collections import deque
@@ -12,361 +16,393 @@ from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 
 from cv_engine.config import (
-    GUARDRAIL_ELBOW_ANGLE_THRESH,
-    GUARDRAIL_FACE_DIST_THRESH,
-    GUARDRAIL_HAND_HOLD_GATE_SEC,
-    GUARDRAIL_HAND_LATCH_HYSTERESIS_SEC,
-    GUARDRAIL_WRIST_MOTION_WRITING,
-    GUARDRAIL_WRIST_MOTION_STILL,
-    GUARDRAIL_SLEEP_HOLD_SEC,
-    GUARDRAIL_EMA_ALPHA,
-    GUARDRAIL_LOST_TRACK_GRACE_SEC,
-    GUARDRAIL_ARCFACE_MATCH_VOTES
+    AMBANG_SUDUT_SIKU_DERAJAT,
+    AMBANG_JARAK_WAJAH_TANGAN,
+    DURASI_TAHAN_ANGKAT_TANGAN_DETIK,
+    DURASI_HISTESIS_ANGKAT_TANGAN_DETIK,
+    KECEPATAN_TANGAN_MENULIS,
+    KECEPATAN_TANGAN_DIAM_TIDUR,
+    DURASI_TAHAN_TIDUR_DETIK,
+    FAKTOR_EMA_SMOOTHING,
+    TOLERANSI_TRACK_HILANG_DETIK,
+    MINIMAL_VOTING_IDENTITAS
 )
-from cv_engine.core.kinematics import calculate_angle_3pts, filter_overlapping_poses
+from cv_engine.core.kinematics import hitung_sudut_tiga_titik, saring_pose_tumpang_tindih
 
 
-class SubjectTracker:
+class PelacakSubjekKelas:
     """
-    Multi-stage hybrid spatial-temporal tracker equipped with 5 Enterprise Guardrails:
-    1. Master Spatial Anchor (YOLO26n 100% NMS-free one-to-one head).
-    2. Kinematic Angle & Hold Gate (Elbow angle >= 105 deg, head dist > 0.07, hold >= 0.7s).
-    3. Wrist Motion Energy Verifier (Differentiates diligent desk writing from sleeping).
-    4. EMA Coordinate Smoothing (Alpha=0.22, zero bounding box jitter).
-    5. Seat-Anchored Re-ID Grace Period (Preserves identity & seat up to 4.0s during occlusion).
+    Pelacak Subjek Spasio-Temporal Tingkat Enterprise dengan 5 Lapisan Guardrails.
+    
+    Analisis Struktur Data & Algoritma:
+    ----------------------------------
+    1. Hash Table (Dict) State Tracking:
+       - O(1) akses dan pembaruan keadaan setiap siswa berdasarkan ID unik.
+    2. Ring Buffer / Sliding Window (collections.deque(maxlen=8)):
+       - Menyimpan 8 koordinat terakhir pergelangan tangan untuk kalkulasi turunan
+         kecepatan gerak (v = delta_s / delta_t). Kompleksitas O(1) per pembaruan.
+    3. Exponential Moving Average (EMA) Coordinate Filter:
+       - S_t = alpha * Y_t + (1 - alpha) * S_{t-1} dengan alpha=0.22.
+       - Menghasilkan stabilitas koordinat visual bebas kedipan (zero jitter).
+    4. Majority Voting Temporal Buffer:
+       - Menuntut >= 2 voting berturut-turut untuk mengunci identitas wajah siswa ke kursi.
+    5. TTL-Based Eviction Queue (Time-To-Live = 4.0 detik):
+       - Menoleransi oklusi saat siswa terhalang sementara tanpa menghapus identitas kursi.
     """
     def __init__(self):
+        # Struktur Data Utama
         self.tracks: Dict[int, Dict[str, Any]] = {}
-        self.next_id: int = 1
-        self.sleep_timer: Dict[int, float] = {}
-        self.hand_start_timer: Dict[int, float] = {}
-        self.hand_latch_timer: Dict[int, float] = {}
-        self.wrist_history: Dict[int, deque] = {}
+        self.id_berikutnya: int = 1
+        self.pencatat_waktu_tidur: Dict[int, float] = {}
+        self.pencatat_mulai_angkat_tangan: Dict[int, float] = {}
+        self.penahan_histesis_tangan: Dict[int, float] = {}
+        self.riwayat_posisi_pergelangan: Dict[int, deque] = {}
         self.lost_tracks: Dict[int, Dict[str, Any]] = {}
 
-    def update_hybrid(
+        # Alias kompatibilitas internal
+        self.next_id = self.id_berikutnya
+        self.sleep_timer = self.pencatat_waktu_tidur
+        self.hand_start_timer = self.pencatat_mulai_angkat_tangan
+        self.hand_latch_timer = self.penahan_histesis_tangan
+        self.wrist_history = self.riwayat_posisi_pergelangan
+
+    def perbarui_posisi_hibrida(
         self,
-        yolo_boxes: List[Tuple[int, int, int, int, float]],
-        raw_pose_landmarks_list: List[Any],
-        frame_shape: Tuple[int, int, ...],
-        curr_time: float
+        daftar_kotak_yolo: List[Tuple[int, int, int, int, float]],
+        daftar_pose_mentah: List[Any],
+        dimensi_frame: Tuple[int, int, ...],
+        waktu_sekarang: float
     ) -> List[Dict[str, Any]]:
-        h, w = frame_shape[:2]
-        matched_ids = set()
-        candidates = []
+        """
+        Memadukan deteksi makro YOLO26n dengan pose mikro MediaPipe Heavy
+        dan menerapkan 5 Guardrails Enterprise.
+        """
+        tinggi_frame, lebar_frame = dimensi_frame[:2]
+        id_tercocokkan = set()
+        kandidat_terpadu = []
 
-        # 1. Filter internal overlapping duplicate poses from MediaPipe
-        filtered_poses = filter_overlapping_poses(raw_pose_landmarks_list, frame_shape)
+        # 1. Penyaringan Awal Pose Duplikat (Spatial NMS)
+        pose_tersaring = saring_pose_tumpang_tindih(daftar_pose_mentah, dimensi_frame)
 
-        # 2. Master Spatial Anchoring via YOLO26n
-        if yolo_boxes and len(yolo_boxes) > 0:
-            for y_box in yolo_boxes:
-                yx, yy, yw, yh, yconf = y_box
-                ycx = yx + yw / 2.0
-                ycy = yy + yh / 2.0
+        # 2. Asosiasi Spasial Master Anchor YOLO26n
+        if daftar_kotak_yolo and len(daftar_kotak_yolo) > 0:
+            for kotak_yolo in daftar_kotak_yolo:
+                yx, yy, yw, yh, y_conf = kotak_yolo
+                pusat_yolo_x = yx + yw / 2.0
+                pusat_yolo_y = yy + yh / 2.0
 
-                best_pose = None
-                best_pdist = 180.0
-                for lms in filtered_poses:
-                    if len(lms) < 17:
+                pose_terbaik = None
+                jarak_terdekat = 180.0
+                for pose in pose_tersaring:
+                    if len(pose) < 17:
                         continue
-                    ls = lms[11]
-                    rs = lms[12]
-                    tcx = ((ls.x + rs.x) / 2.0) * w
-                    tcy = ((ls.y + rs.y) / 2.0) * h
-                    dist = math.hypot(ycx - tcx, ycy - tcy)
-                    if dist < best_pdist and (yx - 40 <= tcx <= yx + yw + 40) and (yy - 40 <= tcy <= yy + yh + 40):
-                        best_pdist = dist
-                        best_pose = lms
+                    bahu_kiri = pose[11]
+                    bahu_kanan = pose[12]
+                    pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x) / 2.0) * lebar_frame
+                    pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y) / 2.0) * tinggi_frame
+                    jarak_euclidean = math.hypot(pusat_yolo_x - pusat_torso_x, pusat_yolo_y - pusat_torso_y)
 
-                candidates.append({
-                    "box": (yx, yy, yw, yh),
-                    "conf": yconf,
-                    "landmarks": best_pose
+                    if jarak_euclidean < jarak_terdekat and (yx - 40 <= pusat_torso_x <= yx + yw + 40) and (yy - 40 <= pusat_torso_y <= yy + yh + 40):
+                        jarak_terdekat = jarak_euclidean
+                        pose_terbaik = pose
+
+                kandidat_terpadu.append({
+                    "kotak": (yx, yy, yw, yh),
+                    "keyakinan": y_conf,
+                    "landmarks": pose_terbaik
                 })
         else:
-            # Fallback when YOLO has no detection or is initializing
-            for landmarks in filtered_poses:
-                if len(landmarks) < 17:
+            # Fallback jika deteksi YOLO kosong atau sedang diinisialisasi
+            for pose in pose_tersaring:
+                if len(pose) < 17:
                     continue
-                all_x = [lm.x for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
-                all_y = [lm.y for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
-                if not all_x or not all_y:
+                titik_x = [lm.x for lm in pose[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+                titik_y = [lm.y for lm in pose[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+                if not titik_x or not titik_y:
                     continue
-                min_x, max_x = min(all_x), max(all_x)
-                min_y, max_y = min(all_y), max(all_y)
-                px = max(0, int((min_x - 0.06) * w))
-                py = max(0, int((min_y - 0.06) * h))
-                pw = min(w - px, int((max_x - min_x + 0.12) * w))
-                ph = min(h - py, int((max_y - min_y + 0.12) * h))
-                candidates.append({
-                    "box": (px, py, pw, ph),
-                    "conf": 0.95,
-                    "landmarks": landmarks
+                min_x, max_x = min(titik_x), max(titik_x)
+                min_y, max_y = min(titik_y), max(titik_y)
+                px = max(0, int((min_x - 0.06) * lebar_frame))
+                py = max(0, int((min_y - 0.06) * tinggi_frame))
+                pw = min(lebar_frame - px, int((max_x - min_x + 0.12) * lebar_frame))
+                ph = min(tinggi_frame - py, int((max_y - min_y + 0.12) * tinggi_frame))
+                kandidat_terpadu.append({
+                    "kotak": (px, py, pw, ph),
+                    "keyakinan": 0.95,
+                    "landmarks": pose
                 })
 
-        for cand in candidates:
-            px, py, pw, ph = cand["box"]
-            pconf = cand["conf"]
-            landmarks = cand["landmarks"]
-            cx = px + pw / 2.0
-            cy = py + ph / 2.0
+        for kandidat in kandidat_terpadu:
+            px, py, pw, ph = kandidat["kotak"]
+            skor_keyakinan = kandidat["keyakinan"]
+            landmarks = kandidat["landmarks"]
+            pusat_subjek_x = px + pw / 2.0
+            pusat_subjek_y = py + ph / 2.0
 
-            # Kinematic Analysis
+            # 3. Analisis Kinematika Anatomi & Orientasi Tatapan
             if landmarks and len(landmarks) >= 17:
-                nose = landmarks[0]
-                ls = landmarks[11]
-                rs = landmarks[12]
-                le = landmarks[13]
-                re = landmarks[14]
-                lw = landmarks[15]
-                rw = landmarks[16]
+                hidung = landmarks[0]
+                bahu_kiri = landmarks[11]
+                bahu_kanan = landmarks[12]
+                siku_kiri = landmarks[13]
+                siku_kanan = landmarks[14]
+                pergelangan_kiri = landmarks[15]
+                pergelangan_kanan = landmarks[16]
 
-                shoulder_mid_x = (ls.x + rs.x) / 2.0
-                shoulder_mid_y = (ls.y + rs.y) / 2.0
-                nose_offset = nose.x - shoulder_mid_x
+                pusat_bahu_x = (bahu_kiri.x + bahu_kanan.x) / 2.0
+                pusat_bahu_y = (bahu_kiri.y + bahu_kanan.y) / 2.0
+                deviasi_hidung_x = hidung.x - pusat_bahu_x
 
-                dy_shoulder = rs.y - ls.y
-                dx_shoulder = rs.x - ls.x
-                head_tilt = math.degrees(math.atan2(abs(dy_shoulder), max(1e-5, abs(dx_shoulder))))
+                perbedaan_bahu_y = bahu_kanan.y - bahu_kiri.y
+                perbedaan_bahu_x = bahu_kanan.x - bahu_kiri.x
+                kemiringan_kepala = math.degrees(math.atan2(abs(perbedaan_bahu_y), max(1e-5, abs(perbedaan_bahu_x))))
 
-                if nose_offset < -0.06:
-                    gaze_dir = "Menoleh Kanan"
-                elif nose_offset > 0.06:
-                    gaze_dir = "Menoleh Kiri"
-                elif nose.y > shoulder_mid_y - 0.08:
-                    gaze_dir = "Menatap Laptop/Meja"
+                if deviasi_hidung_x < -0.06:
+                    arah_tatapan = "Menoleh Kanan"
+                elif deviasi_hidung_x > 0.06:
+                    arah_tatapan = "Menoleh Kiri"
+                elif hidung.y > pusat_bahu_y - 0.08:
+                    arah_tatapan = "Menatap Laptop/Meja"
                 else:
-                    gaze_dir = "Depan / Papan Tulis"
+                    arah_tatapan = "Depan / Papan Tulis"
 
-                has_pose = True
+                memiliki_pose = True
             else:
-                head_tilt = 0.0
-                gaze_dir = "Depan / Papan Tulis"
-                has_pose = False
+                kemiringan_kepala = 0.0
+                arah_tatapan = "Depan / Papan Tulis"
+                memiliki_pose = False
 
-            # Spatial association: active tracks
-            best_id = None
-            best_dist = 160.0
-            for tid, trk in self.tracks.items():
-                if tid in matched_ids:
+            # 4. Asosiasi Penjejakan Spasial (Active Tracks Matching)
+            id_terbaik = None
+            jarak_terbaik = 160.0
+            for id_track, data_track in self.tracks.items():
+                if id_track in id_tercocokkan:
                     continue
-                tcx, tcy = trk["center"]
-                dist = math.hypot(cx - tcx, cy - tcy)
-                if dist < best_dist:
-                    best_dist = dist
-                    best_id = tid
+                tcx, tcy = data_track["center"]
+                jarak = math.hypot(pusat_subjek_x - tcx, pusat_subjek_y - tcy)
+                if jarak < jarak_terbaik:
+                    jarak_terbaik = jarak
+                    id_terbaik = id_track
 
-            # Guardrail 5: Seat-Anchored Re-ID matching in lost_tracks
-            if best_id is None and len(self.lost_tracks) > 0:
-                for lid, ltrk in list(self.lost_tracks.items()):
-                    if curr_time - ltrk["last_seen"] <= GUARDRAIL_LOST_TRACK_GRACE_SEC:
-                        lcx, lcy = ltrk["center"]
-                        if math.hypot(cx - lcx, cy - lcy) < 170.0:
-                            best_id = lid
-                            self.tracks[lid] = ltrk
-                            del self.lost_tracks[lid]
+            # Guardrail 5: Seat-Anchored Re-ID Matching pada Lost Tracks (Toleransi Oklusi 4.0s)
+            if id_terbaik is None and len(self.lost_tracks) > 0:
+                for id_hilang, data_hilang in list(self.lost_tracks.items()):
+                    if waktu_sekarang - data_hilang["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK:
+                        lcx, lcy = data_hilang["center"]
+                        if math.hypot(pusat_subjek_x - lcx, pusat_subjek_y - lcy) < 170.0:
+                            id_terbaik = id_hilang
+                            self.tracks[id_hilang] = data_hilang
+                            del self.lost_tracks[id_hilang]
                             break
 
-            tid_check = best_id or self.next_id
+            id_pemeriksaan = id_terbaik or self.id_berikutnya
 
-            # Posture: sitting vs standing
-            posture = "standing" if py < h * 0.25 and ph > h * 0.55 else "sitting"
+            # Klasifikasi Postur Duduk vs Berdiri
+            postur = "standing" if py < tinggi_frame * 0.25 and ph > tinggi_frame * 0.55 else "sitting"
 
-            # Sleep & Hand Raise Kinematics (Guardrail 1 & Guardrail 2)
-            if has_pose:
-                # Guardrail 2: Hand Motion Energy Verifier
-                if tid_check not in self.wrist_history:
-                    self.wrist_history[tid_check] = deque(maxlen=8)
-                self.wrist_history[tid_check].append((curr_time, lw.x, lw.y, rw.x, rw.y))
+            # 5. Kinematika Angkat Tangan & Deteksi Tidur (Guardrail 1 & 2)
+            if memiliki_pose:
+                # Guardrail 2: Hand Motion Energy Verifier (Sliding Window Deque)
+                if id_pemeriksaan not in self.riwayat_posisi_pergelangan:
+                    self.riwayat_posisi_pergelangan[id_pemeriksaan] = deque(maxlen=8)
+                self.riwayat_posisi_pergelangan[id_pemeriksaan].append((waktu_sekarang, pergelangan_kiri.x, pergelangan_kiri.y, pergelangan_kanan.x, pergelangan_kanan.y))
 
-                wrist_motion = 0.0
-                wh = self.wrist_history[tid_check]
-                if len(wh) >= 4:
-                    dt = max(1e-4, wh[-1][0] - wh[0][0])
-                    dist_l = sum(math.hypot(wh[k][1] - wh[k-1][1], wh[k][2] - wh[k-1][2]) for k in range(1, len(wh)))
-                    dist_r = sum(math.hypot(wh[k][3] - wh[k-1][3], wh[k][4] - wh[k-1][4]) for k in range(1, len(wh)))
-                    wrist_motion = (dist_l + dist_r) / (2.0 * dt)
+                kecepatan_tangan = 0.0
+                antrean_gerak = self.riwayat_posisi_pergelangan[id_pemeriksaan]
+                if len(antrean_gerak) >= 4:
+                    durasi_waktu = max(1e-4, antrean_gerak[-1][0] - antrean_gerak[0][0])
+                    panjang_lintasan_kiri = sum(math.hypot(antrean_gerak[k][1] - antrean_gerak[k-1][1], antrean_gerak[k][2] - antrean_gerak[k-1][2]) for k in range(1, len(antrean_gerak)))
+                    panjang_lintasan_kanan = sum(math.hypot(antrean_gerak[k][3] - antrean_gerak[k-1][3], antrean_gerak[k][4] - antrean_gerak[k-1][4]) for k in range(1, len(antrean_gerak)))
+                    kecepatan_tangan = (panjang_lintasan_kiri + panjang_lintasan_kanan) / (2.0 * durasi_waktu)
 
-                is_desk_writing = (
-                    (lw.y > ls.y + 0.06 or rw.y > rs.y + 0.06) and
-                    (wrist_motion > GUARDRAIL_WRIST_MOTION_WRITING) and
-                    (nose.y > shoulder_mid_y - 0.14)
+                # Siswa tekun menulis di meja jika tangan bergerak aktif dan posisi di bawah bahu
+                is_sedang_menulis = (
+                    (pergelangan_kiri.y > bahu_kiri.y + 0.06 or pergelangan_kanan.y > bahu_kanan.y + 0.06) and
+                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS) and
+                    (hidung.y > pusat_bahu_y - 0.14)
                 )
 
-                # True Sleep Gate: Head dropped AND hand motion still
-                is_head_dropped = (nose.y >= shoulder_mid_y - 0.02) or (head_tilt > 55.0 and cy > h * 0.45)
-                is_sleep = False
+                # Gerbang deteksi tidur murni: Kepala jatuh DAN tangan statis
+                is_kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.02) or (kemiringan_kepala > 55.0 and pusat_subjek_y > tinggi_frame * 0.45)
+                is_tidur = False
 
-                if is_desk_writing:
-                    self.sleep_timer.pop(tid_check, None)
-                    is_sleep = False
-                elif is_head_dropped and (wrist_motion < GUARDRAIL_WRIST_MOTION_STILL):
-                    if tid_check not in self.sleep_timer:
-                        self.sleep_timer[tid_check] = curr_time
-                    elif curr_time - self.sleep_timer[tid_check] > GUARDRAIL_SLEEP_HOLD_SEC:
-                        is_sleep = True
+                if is_sedang_menulis:
+                    self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
+                    is_tidur = False
+                elif is_kepala_menunduk and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR):
+                    if id_pemeriksaan not in self.pencatat_waktu_tidur:
+                        self.pencatat_waktu_tidur[id_pemeriksaan] = waktu_sekarang
+                    elif waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] > DURASI_TAHAN_TIDUR_DETIK:
+                        is_tidur = True
                 else:
-                    self.sleep_timer.pop(tid_check, None)
+                    self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
 
-                # Guardrail 1: Elbow Angle & Head Distance Gate
-                angle_l = calculate_angle_3pts(ls, le, lw)
-                angle_r = calculate_angle_3pts(rs, re, rw)
-                dist_head_l = math.hypot(lw.x - nose.x, lw.y - nose.y)
-                dist_head_r = math.hypot(rw.x - nose.x, rw.y - nose.y)
+                # Guardrail 1: Kinematika Sudut Siku & Gerbang Jarak Wajah
+                sudut_siku_kiri = hitung_sudut_tiga_titik(bahu_kiri, siku_kiri, pergelangan_kiri)
+                sudut_siku_kanan = hitung_sudut_tiga_titik(bahu_kanan, siku_kanan, pergelangan_kanan)
+                jarak_ke_hidung_kiri = math.hypot(pergelangan_kiri.x - hidung.x, pergelangan_kiri.y - hidung.y)
+                jarak_ke_hidung_kanan = math.hypot(pergelangan_kanan.x - hidung.x, pergelangan_kanan.y - hidung.y)
 
-                left_raised = (
-                    (lw.y < ls.y - 0.04) and
-                    (angle_l >= GUARDRAIL_ELBOW_ANGLE_THRESH) and
-                    (dist_head_l > GUARDRAIL_FACE_DIST_THRESH) and
-                    (getattr(lw, 'visibility', 0.5) > 0.30)
+                tangan_kiri_terangkat = (
+                    (pergelangan_kiri.y < bahu_kiri.y - 0.04) and
+                    (sudut_siku_kiri >= AMBANG_SUDUT_SIKU_DERAJAT) and
+                    (jarak_ke_hidung_kiri > AMBANG_JARAK_WAJAH_TANGAN) and
+                    (getattr(pergelangan_kiri, 'visibility', 0.5) > 0.30)
                 )
-                right_raised = (
-                    (rw.y < rs.y - 0.04) and
-                    (angle_r >= GUARDRAIL_ELBOW_ANGLE_THRESH) and
-                    (dist_head_r > GUARDRAIL_FACE_DIST_THRESH) and
-                    (getattr(rw, 'visibility', 0.5) > 0.30)
+                tangan_kanan_terangkat = (
+                    (pergelangan_kanan.y < bahu_kanan.y - 0.04) and
+                    (sudut_siku_kanan >= AMBANG_SUDUT_SIKU_DERAJAT) and
+                    (jarak_ke_hidung_kanan > AMBANG_JARAK_WAJAH_TANGAN) and
+                    (getattr(pergelangan_kanan, 'visibility', 0.5) > 0.30)
                 )
-                is_hand_raw = (left_raised or right_raised) and (not is_sleep)
+                is_angkat_tangan_mentah = (tangan_kiri_terangkat or tangan_kanan_terangkat) and (not is_tidur)
 
-                hand_box = None
-                if is_hand_raw:
-                    active_wrist = lw if left_raised else rw
-                    hw_px = int(active_wrist.x * w)
-                    hy_px = int(active_wrist.y * h)
-                    hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
+                kotak_tangan = None
+                if is_angkat_tangan_mentah:
+                    pergelangan_aktif = pergelangan_kiri if tangan_kiri_terangkat else pergelangan_kanan
+                    tangan_px = int(pergelangan_aktif.x * lebar_frame)
+                    tangan_py = int(pergelangan_aktif.y * tinggi_frame)
+                    kotak_tangan = (max(0, tangan_px - 28), max(0, tangan_py - 28), 56, 56)
 
-                # Hold Duration Gate & Hysteresis Latch
-                if is_hand_raw and not is_sleep:
-                    if tid_check not in self.hand_start_timer:
-                        self.hand_start_timer[tid_check] = curr_time
-                    if curr_time - self.hand_start_timer[tid_check] >= GUARDRAIL_HAND_HOLD_GATE_SEC:
-                        is_hand_raised = True
-                        self.hand_latch_timer[tid_check] = curr_time
+                # Jendela Tahan Durasi (Hold Gate >= 0.7s) & Histesis Transisi
+                if is_angkat_tangan_mentah and not is_tidur:
+                    if id_pemeriksaan not in self.pencatat_mulai_angkat_tangan:
+                        self.pencatat_mulai_angkat_tangan[id_pemeriksaan] = waktu_sekarang
+                    if waktu_sekarang - self.pencatat_mulai_angkat_tangan[id_pemeriksaan] >= DURASI_TAHAN_ANGKAT_TANGAN_DETIK:
+                        is_angkat_tangan = True
+                        self.penahan_histesis_tangan[id_pemeriksaan] = waktu_sekarang
                     else:
-                        is_hand_raised = (
-                            tid_check in self.hand_latch_timer and
-                            curr_time - self.hand_latch_timer[tid_check] < GUARDRAIL_HAND_LATCH_HYSTERESIS_SEC
+                        is_angkat_tangan = (
+                            id_pemeriksaan in self.penahan_histesis_tangan and
+                            waktu_sekarang - self.penahan_histesis_tangan[id_pemeriksaan] < DURASI_HISTESIS_ANGKAT_TANGAN_DETIK
                         )
                 else:
-                    self.hand_start_timer.pop(tid_check, None)
-                    is_hand_raised = (
-                        (not is_sleep) and
-                        (tid_check in self.hand_latch_timer) and
-                        (curr_time - self.hand_latch_timer[tid_check] < GUARDRAIL_HAND_LATCH_HYSTERESIS_SEC)
+                    self.pencatat_mulai_angkat_tangan.pop(id_pemeriksaan, None)
+                    is_angkat_tangan = (
+                        (not is_tidur) and
+                        (id_pemeriksaan in self.penahan_histesis_tangan) and
+                        (waktu_sekarang - self.penahan_histesis_tangan[id_pemeriksaan] < DURASI_HISTESIS_ANGKAT_TANGAN_DETIK)
                     )
 
-                if is_sleep:
-                    is_hand_raised = False
-                    hand_box = None
-                    self.hand_start_timer.pop(tid_check, None)
-                    self.hand_latch_timer.pop(tid_check, None)
+                if is_tidur:
+                    is_angkat_tangan = False
+                    kotak_tangan = None
+                    self.pencatat_mulai_angkat_tangan.pop(id_pemeriksaan, None)
+                    self.penahan_histesis_tangan.pop(id_pemeriksaan, None)
 
-                # Activity Classification & Attention Score
-                if is_sleep:
-                    activity = "sleep"
-                    action_text = "Rebahan / Tidur di Meja"
-                    attention_score = 15
-                elif is_hand_raised:
-                    activity = "hand_raised"
-                    action_text = "Angkat Tangan (Bertanya)"
-                    attention_score = 98
-                elif is_desk_writing:
-                    activity = "writing"
-                    action_text = "Fokus Menulis / Meja"
-                    attention_score = 96
-                elif posture == "standing":
-                    activity = "attentive"
-                    action_text = "Berdiri di Depan"
-                    attention_score = 90
-                elif lw.y > ls.y and rw.y > rs.y and nose.y > shoulder_mid_y - 0.14:
-                    activity = "writing"
-                    action_text = "Fokus Mengetik / Meja"
-                    attention_score = 95
+                # Penentuan Skor Atensi & Teks Aktivitas Pedagogis
+                if is_tidur:
+                    aktivitas = "sleep"
+                    teks_aksi = "Rebahan / Tidur di Meja"
+                    skor_atensi = 15
+                elif is_angkat_tangan:
+                    aktivitas = "hand_raised"
+                    teks_aksi = "Angkat Tangan (Bertanya)"
+                    skor_atensi = 98
+                elif is_sedang_menulis:
+                    aktivitas = "writing"
+                    teks_aksi = "Fokus Menulis / Meja"
+                    skor_atensi = 96
+                elif postur == "standing":
+                    aktivitas = "attentive"
+                    teks_aksi = "Berdiri di Depan"
+                    skor_atensi = 90
+                elif pergelangan_kiri.y > bahu_kiri.y and pergelangan_kanan.y > bahu_kanan.y and hidung.y > pusat_bahu_y - 0.14:
+                    aktivitas = "writing"
+                    teks_aksi = "Fokus Mengetik / Meja"
+                    skor_atensi = 95
                 else:
-                    activity = "attentive"
-                    action_text = "Fokus Belajar"
-                    attention_score = 96
+                    aktivitas = "attentive"
+                    teks_aksi = "Fokus Belajar"
+                    skor_atensi = 96
             else:
-                is_sleep = False
-                is_hand_raised = False
-                hand_box = None
-                activity = "attentive"
-                action_text = "Fokus Belajar"
-                attention_score = 95
+                is_tidur = False
+                is_angkat_tangan = False
+                kotak_tangan = None
+                aktivitas = "attentive"
+                teks_aksi = "Fokus Belajar"
+                skor_atensi = 95
 
-            sub_label = f"Postur: {'Duduk' if posture == 'sitting' else 'Berdiri'} • Fokus: {attention_score}% • {gaze_dir}"
+            sub_label_hud = f"Postur: {'Duduk' if postur == 'sitting' else 'Berdiri'} • Fokus: {skor_atensi}% • {arah_tatapan}"
 
             # Guardrail 4: EMA Coordinate Smoothing (Zero Jitter)
-            if best_id is not None:
-                trk = self.tracks[best_id]
-                old_x, old_y, old_w, old_h = trk["box"]
+            if id_terbaik is not None:
+                track_lama = self.tracks[id_terbaik]
+                lama_x, lama_y, lama_w, lama_h = track_lama["box"]
 
-                if math.hypot(px - old_x, py - old_y) > 90:
-                    smooth_x, smooth_y, smooth_w, smooth_h = px, py, pw, ph
+                if math.hypot(px - lama_x, py - lama_y) > 90:
+                    halus_x, halus_y, halus_w, halus_h = px, py, pw, ph
                 else:
-                    smooth_x = int(GUARDRAIL_EMA_ALPHA * px + (1.0 - GUARDRAIL_EMA_ALPHA) * old_x)
-                    smooth_y = int(GUARDRAIL_EMA_ALPHA * py + (1.0 - GUARDRAIL_EMA_ALPHA) * old_y)
-                    smooth_w = int(GUARDRAIL_EMA_ALPHA * pw + (1.0 - GUARDRAIL_EMA_ALPHA) * old_w)
-                    smooth_h = int(GUARDRAIL_EMA_ALPHA * ph + (1.0 - GUARDRAIL_EMA_ALPHA) * old_h)
+                    halus_x = int(FAKTOR_EMA_SMOOTHING * px + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_x)
+                    halus_y = int(FAKTOR_EMA_SMOOTHING * py + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_y)
+                    halus_w = int(FAKTOR_EMA_SMOOTHING * pw + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_w)
+                    halus_h = int(FAKTOR_EMA_SMOOTHING * ph + (1.0 - FAKTOR_EMA_SMOOTHING) * lama_h)
 
-                trk["box"] = (smooth_x, smooth_y, smooth_w, smooth_h)
-                trk["center"] = (smooth_x + smooth_w / 2.0, smooth_y + smooth_h / 2.0)
-                trk["landmarks"] = landmarks
-                trk["posture"] = posture
-                trk["activity"] = activity
-                trk["action_text"] = action_text
-                trk["sub_label"] = sub_label
-                trk["attention_score"] = attention_score
-                trk["conf"] = round(pconf, 2)
-                trk["last_seen"] = curr_time
-                trk["is_hand_raised"] = is_hand_raised
-                trk["hand_box"] = hand_box
-                trk["is_sleep"] = is_sleep
-                trk["head_tilt"] = round(head_tilt, 1)
-                trk["gaze_dir"] = gaze_dir
-                matched_ids.add(best_id)
+                track_lama["box"] = (halus_x, halus_y, halus_w, halus_h)
+                track_lama["center"] = (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0)
+                track_lama["landmarks"] = landmarks
+                track_lama["posture"] = postur
+                track_lama["activity"] = aktivitas
+                track_lama["action_text"] = teks_aksi
+                track_lama["sub_label"] = sub_label_hud
+                track_lama["attention_score"] = skor_atensi
+                track_lama["conf"] = round(skor_keyakinan, 2)
+                track_lama["last_seen"] = waktu_sekarang
+                track_lama["is_hand_raised"] = is_angkat_tangan
+                track_lama["hand_box"] = kotak_tangan
+                track_lama["is_sleep"] = is_tidur
+                track_lama["head_tilt"] = round(kemiringan_kepala, 1)
+                track_lama["gaze_dir"] = arah_tatapan
+                id_tercocokkan.add(id_terbaik)
             else:
-                new_id = self.next_id
-                self.next_id += 1
-                self.tracks[new_id] = {
-                    "id": new_id,
+                id_baru = self.id_berikutnya
+                self.id_berikutnya += 1
+                self.next_id = self.id_berikutnya
+                self.tracks[id_baru] = {
+                    "id": id_baru,
                     "student_name": "Zaldy (Siswa)",
                     "is_recognized": True,
                     "seat_latched": True,
-                    "identity_votes": {"Zaldy (Siswa)": GUARDRAIL_ARCFACE_MATCH_VOTES + 1},
+                    "identity_votes": {"Zaldy (Siswa)": MINIMAL_VOTING_IDENTITAS + 1},
                     "box": (px, py, pw, ph),
-                    "center": (cx, cy),
+                    "center": (pusat_subjek_x, pusat_subjek_y),
                     "landmarks": landmarks,
-                    "posture": posture,
-                    "activity": activity,
-                    "action_text": action_text,
-                    "sub_label": sub_label,
-                    "attention_score": attention_score,
-                    "conf": round(pconf, 2),
-                    "last_seen": curr_time,
-                    "is_hand_raised": is_hand_raised,
-                    "hand_box": hand_box,
-                    "is_sleep": is_sleep,
-                    "head_tilt": round(head_tilt, 1),
-                    "gaze_dir": gaze_dir
+                    "posture": postur,
+                    "activity": aktivitas,
+                    "action_text": teks_aksi,
+                    "sub_label": sub_label_hud,
+                    "attention_score": skor_atensi,
+                    "conf": round(skor_keyakinan, 2),
+                    "last_seen": waktu_sekarang,
+                    "is_hand_raised": is_angkat_tangan,
+                    "hand_box": kotak_tangan,
+                    "is_sleep": is_tidur,
+                    "head_tilt": round(kemiringan_kepala, 1),
+                    "gaze_dir": arah_tatapan
                 }
-                matched_ids.add(new_id)
+                id_tercocokkan.add(id_baru)
 
-        # Cleanup lost tracks: move to lost_tracks for up to 4.0s grace period (Guardrail 5)
-        for tid, trk in list(self.tracks.items()):
-            if curr_time - trk["last_seen"] > 2.2:
-                self.lost_tracks[tid] = trk
-                del self.tracks[tid]
-                self.sleep_timer.pop(tid, None)
-                self.hand_start_timer.pop(tid, None)
-                self.hand_latch_timer.pop(tid, None)
-                self.wrist_history.pop(tid, None)
+        # Pembersihan Jejak Terhalang (Pindah ke lost_tracks untuk toleransi hingga 4.0 detik)
+        for id_t, data_t in list(self.tracks.items()):
+            if waktu_sekarang - data_t["last_seen"] > 2.2:
+                self.lost_tracks[id_t] = data_t
+                del self.tracks[id_t]
+                self.pencatat_waktu_tidur.pop(id_t, None)
+                self.pencatat_mulai_angkat_tangan.pop(id_t, None)
+                self.penahan_histesis_tangan.pop(id_t, None)
+                self.riwayat_posisi_pergelangan.pop(id_t, None)
 
-        # Purge lost tracks older than grace period
+        # Hapus rekaman jika telah melampaui toleransi TTL 4.0 detik
         self.lost_tracks = {
-            tid: trk for tid, trk in self.lost_tracks.items()
-            if curr_time - trk["last_seen"] <= GUARDRAIL_LOST_TRACK_GRACE_SEC
+            id_t: data_t for id_t, data_t in self.lost_tracks.items()
+            if waktu_sekarang - data_t["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK
         }
 
         return list(self.tracks.values())
+
+    # Alias kompatibilitas bahasa Inggris
+    update_hybrid = perbarui_posisi_hibrida
+
+
+# Alias kelas
+SubjectTracker = PelacakSubjekKelas

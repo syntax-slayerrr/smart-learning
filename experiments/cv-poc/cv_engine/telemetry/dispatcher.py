@@ -1,8 +1,12 @@
 """
-AI Classroom Intelligence — Asynchronous Telemetry Dispatcher
-=============================================================
+AI Classroom Intelligence — Pengirim Telemetri Asinkronus (Producer-Consumer)
+=============================================================================
 Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengimplementasikan pola Producer-Consumer menggunakan antrean
+terbatas (Bounded Blocking Queue) untuk mendistribusikan data telemetri ke
+endpoint lokal Next.js dan Supabase Cloud tanpa menghentikan streaming video.
 """
 
 import json
@@ -13,78 +17,116 @@ import urllib.request
 import urllib.error
 from typing import List, Dict, Any, Optional
 
-from cv_engine.telemetry.schemas import default_json_serializer
+from cv_engine.telemetry.schemas import serialisasi_json_khusus
 
 
-class TelemetryDispatcher:
+class PengirimTelemetriAsinkron:
     """
-    Non-blocking asynchronous telemetry queue and HTTP dispatcher.
-    Synchronizes edge classroom intelligence to both local Next.js backend and cloud endpoints.
+    Pekerja Antrean Pengiriman Telemetri Non-Blocking (Producer-Consumer Pattern).
+    
+    Analisis Struktur Data & Algoritma:
+    ----------------------------------
+    - Struktur Data: Bounded FIFO Queue (queue.Queue(maxsize=100)) yang aman antar-utas (thread-safe).
+    - Mekanisme Batas Antrean: Mencegah penumpukan memori tak terbatas (Memory Leak / Out-Of-Memory)
+      apabila jaringan internet atau server backend sedang mengalami gangguan / offline.
+    - Algoritma Pengiriman: HTTP POST Dual Dispatch (sinkronisasi simultan ke Next.js lokal
+      dan Vercel/Supabase Cloud).
+    - Kompleksitas Waktu: O(1) untuk operasi enqueue (memasukkan antrean) dan dequeue (mengambil antrean).
+    - Kompleksitas Ruang: O(B) di mana B=100 slot muatan telemetri (~200 KB RAM).
     """
-    def __init__(self, primary_url: str, cloud_url: str, device_key: str, max_queue: int = 100):
-        self.primary_url = primary_url
-        self.cloud_url = cloud_url
-        self.device_key = device_key
-        self.queue: queue.Queue = queue.Queue(maxsize=max_queue)
-        self.stop_event = threading.Event()
-        self.status_lock = threading.Lock()
-        self.last_sync_status = "Standby"
-        self.worker_thread: Optional[threading.Thread] = None
+    def __init__(self, url_primer: str, url_cloud: str, kunci_perangkat: str, kapasitas_maksimal: int = 100):
+        self.url_primer = url_primer
+        self.url_cloud = url_cloud
+        self.kunci_perangkat = kunci_perangkat
+        self.antrean_paket: queue.Queue = queue.Queue(maxsize=kapasitas_maksimal)
+        self.peristiwa_berhenti = threading.Event()
+        self.kunci_status = threading.Lock()
+        self.status_sinkronisasi_terakhir = "Standby"
+        self.utas_pekerja: Optional[threading.Thread] = None
 
-    def start(self) -> "TelemetryDispatcher":
-        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
-        self.worker_thread.start()
-        print(f"[+] Telemetry Dispatcher active! Primary: {self.primary_url}")
+        # Alias kompatibilitas
+        self.primary_url = self.url_primer
+        self.cloud_url = self.url_cloud
+        self.device_key = self.kunci_perangkat
+        self.queue = self.antrean_paket
+        self.stop_event = self.peristiwa_berhenti
+        self.status_lock = self.kunci_status
+        self.last_sync_status = self.status_sinkronisasi_terakhir
+        self.worker_thread = self.utas_pekerja
+
+    def mulai(self) -> "PengirimTelemetriAsinkron":
+        """Memulai utas pekerja di latar belakang (daemon thread)."""
+        self.utas_pekerja = threading.Thread(target=self._lingkaran_kerja_pengiriman, daemon=True)
+        self.worker_thread = self.utas_pekerja
+        self.utas_pekerja.start()
+        print(f"[+] Telemetry Dispatcher Aktif! Endpoint Primer: {self.url_primer}")
         return self
 
-    def stop(self) -> None:
-        self.stop_event.set()
-        if self.worker_thread and self.worker_thread.is_alive():
-            self.worker_thread.join(timeout=1.0)
+    def berhenti(self) -> None:
+        """Menghentikan utas pekerja dengan aman."""
+        self.peristiwa_berhenti.set()
+        if self.utas_pekerja and self.utas_pekerja.is_alive():
+            self.utas_pekerja.join(timeout=1.0)
 
-    def enqueue(self, payload: Dict[str, Any]) -> bool:
-        if not self.queue.full():
-            self.queue.put_nowait(payload)
+    def masukkan_antrean(self, muatan_json: Dict[str, Any]) -> bool:
+        """
+        Memasukkan payload telemetri baru ke dalam antrean (Non-Blocking).
+        Mengembalikan False jika antrean penuh (menghindari penumpukan beban).
+        """
+        if not self.antrean_paket.full():
+            self.antrean_paket.put_nowait(muatan_json)
             return True
         return False
 
-    def get_sync_status(self) -> str:
-        with self.status_lock:
-            return self.last_sync_status
+    def ambil_status_sinkronisasi(self) -> str:
+        with self.kunci_status:
+            return self.status_sinkronisasi_terakhir
 
-    def _worker_loop(self) -> None:
-        target_urls = [self.primary_url]
-        if self.cloud_url and self.cloud_url not in target_urls and "vercel.app" not in self.primary_url:
-            target_urls.append(self.cloud_url)
+    def _lingkaran_kerja_pengiriman(self) -> None:
+        daftar_target_url = [self.url_primer]
+        if self.url_cloud and self.url_cloud not in daftar_target_url and "vercel.app" not in self.url_primer:
+            daftar_target_url.append(self.url_cloud)
 
-        while not self.stop_event.is_set():
+        while not self.peristiwa_berhenti.is_set():
             try:
-                payload = self.queue.get(timeout=0.5)
+                muatan = self.antrean_paket.get(timeout=0.5)
             except queue.Empty:
                 continue
 
-            data = json.dumps(payload, default=default_json_serializer).encode("utf-8")
-            statuses = []
+            data_bytes = json.dumps(muatan, default=serialisasi_json_khusus).encode("utf-8")
+            daftar_status = []
 
-            for url in target_urls:
-                tag = "Local" if "127.0.0.1" in url or "localhost" in url else "Cloud"
+            for target_url in daftar_target_url:
+                tag_label = "Lokal" if "127.0.0.1" in target_url or "localhost" in target_url else "Cloud"
                 try:
-                    req = urllib.request.Request(
-                        url,
-                        data=data,
+                    permintaan = urllib.request.Request(
+                        target_url,
+                        data=data_bytes,
                         headers={
                             "Content-Type": "application/json",
-                            "x-edge-device-key": self.device_key
+                            "x-edge-device-key": self.kunci_perangkat
                         }
                     )
-                    with urllib.request.urlopen(req, timeout=2.5) as response:
-                        statuses.append(f"{tag}:{response.status}")
-                except urllib.error.HTTPError as e:
-                    statuses.append(f"{tag}:{e.code}")
+                    with urllib.request.urlopen(permintaan, timeout=2.5) as respon:
+                        daftar_status.append(f"{tag_label}:{respon.status}")
+                except urllib.error.HTTPError as error_http:
+                    daftar_status.append(f"{tag_label}:{error_http.code}")
                 except Exception:
-                    statuses.append(f"{tag}:off")
+                    daftar_status.append(f"{tag_label}:off")
 
-            with self.status_lock:
-                self.last_sync_status = " | ".join(statuses) if statuses else "Standby"
+            with self.kunci_status:
+                self.status_sinkronisasi_terakhir = " | ".join(daftar_status) if daftar_status else "Standby"
+                self.last_sync_status = self.status_sinkronisasi_terakhir
 
-            self.queue.task_done()
+            self.antrean_paket.task_done()
+
+    # Alias kompatibilitas bahasa Inggris
+    start = mulai
+    stop = berhenti
+    enqueue = masukkan_antrean
+    get_sync_status = ambil_status_sinkronisasi
+    _worker_loop = _lingkaran_kerja_pengiriman
+
+
+# Alias kelas
+TelemetryDispatcher = PengirimTelemetriAsinkron

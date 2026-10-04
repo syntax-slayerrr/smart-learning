@@ -1,8 +1,14 @@
 """
-AI Classroom Intelligence — Edge MJPEG Streaming & Control Server
-==================================================================
+AI Classroom Intelligence — Server Streaming MJPEG & Pengontrol REST (Developer 3)
+==================================================================================
 Developer 3: Edge Server, Ingestion, Streaming & Live HUD UI Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengimplementasikan server HTTP multi-utas berbasis ThreadingHTTPServer:
+1. Endpoint video real-time /video_feed (MJPEG 40-45 FPS).
+2. Endpoint pemantauan kesehatan & performa /status.
+3. Endpoint kontrol dinamis /rotate (rotasi kamera tanpa restart).
+4. Endpoint pendaftaran biometrik /register_face dan galeri /gallery.
 """
 
 from datetime import datetime, timezone
@@ -13,50 +19,88 @@ import time
 import urllib.parse
 from typing import Optional, Callable, Dict, Any, Tuple
 
-from cv_engine.telemetry.gallery import FaceGalleryManager
+from cv_engine.telemetry.gallery import ManajerGaleriWajah
 
 
-class StreamServerState:
+class StatusServerStreaming:
     """
-    Shared thread-safe state container for the Edge MJPEG & Control Server.
+    Wadah Status Bersama (Shared State) yang Aman Antar-Utas untuk Server Streaming.
+    
+    Analisis Struktur Data & Algoritma:
+    ----------------------------------
+    - Struktur Data: Buffer Byte Matriks JPEG terkini yang dilindungi threading.Lock().
+    - Model Konkurensi: Thread-Per-Connection (Multi-Klien Simultan). Setiap klien
+      browser dashboard yang membuka /video_feed dilayani oleh utas independen.
+    - Kompleksitas Waktu: O(1) untuk pembaruan frame pointer dan pembacaan frame.
+    - Kompleksitas Ruang: O(1) buffer JPEG terkompresi (~80-120 KB per frame).
     """
-    def __init__(self, gallery_manager: FaceGalleryManager, sync_status_fn: Callable[[], str]):
-        self.gallery_manager = gallery_manager
-        self.sync_status_fn = sync_status_fn
-        self.latest_frame_jpeg: Optional[bytes] = None
-        self.frame_lock = threading.Lock()
-        self.stop_event = threading.Event()
+    def __init__(self, manajer_galeri: ManajerGaleriWajah, fungsi_status_sinkronisasi: Callable[[], str]):
+        self.manajer_galeri = manajer_galeri
+        self.fungsi_status_sinkronisasi = fungsi_status_sinkronisasi
+        self.bingkai_jpeg_terakhir: Optional[bytes] = None
+        self.kunci_bingkai = threading.Lock()
+        self.peristiwa_berhenti = threading.Event()
 
-        self.rotation: str = "auto"
-        self.flip_h: bool = False
-        self.rotation_lock = threading.Lock()
+        self.rotasi: str = "auto"
+        self.cermin_h: bool = False
+        self.kunci_rotasi = threading.Lock()
 
-    def update_frame(self, jpeg_bytes: bytes) -> None:
-        with self.frame_lock:
-            self.latest_frame_jpeg = jpeg_bytes
+        # Alias kompatibilitas bahasa Inggris
+        self.gallery_manager = self.manajer_galeri
+        self.sync_status_fn = self.fungsi_status_sinkronisasi
+        self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
+        self.frame_lock = self.kunci_bingkai
+        self.stop_event = self.peristiwa_berhenti
+        self.rotation = self.rotasi
+        self.flip_h = self.cermin_h
+        self.rotation_lock = self.kunci_rotasi
 
-    def get_frame(self) -> Optional[bytes]:
-        with self.frame_lock:
-            return self.latest_frame_jpeg
+    def perbarui_bingkai(self, data_bytes_jpeg: bytes) -> None:
+        """Memperbarui frame terkini untuk disiarkan ke seluruh klien yang terhubung."""
+        with self.kunci_bingkai:
+            self.bingkai_jpeg_terakhir = data_bytes_jpeg
+            self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
 
-    def set_orientation(self, rotation: Optional[str] = None, flip_h: Optional[bool] = None) -> Tuple[str, bool]:
-        with self.rotation_lock:
-            if rotation in ("0", "90", "180", "270", "auto"):
-                self.rotation = rotation
-            if flip_h is not None:
-                self.flip_h = flip_h
-            return self.rotation, self.flip_h
+    def ambil_bingkai(self) -> Optional[bytes]:
+        """Mengambil salinan frame terkini."""
+        with self.kunci_bingkai:
+            return self.bingkai_jpeg_terakhir
 
-    def get_orientation(self) -> Tuple[str, bool]:
-        with self.rotation_lock:
-            return self.rotation, self.flip_h
+    def atur_orientasi(self, rotasi: Optional[str] = None, cermin_h: Optional[bool] = None) -> Tuple[str, bool]:
+        """Mengubah sudut rotasi atau pencerminan secara dinamis."""
+        with self.kunci_rotasi:
+            if rotasi in ("0", "90", "180", "270", "auto"):
+                self.rotasi = rotasi
+                self.rotation = self.rotasi
+            if cermin_h is not None:
+                self.cermin_h = cermin_h
+                self.flip_h = self.cermin_h
+            return self.rotasi, self.cermin_h
+
+    def ambil_orientasi(self) -> Tuple[str, bool]:
+        with self.kunci_rotasi:
+            return self.rotasi, self.cermin_h
+
+    # Alias kompatibilitas bahasa Inggris
+    update_frame = perbarui_bingkai
+    get_frame = ambil_bingkai
+    set_orientation = atur_orientasi
+    get_orientation = ambil_orientasi
 
 
-class MJPEGStreamHandler(BaseHTTPRequestHandler):
-    state: StreamServerState = None  # Injected before server start
+# Alias kelas
+StreamServerState = StatusServerStreaming
+
+
+class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
+    """
+    Penangan Permintaan HTTP untuk Streaming Video MJPEG dan Endpoint Kontrol REST.
+    """
+    state: StatusServerStreaming = None  # Diinjeksikan saat inisialisasi server
 
     def log_message(self, format, *args):
-        pass  # Suppress noisy HTTP request logging
+        # Meredam logging berlebih pada terminal
+        pass
 
     def do_GET(self):
         state = self.state
@@ -65,108 +109,121 @@ class MJPEGStreamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
-        params = urllib.parse.parse_qs(parsed.query)
+        diurai = urllib.parse.urlparse(self.path)
+        jalur_url = diurai.path
+        parameter = urllib.parse.parse_qs(diurai.query)
 
-        if path == "/status":
+        # 1. Endpoint Status Sistem
+        if jalur_url == "/status":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            rot_val, flip_val = state.get_orientation()
-            sync_val = state.sync_status_fn()
-            payload = {
+            rot_val, cermin_val = state.ambil_orientasi()
+            sinkron_val = state.fungsi_status_sinkronisasi()
+            muatan = {
                 "status": "online",
                 "engine": "SYNTAX_SLAYER_EDUAI_V4_MODULAR",
                 "fps": 45,
                 "rotation": rot_val,
-                "flip_h": flip_val,
-                "cloud_sync": sync_val,
+                "flip_h": cermin_val,
+                "cloud_sync": sinkron_val,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
-            self.wfile.write(json.dumps(payload).encode("utf-8"))
+            self.wfile.write(json.dumps(muatan).encode("utf-8"))
             return
 
-        if path == "/rotate":
+        # 2. Endpoint Kontrol Rotasi Kamera
+        if jalur_url == "/rotate":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            new_deg = params.get("deg", [None])[0]
-            new_flip = params.get("flip", [None])[0]
-            flip_bool = None
-            if new_flip is not None:
-                flip_bool = new_flip in ("1", "true", "True")
+            sudut_baru = parameter.get("deg", [None])[0]
+            cermin_baru = parameter.get("flip", [None])[0]
+            nilai_cermin = None
+            if cermin_baru is not None:
+                nilai_cermin = cermin_baru in ("1", "true", "True")
 
-            rot_ret, flip_ret = state.set_orientation(new_deg, flip_bool)
-            res = {"success": True, "rotation": rot_ret, "flip_h": flip_ret}
-            self.wfile.write(json.dumps(res).encode("utf-8"))
+            rot_ret, cermin_ret = state.atur_orientasi(sudut_baru, nilai_cermin)
+            jawaban = {"success": True, "rotation": rot_ret, "flip_h": cermin_ret}
+            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        if path == "/register_face":
+        # 3. Endpoint Registrasi Wajah Siswa
+        if jalur_url == "/register_face":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            reg_name = params.get("name", ["Zaldy (Siswa)"])[0]
-            state.gallery_manager.trigger_registration(reg_name)
-            res = {"success": True, "message": f"Mendaftarkan profil wajah untuk: {reg_name}"}
-            self.wfile.write(json.dumps(res).encode("utf-8"))
+            nama_siswa = parameter.get("name", ["Zaldy (Siswa)"])[0]
+            state.manajer_galeri.picu_registrasi_wajah(nama_siswa)
+            jawaban = {"success": True, "message": f"Mendaftarkan profil wajah untuk: {nama_siswa}"}
+            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        if path == "/gallery":
+        # 4. Endpoint Galeri Siswa Terdaftar
+        if jalur_url == "/gallery":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            names = state.gallery_manager.get_registered_students()
-            res = {"success": True, "registered_students": names, "total": len(names)}
-            self.wfile.write(json.dumps(res).encode("utf-8"))
+            daftar_nama = state.manajer_galeri.ambil_daftar_siswa_terdaftar()
+            jawaban = {"success": True, "registered_students": daftar_nama, "total": len(daftar_nama)}
+            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        if path in ("/video_feed", "/"):
+        # 5. Endpoint Siaran Video MJPEG (Multipart Mixed Replace)
+        if jalur_url in ("/video_feed", "/"):
             self.send_response(200)
             self.send_header("Content-type", "multipart/x-mixed-replace; boundary=frame")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Cache-Control", "no-cache, private")
             self.end_headers()
 
-            while not state.stop_event.is_set():
-                frame_bytes = state.get_frame()
-                if frame_bytes is not None:
+            while not state.peristiwa_berhenti.is_set():
+                bingkai_bytes = state.ambil_bingkai()
+                if bingkai_bytes is not None:
                     try:
                         self.wfile.write(b"--frame\r\n")
                         self.send_header("Content-type", "image/jpeg")
-                        self.send_header("Content-length", str(len(frame_bytes)))
+                        self.send_header("Content-length", str(len(bingkai_bytes)))
                         self.end_headers()
-                        self.wfile.write(frame_bytes)
+                        self.wfile.write(bingkai_bytes)
                         self.wfile.write(b"\r\n")
                     except (BrokenPipeError, ConnectionResetError):
                         break
-                time.sleep(0.025)  # 40 FPS delivery rate
+                time.sleep(0.025)  # Batas laju kirim stabil 40 FPS
             return
 
         self.send_response(404)
         self.end_headers()
 
 
-def start_mjpeg_server(port: int, state: StreamServerState) -> Optional[ThreadingHTTPServer]:
+# Alias kelas
+MJPEGStreamHandler = PengendaliStreamMJPEG
+
+
+def jalankan_server_mjpeg(port: int, state: StatusServerStreaming) -> Optional[ThreadingHTTPServer]:
     """
-    Spawns background HTTP server delivering MJPEG feed and REST control endpoints.
+    Meluncurkan server HTTP streaming MJPEG pada utas terpisah (daemon).
     """
     try:
-        MJPEGStreamHandler.state = state
-        server = ThreadingHTTPServer(("0.0.0.0", port), MJPEGStreamHandler)
+        PengendaliStreamMJPEG.state = state
+        server = ThreadingHTTPServer(("0.0.0.0", port), PengendaliStreamMJPEG)
         server.daemon_threads = True
-        t = threading.Thread(target=server.serve_forever, daemon=True)
-        t.start()
-        print(f"[+] MJPEG Turbo Multi-Client Streamer active: http://localhost:{port}/video_feed")
+        utas = threading.Thread(target=server.serve_forever, daemon=True)
+        utas.start()
+        print(f"[+] Server MJPEG Turbo Aktif: http://localhost:{port}/video_feed")
         return server
     except Exception as e:
-        print(f"[!] Warning: Failed to start MJPEG streamer on port {port}: {e}")
+        print(f"[!] Peringatan: Gagal menjalankan server MJPEG pada port {port}: {e}")
         return None
+
+
+# Alias kompatibilitas
+start_mjpeg_server = jalankan_server_mjpeg

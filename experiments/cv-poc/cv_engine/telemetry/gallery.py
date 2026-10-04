@@ -1,8 +1,11 @@
 """
-AI Classroom Intelligence — Student Face Gallery & Identity Biometrics
-======================================================================
+AI Classroom Intelligence — Manajemen Galeri Wajah & Biometrik Siswa
+====================================================================
 Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
+
+Modul ini mengelola persistensi basis data vektor biometrik wajah siswa
+secara aman (*thread-safe*) dan menjalankan pencarian kemiripan kosinus.
 """
 
 import json
@@ -12,83 +15,128 @@ from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 
 from cv_engine.config import FACE_GALLERY_PATH
-from cv_engine.core.face import ArcFaceEngine
+from cv_engine.core.face import MesinBiometrikArcFace
 
 
-class FaceGalleryManager:
+class ManajerGaleriWajah:
     """
-    Thread-safe student face gallery storage and cosine biometric search.
-    Maps enrolled student names to 512-d (ArcFace) or 128-d (SFace) feature vectors.
+    Pengelola Galeri Biometrik Wajah Siswa Berbasis Thread-Safe Hash Map.
+    
+    Analisis Struktur Data & Algoritma:
+    ----------------------------------
+    - Struktur Data: Hash Map (dict) memetakan Nama_Siswa -> Vektor_Fitur_512d.
+    - Algoritma Pencarian: Linear Scan Cosine Similarity:
+        sim = dot(V_query, V_siswa)
+      Mencari nilai kemiripan tertinggi yang melampaui ambang batas (>= 0.38).
+    - Kompleksitas Waktu: O(S * D) di mana S adalah jumlah siswa terdaftar (S <= 50)
+      dan D=512. Sangat cepat (< 0.2 milidetik pada CPU).
+    - Kompleksitas Ruang: O(S * D) memori JSON ringkas (~100 KB untuk 50 siswa).
+    - Keamanan Utas (Thread Safety): Dilindungi oleh threading.Lock() untuk mencegah
+      kondisi balapan (race condition) saat guru mendaftarkan wajah siswa baru saat streaming aktif.
     """
-    def __init__(self, gallery_file: str = FACE_GALLERY_PATH):
-        self.gallery_file = gallery_file
-        self.gallery: Dict[str, List[float]] = {}
-        self.lock = threading.Lock()
-        self.pending_name: Optional[str] = None
-        self.trigger_event = threading.Event()
-        self.load()
+    def __init__(self, jalur_berkas: str = FACE_GALLERY_PATH):
+        self.jalur_berkas = jalur_berkas
+        self.galeri: Dict[str, List[float]] = {}
+        self.kunci_utas = threading.Lock()
+        self.nama_tertunda: Optional[str] = None
+        self.peristiwa_pemicu = threading.Event()
 
-    def load(self) -> None:
-        if os.path.exists(self.gallery_file):
+        # Alias kompatibilitas
+        self.gallery_file = self.jalur_berkas
+        self.gallery = self.galeri
+        self.lock = self.kunci_utas
+        self.pending_name = self.nama_tertunda
+        self.trigger_event = self.peristiwa_pemicu
+
+        self.muat_basis_data()
+
+    def muat_basis_data(self) -> None:
+        """Memuat berkas galeri wajah JSON dari disk."""
+        if os.path.exists(self.jalur_berkas):
             try:
-                with open(self.gallery_file, "r") as f:
-                    self.gallery = json.load(f)
-                print(f"[+] Face Recognition: Loaded {len(self.gallery)} student profiles from gallery.")
+                with open(self.jalur_berkas, "r") as berkas:
+                    self.galeri = json.load(berkas)
+                    self.gallery = self.galeri
+                print(f"[+] Face Recognition: Berhasil memuat {len(self.galeri)} profil siswa dari galeri!")
             except Exception as e:
-                print(f"[!] Warning: Failed to load face gallery: {e}")
-                self.gallery = {}
+                print(f"[!] Peringatan: Gagal memuat berkas galeri wajah: {e}")
+                self.galeri = {}
+                self.gallery = self.galeri
         else:
-            self.gallery = {}
+            self.galeri = {}
+            self.gallery = self.galeri
 
-    def save(self) -> bool:
+    def simpan_basis_data(self) -> bool:
+        """Menyimpan basis data galeri wajah ke disk dalam format JSON terformat."""
         try:
-            with open(self.gallery_file, "w") as f:
-                json.dump(self.gallery, f, indent=2)
+            with open(self.jalur_berkas, "w") as berkas:
+                json.dump(self.galeri, berkas, indent=2)
             return True
         except Exception as e:
-            print(f"[!] Error saving face gallery: {e}")
+            print(f"[!] Gagal menulis berkas galeri wajah: {e}")
             return False
 
-    def register_face(self, name: str, embedding: Any) -> bool:
-        with self.lock:
-            emb_list = embedding.tolist() if hasattr(embedding, "tolist") else list(embedding)
-            self.gallery[name] = emb_list
-            success = self.save()
-            if success:
-                print(f"[+] Enrolled face biometrics for: {name} (Dim: {len(emb_list)})")
-            return success
+    def daftarkan_wajah(self, nama_siswa: str, vektor_biometrik: Any) -> bool:
+        """
+        Mendaftarkan atau memperbarui vektor fitur biometrik siswa ke galeri.
+        """
+        with self.kunci_utas:
+            daftar_vektor = vektor_biometrik.tolist() if hasattr(vektor_biometrik, "tolist") else list(vektor_biometrik)
+            self.galeri[nama_siswa] = daftar_vektor
+            self.gallery = self.galeri
+            berhasil = self.simpan_basis_data()
+            if berhasil:
+                print(f"[+] Berhasil mendaftarkan biometrik siswa: {nama_siswa} (Dimensi: {len(daftar_vektor)})")
+            return berhasil
 
-    def trigger_registration(self, name: str) -> None:
-        with self.lock:
-            self.pending_name = name
-            self.trigger_event.set()
+    def picu_registrasi_wajah(self, nama_siswa: str) -> None:
+        """Memicu sistem agar pada frame berikutnya wajah yang tampak didaftarkan."""
+        with self.kunci_utas:
+            self.nama_tertunda = nama_siswa
+            self.pending_name = self.nama_tertunda
+            self.peristiwa_pemicu.set()
 
-    def get_pending_name(self) -> Optional[str]:
-        with self.lock:
-            return self.pending_name
+    def ambil_nama_tertunda(self) -> Optional[str]:
+        with self.kunci_utas:
+            return self.nama_tertunda
 
-    def clear_trigger(self) -> None:
-        with self.lock:
+    def bersihkan_pemicu(self) -> None:
+        with self.kunci_utas:
+            self.nama_tertunda = None
             self.pending_name = None
-            self.trigger_event.clear()
+            self.peristiwa_pemicu.clear()
 
-    def find_match(self, query_feat: np.ndarray, thresh: float = 0.38) -> Tuple[Optional[str], float]:
+    def cari_kemiripan_wajah(self, vektor_kueri: np.ndarray, ambang_batas: float = 0.38) -> Tuple[Optional[str], float]:
         """
-        Cosine similarity search against all registered student profiles.
+        Pencarian vektor biometrik terhadap seluruh siswa terdaftar menggunakan Cosine Similarity.
         """
-        best_name = None
-        best_sim = thresh
+        nama_terbaik = None
+        skor_terbaik = ambang_batas
 
-        with self.lock:
-            for sname, g_emb in self.gallery.items():
-                if len(g_emb) == len(query_feat):
-                    sim = ArcFaceEngine.compute_similarity(query_feat, g_emb)
-                    if sim > best_sim:
-                        best_sim = sim
-                        best_name = sname
+        with self.kunci_utas:
+            for nama_siswa, vektor_profil in self.galeri.items():
+                if len(vektor_profil) == len(vektor_kueri):
+                    kemiripan = MesinBiometrikArcFace.hitung_kemiripan_kosinus(vektor_kueri, vektor_profil)
+                    if kemiripan > skor_terbaik:
+                        skor_terbaik = kemiripan
+                        nama_terbaik = nama_siswa
 
-        return best_name, best_sim
+        return nama_terbaik, skor_terbaik
 
-    def get_registered_students(self) -> List[str]:
-        with self.lock:
-            return list(self.gallery.keys())
+    def ambil_daftar_siswa_terdaftar(self) -> List[str]:
+        with self.kunci_utas:
+            return list(self.galeri.keys())
+
+    # Alias kompatibilitas bahasa Inggris
+    load = muat_basis_data
+    save = simpan_basis_data
+    register_face = daftarkan_wajah
+    trigger_registration = picu_registrasi_wajah
+    get_pending_name = ambil_nama_tertunda
+    clear_trigger = bersihkan_pemicu
+    find_match = cari_kemiripan_wajah
+    get_registered_students = ambil_daftar_siswa_terdaftar
+
+
+# Alias kelas
+FaceGalleryManager = ManajerGaleriWajah
