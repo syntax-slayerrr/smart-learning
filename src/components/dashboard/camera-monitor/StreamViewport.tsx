@@ -207,61 +207,30 @@ export function StreamViewport({
             </>
           ) : (
             /* Standby State with Apple Clean Calmness */
-            <div className="w-full h-full p-8 flex flex-col items-center justify-center text-center bg-[#F7F7F5] text-[#1D1D1F] select-none">
-              <div className="h-14 w-14 rounded-2xl bg-white border border-[rgba(60,60,67,0.12)] flex items-center justify-center text-[#8E8E93] mb-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                <Video className="h-7 w-7 text-[#007AFF]" />
+            <div className="w-full h-full p-8 flex flex-col items-center justify-center text-center bg-[#F7F7F5] text-[#1D1D1F] select-none min-h-[20rem]">
+              <div className="h-14 w-14 rounded-2xl bg-white border border-[rgba(60,60,67,0.12)] flex items-center justify-center text-primary mb-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                <Video className="h-7 w-7 text-primary" />
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#8E8E93]/15 text-[#6E6E73] mb-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#8E8E93]" />
-                Standby
+                Kamera Standby
               </div>
 
               <h3 className="text-base font-bold text-[#1D1D1F] mb-0.5">{activeChannel.name}</h3>
-              <p className="text-xs text-[#8E8E93] mb-2">IP Webcam / Network Camera</p>
-
               <p className="text-xs text-[#6E6E73] max-w-sm mb-5 leading-relaxed">
-                Hubungkan kamera untuk memulai visual feed dan deteksi postur kelas secara real-time.
+                Hubungkan kamera HP Android (IP Webcam) atau kamera laptop untuk memantau keterlibatan kelas secara langsung.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full max-w-xs">
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={onOpenModal}
-                  className="w-full min-h-[44px] justify-center shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Hubungkan Kamera
-                </Button>
-              </div>
-
-              {/* Subtle Collapsible CLI Helper */}
-              <div className="mt-4">
                 <button
                   type="button"
-                  onClick={() => setShowCliInstruction(!showCliInstruction)}
-                  className="text-[11px] text-[#8E8E93] hover:text-[#1D1D1F] inline-flex items-center gap-1 transition-colors"
+                  onClick={onOpenModal}
+                  className="apple-press w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-semibold text-white shadow-sm shadow-primary/20 hover:bg-orange-700 transition-colors min-h-[44px] cursor-pointer"
                 >
-                  <Terminal className="h-3 w-3" />
-                  <span>{showCliInstruction ? "Sembunyikan Perintah Edge AI" : "Bantuan Perintah Edge AI"}</span>
+                  <Camera className="h-4 w-4" />
+                  <span>Hubungkan Kamera HP / Laptop</span>
                 </button>
-
-                {showCliInstruction && (
-                  <div className="mt-3 p-3 rounded-xl bg-white border border-[rgba(60,60,67,0.12)] text-left max-w-md w-full shadow-xs">
-                    <p className="text-[11px] text-[#6E6E73] mb-1.5 font-medium">Jalankan di terminal lokal:</p>
-                    <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-[#F7F7F5] font-mono text-[10px] text-[#1D1D1F]">
-                      <span className="truncate">python3 experiments/cv-poc/classroom_poc.py</span>
-                      <button
-                        type="button"
-                        onClick={() => copyWifiCommand(activeCamIndex + 1, activeChannel.port)}
-                        className="px-2 py-1 rounded bg-white border border-[rgba(60,60,67,0.12)] text-[10px] text-[#007AFF] hover:bg-[#F2F2F0] shrink-0"
-                      >
-                        {copiedCmd ? "Tersalin" : "Salin"}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -271,19 +240,19 @@ export function StreamViewport({
       {/* Footer Status Indicators */}
       <div className="mt-4 pt-3 border-t border-[rgba(60,60,67,0.08)] flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-3 text-[#6E6E73]">
-          <span className="font-semibold text-[#1D1D1F]">Ringkasan Deteksi:</span>
+          <span className="font-semibold text-[#1D1D1F]">Ringkasan Kelas:</span>
           <span className="flex items-center gap-1 text-[#34C759] font-medium">
-            <span className="h-2 w-2 rounded-full bg-[#34C759]" /> Duduk ({counts.attentive})
+            <span className="h-2 w-2 rounded-full bg-[#34C759]" /> Menyimak ({counts.attentive})
           </span>
           <span className="flex items-center gap-1 text-[#007AFF] font-medium">
-            <span className="h-2 w-2 rounded-full bg-[#007AFF]" /> Angkat Tangan ({counts.hand_raised})
+            <span className="h-2 w-2 rounded-full bg-[#007AFF]" /> Aktif Bertanya ({counts.hand_raised})
           </span>
-          <span className="flex items-center gap-1 text-[#FF9F0A] font-medium">
-            <span className="h-2 w-2 rounded-full bg-[#FF9F0A]" /> Berdiri ({telemetry.standing_count})
+          <span className="flex items-center gap-1 text-amber-600 font-medium">
+            <span className="h-2 w-2 rounded-full bg-amber-500" /> Perlu Pendampingan ({counts.sleep})
           </span>
         </div>
         <span className="text-[11px] text-[#8E8E93] font-mono">
-          Sinkronisasi: {lastSyncTime.toLocaleTimeString("id-ID")}
+          Pembaruan: {lastSyncTime.toLocaleTimeString("id-ID")}
         </span>
       </div>
     </div>

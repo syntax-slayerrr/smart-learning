@@ -48,10 +48,10 @@ export function ClassroomIntelligenceOverview({ data }: ClassroomIntelligenceOve
         </div>
         <div>
           <h2 className="text-base font-bold tracking-tight text-stone-900">
-            Classroom Intelligence & Early Warning
+            Analitik Perilaku Belajar & Peringatan Dini
           </h2>
           <p className="text-xs text-stone-500">
-            Telemetri edge camera kelas & analitik perilaku pembelajaran tingkat sekolah
+            Evaluasi keterlibatan pembelajaran kelas dan pemantauan siswa yang membutuhkan pendampingan
           </p>
         </div>
       </div>

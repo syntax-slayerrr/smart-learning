@@ -2,8 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { AnalyticsDashboard } from "./analytics-dashboard";
-import { LiveCameraMonitor } from "@/components/dashboard/live-camera-monitor";
-import { ClassroomIntelligenceOverview } from "@/components/dashboard/classroom-intelligence-overview";
 import {
   Users,
   GraduationCap,
@@ -11,6 +9,7 @@ import {
   ClipboardCheck,
   Plus,
   ArrowRight,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { AdminScannerTrigger } from "./scanner-trigger";
@@ -141,11 +140,73 @@ export default async function AdminDashboardPage() {
       {/* Analytics Dashboard (Section 24) */}
       <AnalyticsDashboard trendData={trendData || []} topAbsentees={topAbsentees || []} />
 
-      {/* AI Live Command Center (Section 22) */}
-      <LiveCameraMonitor />
+      {/* AI Classroom Overview Banner */}
+      <div className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-5 shadow-[var(--shadow-subtle)]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-primary shadow-[var(--shadow-subtle)]">
+              <Video className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[#1D1D1F] tracking-tight">
+                  AI Classroom Vision & Pemantauan Langsung
+                </h3>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34C759]/10 border border-[#34C759]/20 px-2.5 py-0.5 text-[11px] font-semibold text-[#34C759]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#34C759] animate-pulse" />
+                  Sensor Aktif
+                </span>
+              </div>
+              <p className="text-xs text-[#6E6E73] mt-0.5">
+                Pantau visual interaksi belajar, keaktifan bertanya, dan dinamika ruang kelas secara real-time.
+              </p>
+            </div>
+          </div>
 
-      {/* AI Classroom Intelligence */}
-      <ClassroomIntelligenceOverview data={schoolOverview} />
+          <Link
+            href="/admin/camera-monitor"
+            className="apple-press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-primary/20 hover:bg-orange-700 transition-colors min-h-[44px] shrink-0"
+          >
+            <span>Buka Pemantau AI Classroom</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {/* 3 Quick Status Indicators */}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[rgba(60,60,67,0.08)]">
+          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#34C759] shrink-0" />
+            <div>
+              <p className="text-[11px] text-[#6E6E73] font-medium">Sesi Terpantau AI</p>
+              <p className="text-sm font-bold text-[#1D1D1F]">
+                {schoolOverview?.total_sessions_with_telemetry ? `${schoolOverview.total_sessions_with_telemetry} Sesi` : "0 Sesi"}
+                <span className="text-[11px] text-[#34C759] font-normal ml-1">• Aktif</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#007AFF] shrink-0" />
+            <div>
+              <p className="text-[11px] text-[#6E6E73] font-medium">Rata-rata Interaksi / Sesi</p>
+              <p className="text-sm font-bold text-[#1D1D1F]">
+                {schoolOverview?.avg_hand_raises_per_session ? `${schoolOverview.avg_hand_raises_per_session}x Bertanya` : "Aktif Menyimak"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
+            <div className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
+            <div>
+              <p className="text-[11px] text-[#6E6E73] font-medium">Perhatian Khusus Siswa</p>
+              <p className="text-sm font-bold text-[#1D1D1F]">
+                {schoolOverview?.at_risk_students ? `${schoolOverview.at_risk_students.length} Siswa` : "0 Siswa"}
+                <span className="text-[11px] text-[#6E6E73] font-normal ml-1">Perlu Pendampingan</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions (Section 12 Buttons / Cards) */}
       <div className="grid gap-4 sm:grid-cols-3">

@@ -69,9 +69,9 @@ export function AccreditationExportTrigger() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[#E7E2DA] bg-white px-3.5 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 apple-press shadow-2xs transition-all"
+        className="apple-press inline-flex items-center gap-1.5 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] shadow-sm transition-all min-h-[44px]"
       >
-        <FileText className="h-4 w-4 text-[#EA580C]" />
+        <FileText className="h-4 w-4 text-[#007AFF]" />
         <span>Dokumen Akreditasi</span>
       </button>
 

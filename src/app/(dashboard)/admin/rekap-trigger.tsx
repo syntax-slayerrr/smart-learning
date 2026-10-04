@@ -9,7 +9,6 @@ export function DailyRecapTrigger() {
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // Mencegah user menutup tab atau me-refresh halaman saat proses pengiriman berlangsung
   useEffect(() => {
     if (!isSending) return;
 
@@ -76,17 +75,19 @@ export function DailyRecapTrigger() {
       <button
         onClick={handleSendRekap}
         disabled={isSending}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="apple-press inline-flex items-center gap-1.5 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] shadow-sm transition-all disabled:opacity-50 min-h-[44px]"
       >
-        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        {isSending && progress.total > 0 
-          ? `Memproses (${progress.current}/${progress.total})` 
-          : "Kirim / Lanjutkan Rekap WA"}
+        {isSending ? <Loader2 className="h-4 w-4 animate-spin text-[#007AFF]" /> : <Send className="h-4 w-4 text-[#007AFF]" />}
+        <span>
+          {isSending && progress.total > 0 
+            ? `Kirim WA (${progress.current}/${progress.total})` 
+            : "Rekap WA"}
+        </span>
       </button>
       
       {isSending && (
-        <p className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200 animate-pulse w-full max-w-sm">
-          ⚠️ HARAP JANGAN KELUAR, MENUTUP TAB, ATAU MEMBUKA MENU LAIN SELAMA PROSES PENGIRIMAN BERLANGSUNG.
+        <p className="text-xs font-semibold text-[#FF9F0A] bg-[#FF9F0A]/10 px-3 py-2 rounded-xl border border-[#FF9F0A]/20 animate-pulse w-full max-w-sm">
+          ⚠️ HARAP JANGAN KELUAR ATAU TUTUP TAB SELAMA PROSES PENGIRIMAN.
         </p>
       )}
     </div>

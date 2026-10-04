@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
-import { MobileTopNav } from "./mobile-top-nav";
+import { MobileBottomNav } from "./mobile-bottom-nav";
 import { InstallPrompt } from "@/components/shared/install-prompt";
 import { HermesCopilotWidget } from "@/components/ai/hermes-copilot-widget";
 import { logoutAction } from "@/app/(auth)/login/actions";
@@ -32,7 +32,8 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex min-h-dvh h-dvh overflow-hidden bg-background">
+      {/* Sidebar navigation for desktop and slide drawer for mobile menu */}
       <Sidebar
         role={role}
         userName={userName}
@@ -41,13 +42,19 @@ export function DashboardLayout({
         onClose={() => setSidebarOpen(false)}
         onLogout={handleLogout}
       />
-      <div className="flex flex-1 flex-col overflow-hidden">
+
+      {/* Main App Canvas */}
+      <div className="flex flex-1 flex-col overflow-hidden relative">
         <Header role={role} onMenuClick={() => setSidebarOpen(true)} />
-        <MobileTopNav role={role} />
-        <main className="flex-1 overflow-y-auto">
+
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0 focus:outline-none">
           {children}
         </main>
+
+        {/* Native Apple HIG Bottom Tab Bar for Mobile */}
+        <MobileBottomNav role={role} onOpenMenu={() => setSidebarOpen(true)} />
       </div>
+
       <InstallPrompt />
       <HermesCopilotWidget />
     </div>

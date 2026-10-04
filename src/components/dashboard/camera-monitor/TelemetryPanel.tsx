@@ -74,10 +74,10 @@ export function TelemetryPanel({
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
                     <Activity className="h-4 w-4 text-primary" />
-                    Deteksi Subjek Real-Time
+                    Dinamika Pembelajaran Kelas
                   </h4>
                   <p className="text-xs text-stone-500">
-                    Data multimodal riil subjek yang tertangkap kamera
+                    Pemantauan keterlibatan dan keaktifan siswa secara langsung
                   </p>
                 </div>
 
@@ -85,18 +85,18 @@ export function TelemetryPanel({
                   <button
                     onClick={() => setRightTab("digital_twin")}
                     className={`rounded-md px-2 py-1 text-xs font-semibold apple-press ${
-                      rightTab === "digital_twin" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
+                      rightTab === "digital_twin" ? "bg-white text-stone-900 shadow-2xs font-bold" : "text-stone-500"
                     }`}
                   >
-                    Daftar Subjek
+                    Daftar Siswa
                   </button>
                   <button
                     onClick={() => setRightTab("analytics")}
                     className={`rounded-md px-2 py-1 text-xs font-semibold apple-press ${
-                      rightTab === "analytics" ? "bg-white text-stone-900 shadow-2xs" : "text-stone-500"
+                      rightTab === "analytics" ? "bg-white text-stone-900 shadow-2xs font-bold" : "text-stone-500"
                     }`}
                   >
-                    Tren Aktivitas
+                    Tren Fokus
                   </button>
                 </div>
               </div>
@@ -105,18 +105,29 @@ export function TelemetryPanel({
               <div className="rounded-xl border border-border bg-background p-3 shadow-2xs transition-all duration-500">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" /> Indeks Fokus Real-Time
+                    <Sparkles className="h-3.5 w-3.5 text-primary" /> Indeks Fokus Kelas
                   </span>
-                  <span className="text-base font-bold font-mono text-emerald-700 tabular-nums transition-all duration-300">
-                    {focusIndex}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      {focusIndex >= 85
+                        ? "Sangat Kondusif"
+                        : focusIndex >= 70
+                        ? "Kondusif"
+                        : focusIndex >= 50
+                        ? "Cukup Baik"
+                        : "Perlu Pendampingan"}
+                    </span>
+                    <span className="text-base font-bold font-mono text-emerald-700 tabular-nums transition-all duration-300">
+                      {focusIndex}%
+                    </span>
+                  </div>
                 </div>
                 <div className="h-2 bg-stone-200 rounded-full overflow-hidden flex">
                   {totalDetected > 0 ? (
                     <>
-                      <div style={{ width: `${(counts.attentive / totalDetected) * 100}%` }} className="bg-emerald-600 transition-all duration-700 ease-out" title="Fokus / Duduk" />
-                      <div style={{ width: `${(counts.writing / totalDetected) * 100}%` }} className="bg-sky-500 transition-all duration-700 ease-out" title="Menulis" />
-                      <div style={{ width: `${(counts.sleep / totalDetected) * 100}%` }} className="bg-red-700 transition-all duration-700 ease-out" title="Menunduk / Tidur" />
+                      <div style={{ width: `${(counts.attentive / totalDetected) * 100}%` }} className="bg-emerald-600 transition-all duration-700 ease-out" title="Fokus / Menyimak" />
+                      <div style={{ width: `${(counts.writing / totalDetected) * 100}%` }} className="bg-sky-500 transition-all duration-700 ease-out" title="Mencatat / Praktik" />
+                      <div style={{ width: `${(counts.sleep / totalDetected) * 100}%` }} className="bg-amber-600 transition-all duration-700 ease-out" title="Perlu Pendampingan" />
                     </>
                   ) : (
                     <div style={{ width: "100%" }} className="bg-stone-300 transition-all duration-500" title="Standby" />
@@ -127,9 +138,9 @@ export function TelemetryPanel({
               {/* TAB CONTENT 1: REAL DETECTED SUBJECTS */}
               {rightTab === "digital_twin" ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono text-stone-500 px-1">
-                    <span>AREA VISUAL KAMERA</span>
-                    <span className="tabular-nums font-bold text-stone-700">{totalDetected} SUBJEK TERDETEKSI</span>
+                  <div className="flex items-center justify-between text-xs font-medium text-stone-600 px-1">
+                    <span>STATUS INTERAKSI SISWA</span>
+                    <span className="tabular-nums font-bold text-stone-800">{totalDetected} Siswa Terpantau</span>
                   </div>
 
                   {subjects.length > 0 ? (
