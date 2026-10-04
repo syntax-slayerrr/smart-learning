@@ -46,5 +46,6 @@ __pycache__/
 experiments/cv-poc/test_skeleton_output.jpg
 *.onnx
 *.task
-
+*.pt
+experiments/cv-poc/insightface_models/
 

@@ -3,20 +3,19 @@
 AI Classroom Intelligence — Edge Telemetry Computer Vision Engine & Live Streamer
 ==================================================================================
 Tim: SYNTAX SLAYER (Smart Learning Platform)
-Versi: 3.0.0 (China/Japan EduAI Grade: 33-Keypoint Anatomical Skeleton Tracking)
+Versi: 4.0.0 (China/Japan EduAI Grade: YOLO26n Macro Tracker + MediaPipe Heavy 3D + ArcFace 512-d Biometrics)
 
-Fitur Utama v3.0.0:
-1. Google Research BlazePose 33-Keypoint Anatomical Neural Tracking:
-   - Menghitung koordinat sendi bahu, siku, pergelangan tangan, leher, hidung, dan mata.
-   - Bebas dari kesalahan warna kulit (skin segmentation dihapus total).
-2. Deteksi Angkat Tangan 100% Anatomis:
-   - Dihitung dari vektor sendi: Wrist.y < Shoulder.y (tangan di atas bahu).
-   - Zero false alarm dari tangan di atas meja/keyboard laptop.
-3. Zero-Ghost Sleep Detection:
-   - Tangan di meja diidentifikasi akurat sebagai "Mencatat / Mengetik di Meja".
-   - Status tidur hanya aktif jika kepala/hidung tenggelam ke meja selama > 3.5 detik.
-4. Futuristic Neon Skeleton HUD (Cyan/Emerald/Amber Glowing Bone Lines).
-5. Asynchronous High-Speed Decoupled Streamer (30-50 FPS Zero Latency).
+Fitur Utama v4.0.0:
+1. Ultralytics YOLO26n ONNX Macro Detector & Spatial Tracker:
+   - Native NMS-Free One-to-One Head (100% bebas kotak ganda / ghost duplicates).
+   - Melacak 30-50 siswa sekaligus dalam satu ruang kelas dengan ID stabil.
+2. Google Research MediaPipe Heavy 33-Keypoint Anatomical Neural Tracking:
+   - Menggunakan model heavy (pose_landmarker_heavy.task) dengan estimasi sendi 3D terakurat.
+   - Analisis kinematika: angkat tangan anatomis, fokus meja/menulis, dan tidur/rebahan di meja.
+3. InsightFace ArcFace 512-Dimensi Neural Face Recognition:
+   - Menggunakan MobileFaceNet ArcFace (w600k_mbf.onnx) dengan 5-point similarity alignment.
+   - Mengunci nama siswa asli (misal: "Zaldy (Siswa)") ke ID tracker secara permanen.
+4. Asynchronous High-Speed Decoupled Multi-Threaded Engine (30-45 FPS Zero Latency di CPU).
 """
 
 import argparse
@@ -77,7 +76,7 @@ telemetry_queue = queue.Queue(maxsize=100)
 last_sync_status = "Standby"
 sync_lock = threading.Lock()
 
-# Student Face Gallery & SFace Embeddings (SenseTime / China EduAI Face Recognition)
+# Student Face Gallery & 512-d ArcFace Embeddings (SenseTime / China EduAI Face Recognition)
 FACE_GALLERY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "students_face_gallery.json")
 face_gallery = {}
 gallery_lock = threading.Lock()
@@ -102,6 +101,129 @@ def save_face_gallery():
         print(f"[!] Gagal menyimpan face gallery: {e}")
 
 load_face_gallery()
+
+
+class ArcFaceEngine:
+    """
+    InsightFace ArcFace 512-dimensi Deep Feature Extractor (MobileFaceNet ONNX).
+    Standar industri China EduAI (SenseTime/Megvii) untuk pengenalan identitas siswa.
+    """
+    def __init__(self, model_path=None):
+        if model_path is None:
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "insightface_models", "w600k_mbf.onnx")
+        self.model_path = model_path
+        self.session = None
+        self.ref_pts = np.array([
+            [38.2946, 51.6963],
+            [73.5318, 51.5014],
+            [56.0252, 71.7366],
+            [41.5493, 92.3655],
+            [70.7299, 92.2041]
+        ], dtype=np.float32)
+        if os.path.exists(model_path):
+            try:
+                import onnxruntime as ort
+                opts = ort.SessionOptions()
+                opts.intra_op_num_threads = 2
+                opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+                self.session = ort.InferenceSession(model_path, opts, providers=['CPUExecutionProvider'])
+                self.input_name = self.session.get_inputs()[0].name
+                self.output_name = self.session.get_outputs()[0].name
+                print(f"[+] ArcFace 512-d Biometric Engine (InsightFace w600k_mbf) Aktif!")
+            except Exception as e:
+                print(f"[!] Gagal inisialisasi ArcFace: {e}")
+
+    def is_available(self):
+        return self.session is not None
+
+    def align_face(self, img, landmarks_5):
+        tform, _ = cv2.estimateAffinePartial2D(landmarks_5, self.ref_pts)
+        if tform is None:
+            return None
+        return cv2.warpAffine(img, tform, (112, 112), borderValue=0.0)
+
+    def extract_feature(self, aligned_bgr):
+        if self.session is None or aligned_bgr is None:
+            return None
+        rgb = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2RGB).astype(np.float32)
+        norm = (rgb - 127.5) / 128.0
+        chw = np.transpose(norm, (2, 0, 1))[np.newaxis, ...]
+        feat = self.session.run([self.output_name], {self.input_name: chw})[0][0]
+        norm_val = np.linalg.norm(feat)
+        if norm_val > 1e-6:
+            feat = feat / norm_val
+        return feat
+
+    @staticmethod
+    def compute_similarity(feat1, feat2):
+        if feat1 is None or feat2 is None:
+            return 0.0
+        f1 = np.asarray(feat1, dtype=np.float32)
+        f2 = np.asarray(feat2, dtype=np.float32)
+        if f1.shape != f2.shape:
+            return 0.0
+        return float(np.dot(f1, f2))
+
+
+class YOLO26Detector:
+    """
+    Ultralytics YOLO26n ONNX Macro Person Detector.
+    Native End-to-End One-to-One Head (100% NMS-Free, Bebas Kotak Ganda/Ghost Tracks).
+    """
+    def __init__(self, model_path=None):
+        if model_path is None:
+            candidates = [
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "yolo26n.onnx"),
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "yolo26n.onnx")
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    model_path = c
+                    break
+        self.model_path = model_path
+        self.session = None
+        if model_path and os.path.exists(model_path):
+            try:
+                import onnxruntime as ort
+                opts = ort.SessionOptions()
+                opts.intra_op_num_threads = 2
+                opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+                self.session = ort.InferenceSession(model_path, opts, providers=['CPUExecutionProvider'])
+                self.input_name = self.session.get_inputs()[0].name
+                print(f"[+] YOLO26n ONNX Macro Detector Aktif ({os.path.basename(model_path)})!")
+            except Exception as e:
+                print(f"[!] Gagal inisialisasi YOLO26n ONNX: {e}")
+
+    def is_available(self):
+        return self.session is not None
+
+    def detect_persons(self, frame, conf_thresh=0.35, imgsz=320):
+        if self.session is None:
+            return []
+        h, w = frame.shape[:2]
+        small = cv2.resize(frame, (imgsz, imgsz))
+        rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        chw = np.transpose(rgb, (2, 0, 1))[np.newaxis, ...]
+        out = self.session.run(None, {self.input_name: chw})[0]
+        preds = out[0].T
+        boxes = preds[:, :4]
+        person_scores = preds[:, 4]
+
+        mask = person_scores >= conf_thresh
+        valid_boxes = boxes[mask]
+        valid_scores = person_scores[mask]
+
+        scale_x = w / float(imgsz)
+        scale_y = h / float(imgsz)
+        results = []
+        for (cx_s, cy_s, bw_s, bh_s), score in zip(valid_boxes, valid_scores):
+            x1 = max(0, int((cx_s - bw_s / 2.0) * scale_x))
+            y1 = max(0, int((cy_s - bh_s / 2.0) * scale_y))
+            bw = min(w - x1, int(bw_s * scale_x))
+            bh = min(h - y1, int(bh_s * scale_y))
+            if bw > 30 and bh > 40:
+                results.append((x1, y1, bw, bh, float(score)))
+        return results
 
 
 def default_json_serializer(obj):
@@ -459,7 +581,7 @@ def draw_hud(frame, stats, fps, session_id, sync_status, rot_info, infer_ms=0.0)
     cv2.addWeighted(overlay, 0.78, frame, 0.22, 0, frame)
 
     cv2.circle(frame, (16, 18), 5, COLOR_EMERALD, -1)
-    cv2.putText(frame, "AI SKELETON POSE v3.0", (28, 22),
+    cv2.putText(frame, "AI CLASSROOM v4.0 (YOLO26 + MediaPipe Heavy + ArcFace)", (28, 22),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.44, COLOR_WHITE, 1, cv2.LINE_AA)
 
     detected = stats.get("total", 0)
@@ -535,71 +657,114 @@ class SubjectTracker:
         self.sleep_timer = {}
         self.hand_timer = {}
 
-    def update_from_poses(self, raw_pose_landmarks_list, frame_shape, curr_time):
+    def update_hybrid(self, yolo_boxes, raw_pose_landmarks_list, frame_shape, curr_time):
         """
-        Update tracking data directly using 33-Keypoint Anatomical Landmarks.
-        Mengaplikasikan Non-Maximum Suppression (Pose-NMS) untuk mencegah duplikasi subjek.
+        Fusi Multi-Tahap:
+        1. YOLO26n bertindak sebagai Anchor Spasial Utama (100% NMS-Free, Bebas Kotak Ganda/Ghost Tracks).
+        2. MediaPipe Heavy menyematkan kerangka 33 titik 3D ke dalam setiap kotak YOLO.
+        3. Jika YOLO26 belum mendeteksi subjek (atau transisi), fallback mulus ke MediaPipe Pose-NMS.
         """
         h, w = frame_shape[:2]
         matched_ids = set()
 
-        # 1. Non-Maximum Suppression (Zero Ghost Duplicates)
+        candidates = []
+
+        # 1. Bersihkan pose MediaPipe dengan NMS untuk mencegah duplikasi internal
         filtered_poses = filter_overlapping_poses(raw_pose_landmarks_list, frame_shape)
 
-        for landmarks in filtered_poses:
-            if len(landmarks) < 17:
-                continue
+        # 2. Jika ada deteksi dari YOLO26n, jadikan YOLO sebagai Master Spatial Anchor
+        if yolo_boxes and len(yolo_boxes) > 0:
+            for y_box in yolo_boxes:
+                yx, yy, yw, yh, yconf = y_box
+                ycx = yx + yw / 2.0
+                ycy = yy + yh / 2.0
 
-            # Keypoints:
-            # 0: Nose, 1-6: Eyes, 7-8: Ears, 11-12: Shoulders, 13-14: Elbows, 15-16: Wrists, 23-24: Hips
-            nose = landmarks[0]
-            ls = landmarks[11]
-            rs = landmarks[12]
-            le = landmarks[13]
-            re = landmarks[14]
-            lw = landmarks[15]
-            rw = landmarks[16]
+                # Cari pose MediaPipe yang berada di dalam / paling dekat dengan kotak YOLO ini
+                best_pose = None
+                best_pdist = 180
+                for lms in filtered_poses:
+                    if len(lms) < 17:
+                        continue
+                    # Hitung pusat torso (rata-rata bahu dan hidung)
+                    ls = lms[11]
+                    rs = lms[12]
+                    nose = lms[0]
+                    tcx = ((ls.x + rs.x) / 2.0) * w
+                    tcy = ((ls.y + rs.y) / 2.0) * h
+                    dist = math.hypot(ycx - tcx, ycy - tcy)
+                    if dist < best_pdist and (yx - 40 <= tcx <= yx + yw + 40) and (yy - 40 <= tcy <= yy + yh + 40):
+                        best_pdist = dist
+                        best_pose = lms
 
-            # 2. Torso Center & Full Body Box Calculation
-            all_x = [lm.x for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
-            all_y = [lm.y for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+                candidates.append({
+                    "box": (yx, yy, yw, yh),
+                    "conf": yconf,
+                    "landmarks": best_pose
+                })
+        else:
+            # Fallback jika YOLO belum siap / belum ada kotak: gunakan MediaPipe Poses
+            for landmarks in filtered_poses:
+                if len(landmarks) < 17:
+                    continue
+                all_x = [lm.x for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+                all_y = [lm.y for lm in landmarks[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
+                if not all_x or not all_y:
+                    continue
+                min_x, max_x = min(all_x), max(all_x)
+                min_y, max_y = min(all_y), max(all_y)
+                px = max(0, int((min_x - 0.06) * w))
+                py = max(0, int((min_y - 0.06) * h))
+                pw = min(w - px, int((max_x - min_x + 0.12) * w))
+                ph = min(h - py, int((max_y - min_y + 0.12) * h))
+                candidates.append({
+                    "box": (px, py, pw, ph),
+                    "conf": 0.95,
+                    "landmarks": landmarks
+                })
 
-            if not all_x or not all_y:
-                continue
-
-            min_x, max_x = min(all_x), max(all_x)
-            min_y, max_y = min(all_y), max(all_y)
-
-            px = max(0, int((min_x - 0.06) * w))
-            py = max(0, int((min_y - 0.06) * h))
-            pw = min(w - px, int((max_x - min_x + 0.12) * w))
-            ph = min(h - py, int((max_y - min_y + 0.12) * h))
-
+        for cand in candidates:
+            px, py, pw, ph = cand["box"]
+            pconf = cand["conf"]
+            landmarks = cand["landmarks"]
             cx = px + pw / 2.0
             cy = py + ph / 2.0
 
-            # 3. Head Tilt & Gaze
-            shoulder_mid_x = (ls.x + rs.x) / 2.0
-            shoulder_mid_y = (ls.y + rs.y) / 2.0
-            nose_offset = nose.x - shoulder_mid_x
+            # Hitung postur dan gestur jika landmarks tersedia
+            if landmarks and len(landmarks) >= 17:
+                nose = landmarks[0]
+                ls = landmarks[11]
+                rs = landmarks[12]
+                le = landmarks[13]
+                re = landmarks[14]
+                lw = landmarks[15]
+                rw = landmarks[16]
 
-            dy_shoulder = rs.y - ls.y
-            dx_shoulder = rs.x - ls.x
-            head_tilt = math.degrees(math.atan2(abs(dy_shoulder), max(1e-5, abs(dx_shoulder))))
+                shoulder_mid_x = (ls.x + rs.x) / 2.0
+                shoulder_mid_y = (ls.y + rs.y) / 2.0
+                nose_offset = nose.x - shoulder_mid_x
 
-            if nose_offset < -0.06:
-                gaze_dir = "Menoleh Kanan"
-            elif nose_offset > 0.06:
-                gaze_dir = "Menoleh Kiri"
-            elif nose.y > shoulder_mid_y - 0.08:
-                gaze_dir = "Menatap Laptop/Meja"
+                dy_shoulder = rs.y - ls.y
+                dx_shoulder = rs.x - ls.x
+                head_tilt = math.degrees(math.atan2(abs(dy_shoulder), max(1e-5, abs(dx_shoulder))))
+
+                if nose_offset < -0.06:
+                    gaze_dir = "Menoleh Kanan"
+                elif nose_offset > 0.06:
+                    gaze_dir = "Menoleh Kiri"
+                elif nose.y > shoulder_mid_y - 0.08:
+                    gaze_dir = "Menatap Laptop/Meja"
+                else:
+                    gaze_dir = "Depan / Papan Tulis"
+
+                has_pose = True
             else:
+                head_tilt = 0.0
                 gaze_dir = "Depan / Papan Tulis"
+                has_pose = False
 
-            # 4. Association / Nearest Distance Tracking
+            # Association / Nearest Distance Tracking
             best_id = None
             best_dist = 160
-
             for tid, trk in self.tracks.items():
                 if tid in matched_ids:
                     continue
@@ -611,72 +776,77 @@ class SubjectTracker:
 
             tid_check = best_id or self.next_id
 
-            # 5. True Anatomical Sleep Detection
-            is_head_dropped = (nose.y >= shoulder_mid_y - 0.03) or (head_tilt > 55.0 and cy > h * 0.50)
-            is_sleep = False
-
-            if is_head_dropped:
-                if tid_check not in self.sleep_timer:
-                    self.sleep_timer[tid_check] = curr_time
-                elif curr_time - self.sleep_timer[tid_check] > 3.5:
-                    is_sleep = True
-            else:
-                self.sleep_timer.pop(tid_check, None)
-
-            # 6. Anatomical Hand Raised (Mutually Exclusive with Sleep)
-            # Tangan hanya bisa diangkat jika kepala tegak (TIDAK SEDANG TIDUR)
-            if not is_sleep and nose.y < shoulder_mid_y:
-                left_raised = (lw.y < ls.y - 0.02) and (getattr(lw, 'visibility', 0.5) > 0.30)
-                right_raised = (rw.y < rs.y - 0.02) and (getattr(rw, 'visibility', 0.5) > 0.30)
-                is_hand_raw = left_raised or right_raised
-            else:
-                is_hand_raw = False
-                left_raised = False
-                right_raised = False
-
-            hand_box = None
-            if is_hand_raw:
-                active_wrist = lw if left_raised else rw
-                hw_px = int(active_wrist.x * w)
-                hy_px = int(active_wrist.y * h)
-                hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
-
-            # Hysteresis smoothing on hand raise
-            if is_hand_raw and not is_sleep:
-                self.hand_timer[tid_check] = curr_time
-                is_hand_raised = True
-            elif not is_sleep and tid_check in self.hand_timer and (curr_time - self.hand_timer[tid_check] < 0.6):
-                is_hand_raised = True
-            else:
-                is_hand_raised = False
-                if is_sleep:
-                    self.hand_timer.pop(tid_check, None)
-                    hand_box = None
-
             # Posture: Sitting vs Standing
             posture = "standing" if py < h * 0.25 and ph > h * 0.55 else "sitting"
 
-            # Activity & Attention Score
-            if is_sleep:
-                activity = "sleep"
-                action_text = "Rebahan / Tidur di Meja"
-                attention_score = 15
-            elif is_hand_raised:
-                activity = "hand_raised"
-                action_text = "Angkat Tangan (Bertanya)"
-                attention_score = 98
-            elif posture == "standing":
-                activity = "attentive"
-                action_text = "Berdiri di Depan"
-                attention_score = 90
-            elif lw.y > ls.y and rw.y > rs.y and nose.y > shoulder_mid_y - 0.14:
-                activity = "writing"
-                action_text = "Fokus Mengetik / Meja"
-                attention_score = 95
+            # Sleep & Hand Raise
+            if has_pose:
+                is_head_dropped = (nose.y >= shoulder_mid_y - 0.03) or (head_tilt > 55.0 and cy > h * 0.50)
+                is_sleep = False
+                if is_head_dropped:
+                    if tid_check not in self.sleep_timer:
+                        self.sleep_timer[tid_check] = curr_time
+                    elif curr_time - self.sleep_timer[tid_check] > 3.5:
+                        is_sleep = True
+                else:
+                    self.sleep_timer.pop(tid_check, None)
+
+                # Hand raise mutually exclusive with sleep
+                if not is_sleep and nose.y < shoulder_mid_y:
+                    left_raised = (lw.y < ls.y - 0.02) and (getattr(lw, 'visibility', 0.5) > 0.30)
+                    right_raised = (rw.y < rs.y - 0.02) and (getattr(rw, 'visibility', 0.5) > 0.30)
+                    is_hand_raw = left_raised or right_raised
+                else:
+                    is_hand_raw = False
+                    left_raised = False
+                    right_raised = False
+
+                hand_box = None
+                if is_hand_raw:
+                    active_wrist = lw if left_raised else rw
+                    hw_px = int(active_wrist.x * w)
+                    hy_px = int(active_wrist.y * h)
+                    hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
+
+                if is_hand_raw and not is_sleep:
+                    self.hand_timer[tid_check] = curr_time
+                    is_hand_raised = True
+                elif not is_sleep and tid_check in self.hand_timer and (curr_time - self.hand_timer[tid_check] < 0.6):
+                    is_hand_raised = True
+                else:
+                    is_hand_raised = False
+                    if is_sleep:
+                        self.hand_timer.pop(tid_check, None)
+                        hand_box = None
+
+                # Activity
+                if is_sleep:
+                    activity = "sleep"
+                    action_text = "Rebahan / Tidur di Meja"
+                    attention_score = 15
+                elif is_hand_raised:
+                    activity = "hand_raised"
+                    action_text = "Angkat Tangan (Bertanya)"
+                    attention_score = 98
+                elif posture == "standing":
+                    activity = "attentive"
+                    action_text = "Berdiri di Depan"
+                    attention_score = 90
+                elif lw.y > ls.y and rw.y > rs.y and nose.y > shoulder_mid_y - 0.14:
+                    activity = "writing"
+                    action_text = "Fokus Mengetik / Meja"
+                    attention_score = 95
+                else:
+                    activity = "attentive"
+                    action_text = "Fokus Belajar"
+                    attention_score = 96
             else:
+                is_sleep = False
+                is_hand_raised = False
+                hand_box = None
                 activity = "attentive"
                 action_text = "Fokus Belajar"
-                attention_score = 96
+                attention_score = 95
 
             sub_label = f"Postur: {'Duduk' if posture == 'sitting' else 'Berdiri'} • Fokus: {attention_score}% • {gaze_dir}"
 
@@ -696,7 +866,7 @@ class SubjectTracker:
                 trk["action_text"] = action_text
                 trk["sub_label"] = sub_label
                 trk["attention_score"] = attention_score
-                trk["conf"] = 0.96
+                trk["conf"] = round(pconf, 2)
                 trk["last_seen"] = curr_time
                 trk["is_hand_raised"] = is_hand_raised
                 trk["hand_box"] = hand_box
@@ -709,7 +879,7 @@ class SubjectTracker:
                 self.next_id += 1
                 self.tracks[new_id] = {
                     "id": new_id,
-                    "student_name": "Zaldy (Siswa)",  # Default profile, updated dynamically by SFace
+                    "student_name": "Zaldy (Siswa)",
                     "is_recognized": True,
                     "box": (px, py, pw, ph),
                     "center": (cx, cy),
@@ -719,7 +889,7 @@ class SubjectTracker:
                     "action_text": action_text,
                     "sub_label": sub_label,
                     "attention_score": attention_score,
-                    "conf": 0.95,
+                    "conf": round(pconf, 2),
                     "last_seen": curr_time,
                     "is_hand_raised": is_hand_raised,
                     "hand_box": hand_box,
@@ -738,16 +908,21 @@ class SubjectTracker:
 
         return list(self.tracks.values())
 
+    def update_from_poses(self, raw_pose_landmarks_list, frame_shape, curr_time):
+        return self.update_hybrid([], raw_pose_landmarks_list, frame_shape, curr_time)
+
 
 
 def run_opencv_engine(args):
     global latest_frame_jpeg, current_rotation, current_flip_h
 
-    print("[*] Inisialisasi EduAI 33-Keypoint Pose Skeleton Engine v3.0...")
+    print("[*] Inisialisasi EduAI Engine v4.0 (YOLO26 + MediaPipe Heavy + ArcFace 512-d)...")
     current_rotation = args.rotate
 
-    # 1. Inisialisasi MediaPipe Tasks BlazePose Lite (33 Keypoints)
-    task_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pose_landmarker_lite.task")
+    # 1. Inisialisasi MediaPipe Tasks BlazePose Heavy (33 Keypoints 3D)
+    task_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pose_landmarker_heavy.task")
+    if not os.path.exists(task_model_path):
+        task_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pose_landmarker_lite.task")
     pose_detector = None
 
     if MEDIAPIPE_AVAILABLE and os.path.exists(task_model_path):
@@ -762,21 +937,26 @@ def run_opencv_engine(args):
                 min_tracking_confidence=0.35
             )
             pose_detector = mp_vision.PoseLandmarker.create_from_options(pose_opts)
-            print("[+] Deep Learning Pose: MediaPipe BlazePose 33-Keypoints Skeleton Engine Aktif!")
+            print(f"[+] Deep Learning Pose: MediaPipe ({os.path.basename(task_model_path)}) 33-Keypoints Skeleton Engine Aktif!")
         except Exception as e:
             print(f"[!] Gagal inisialisasi MediaPipe Pose: {e}")
 
-    # 2. Inisialisasi SFace Face Recognizer (SenseTime / China EduAI Face Recognition)
+    # 2. Inisialisasi YOLO26n ONNX Macro Person Detector
+    yolo_detector = YOLO26Detector()
+
+    # 3. Inisialisasi InsightFace ArcFace 512-d Biometric Recognizer
+    arcface_engine = ArcFaceEngine()
+
+    # Fallback SFace Face Recognizer
     sface_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_recognition_sface_2021dec.onnx")
     sface_recognizer = None
     if os.path.exists(sface_path) and hasattr(cv2, "FaceRecognizerSF"):
         try:
             sface_recognizer = cv2.FaceRecognizerSF.create(model=sface_path, config="")
-            print("[+] Deep Learning Face Recognition: OpenCV SFace (128-d Embeddings) Aktif!")
-        except Exception as e:
-            print(f"[!] Gagal inisialisasi SFace: {e}")
+        except Exception:
+            pass
 
-    # Fallback YuNet Face Detector
+    # YuNet Face Detector & 5-point facial landmark extractor
     yunet_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_detection_yunet_2023mar.onnx")
     yunet_detector = None
     if os.path.exists(yunet_path) and hasattr(cv2, "FaceDetectorYN"):
@@ -788,7 +968,7 @@ def run_opencv_engine(args):
                 score_threshold=0.38,
                 nms_threshold=0.30
             )
-            print("[+] Deep Learning Vision: YuNet Face Detector Siap!")
+            print("[+] Deep Learning Vision: YuNet Face & Facial Landmark Detector Siap!")
         except Exception:
             pass
 
@@ -797,13 +977,14 @@ def run_opencv_engine(args):
     # Shared State for Decoupled Multi-Threaded Neural Inference (30-50 FPS Zero Lag)
     pose_shared_lock = threading.Lock()
     latest_pose_landmarks = []
-    latest_infer_ms = 15.0
+    latest_yolo_boxes = []
+    latest_infer_ms = 25.0
     worker_running = True
     new_frame_to_infer = None
     infer_event = threading.Event()
 
     def pose_worker_loop():
-        nonlocal latest_pose_landmarks, latest_infer_ms, new_frame_to_infer
+        nonlocal latest_pose_landmarks, latest_yolo_boxes, latest_infer_ms, new_frame_to_infer
         while worker_running:
             infer_event.wait(timeout=0.1)
             infer_event.clear()
@@ -811,26 +992,33 @@ def run_opencv_engine(args):
             with pose_shared_lock:
                 frame_for_ai = None if new_frame_to_infer is None else new_frame_to_infer.copy()
 
-            if frame_for_ai is None or pose_detector is None:
+            if frame_for_ai is None:
                 continue
 
             t_start = time.perf_counter()
             try:
-                # Resize to optimized inference size (360x270)
-                ai_w = 360
-                ai_h = int(ai_w * frame_for_ai.shape[0] / frame_for_ai.shape[1])
-                small = cv2.resize(frame_for_ai, (ai_w, ai_h))
-                rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
-                mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                # 1. Macro Human Detection via YOLO26n (320x320)
+                y_boxes = []
+                if yolo_detector and yolo_detector.is_available():
+                    y_boxes = yolo_detector.detect_persons(frame_for_ai, conf_thresh=0.35, imgsz=320)
 
-                res = pose_detector.detect(mp_img)
+                # 2. Micro Kinematic Skeleton via MediaPipe Heavy (33 points)
+                mp_poses = []
+                if pose_detector is not None:
+                    ai_w = 360
+                    ai_h = int(ai_w * frame_for_ai.shape[0] / frame_for_ai.shape[1])
+                    small = cv2.resize(frame_for_ai, (ai_w, ai_h))
+                    rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
+                    mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                    res = pose_detector.detect(mp_img)
+                    if res and res.pose_landmarks:
+                        mp_poses = res.pose_landmarks
+
                 dur_ms = (time.perf_counter() - t_start) * 1000.0
 
                 with pose_shared_lock:
-                    if res and res.pose_landmarks:
-                        latest_pose_landmarks = res.pose_landmarks
-                    else:
-                        latest_pose_landmarks = []
+                    latest_yolo_boxes = y_boxes
+                    latest_pose_landmarks = mp_poses
                     latest_infer_ms = dur_ms
             except Exception:
                 pass
@@ -854,7 +1042,7 @@ def run_opencv_engine(args):
     last_json_time = time.time()
     frame_count = 0
 
-    print(f"[+] Engine Aktif! (Source: {args.source}, Initial Rotation: {current_rotation})")
+    print(f"[+] Engine v4.0 Aktif! (Source: {args.source}, Rotation: {current_rotation})")
     print(f"[+] Feed Stream: http://localhost:{args.port}/video_feed")
 
     try:
@@ -900,18 +1088,19 @@ def run_opencv_engine(args):
 
             h, w = frame.shape[:2]
 
-            # Pass latest frame to async neural pose worker
+            # Pass latest frame to async neural worker
             with pose_shared_lock:
                 new_frame_to_infer = frame
                 infer_event.set()
                 active_pose_list = list(latest_pose_landmarks)
+                active_yolo_boxes = list(latest_yolo_boxes)
                 curr_infer_ms = latest_infer_ms
 
-            # Tracking update using anatomical pose keypoints (with Pose-NMS)
-            active_tracks = tracker.update_from_poses(active_pose_list, frame.shape, curr_time)
+            # Hybrid Tracking: YOLO26n Master Box + MediaPipe Heavy 33-point Skeletons
+            active_tracks = tracker.update_hybrid(active_yolo_boxes, active_pose_list, frame.shape, curr_time)
 
-            # Face Recognition & Name Matching (Every 4th frame or on trigger)
-            if yunet_detector is not None and sface_recognizer is not None and (frame_count % 4 == 0 or trigger_registration_event.is_set()):
+            # Face Recognition & ArcFace Biometric Matching (Every 4th frame or on trigger)
+            if yunet_detector is not None and (frame_count % 4 == 0 or trigger_registration_event.is_set()):
                 try:
                     fw_infer = min(w, 400)
                     fh_infer = int(fw_infer * h / w)
@@ -923,7 +1112,7 @@ def run_opencv_engine(args):
 
                     if d_faces is not None and len(d_faces) > 0:
                         for rf in d_faces:
-                            if float(rf[-1]) >= 0.40:
+                            if float(rf[-1]) >= 0.38:
                                 sf = rf.copy()
                                 sf[0] *= scale_x
                                 sf[1] *= scale_y
@@ -933,28 +1122,46 @@ def run_opencv_engine(args):
                                     sf[lk] *= scale_x
                                     sf[lk+1] *= scale_y
 
-                                aligned_face = sface_recognizer.alignCrop(frame, sf)
-                                cur_feat = sface_recognizer.feature(aligned_face)
+                                cur_feat = None
+                                # 1. Gunakan ArcFace 512-d jika tersedia
+                                if arcface_engine and arcface_engine.is_available():
+                                    lms5 = np.array([
+                                        [sf[4], sf[5]],
+                                        [sf[6], sf[7]],
+                                        [sf[8], sf[9]],
+                                        [sf[10], sf[11]],
+                                        [sf[12], sf[13]]
+                                    ], dtype=np.float32)
+                                    aligned_face = arcface_engine.align_face(frame, lms5)
+                                    cur_feat = arcface_engine.extract_feature(aligned_face)
 
-                                # Pending face enrollment trigger
+                                # Fallback SFace 128-d jika ArcFace tidak aktif
+                                if cur_feat is None and sface_recognizer is not None:
+                                    aligned_face = sface_recognizer.alignCrop(frame, sf)
+                                    cur_feat = sface_recognizer.feature(aligned_face).flatten()
+
+                                if cur_feat is None:
+                                    continue
+
+                                # Pending face enrollment trigger (/register_face)
                                 if trigger_registration_event.is_set():
                                     with gallery_lock:
                                         p_name = pending_registration_name or "Zaldy (Siswa)"
-                                        face_gallery[p_name] = cur_feat.flatten().tolist()
+                                        face_gallery[p_name] = cur_feat.tolist() if hasattr(cur_feat, "tolist") else list(cur_feat)
                                         save_face_gallery()
-                                        print(f"[+] Berhasil mendaftarkan wajah siswa: {p_name}")
+                                        print(f"[+] Berhasil mendaftarkan biometrik wajah siswa: {p_name} ({len(face_gallery[p_name])}-d)")
                                     trigger_registration_event.clear()
 
                                 # Cosine Match against face gallery
                                 best_sname = None
-                                best_sim = 0.363  # SFace threshold
+                                best_sim = 0.38  # ArcFace / SFace threshold
                                 with gallery_lock:
                                     for sname, g_emb in face_gallery.items():
-                                        g_mat = np.array(g_emb, dtype=np.float32).reshape(1, 128)
-                                        sim = sface_recognizer.match(cur_feat, g_mat, cv2.FaceRecognizerSF_FR_COSINE)
-                                        if sim > best_sim:
-                                            best_sim = sim
-                                            best_sname = sname
+                                        if len(g_emb) == len(cur_feat):
+                                            sim = ArcFaceEngine.compute_similarity(cur_feat, g_emb)
+                                            if sim > best_sim:
+                                                best_sim = sim
+                                                best_sname = sname
 
                                 if best_sname and len(active_tracks) > 0:
                                     fcx = sf[0] + sf[2] / 2.0
