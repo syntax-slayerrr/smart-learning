@@ -60,7 +60,7 @@ export function Sidebar({
   onLogout,
 }: SidebarProps) {
   const pathname = usePathname();
-  const navItems = NAV_ITEMS[role];
+  const navItems = NAV_ITEMS[role] || [];
 
   interface NavItem {
     label: string;
@@ -69,7 +69,7 @@ export function Sidebar({
     group?: string;
   }
 
-  // Group nav items by their semantic group field
+  // Group nav items by semantic group field
   const groupedItems = (navItems as readonly NavItem[]).reduce<Record<string, NavItem[]>>(
     (acc, item) => {
       const g = item.group || "MENU UTAMA";
@@ -82,28 +82,29 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile Backdrop Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-stone-900/40 backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-[#1D1D1F]/30 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Persistent / Sheet Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#E7E2DA] bg-[#FBF9F5] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-[rgba(60,60,67,0.12)] bg-[#F7F7F5] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-20 items-center justify-between border-b border-[#E7E2DA] px-4 py-3 bg-[#FBF9F5]">
+        <div className="flex h-20 items-center justify-between border-b border-[rgba(60,60,67,0.12)] px-5 py-3 bg-[#F7F7F5]">
           <Link
             href={`/${role}`}
-            className="flex items-center gap-3 apple-press group"
+            className="flex items-center gap-3 group"
           >
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[#E7E2DA] bg-white p-1 shadow-xs transition-transform duration-200 group-hover:scale-105">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[rgba(60,60,67,0.12)] bg-white p-1 shadow-[var(--shadow-subtle)] transition-transform duration-200 group-hover:scale-105">
               <Image
                 src="/brand/syntax-slayer-logo.png"
                 alt="SYNTAX SLAYER"
@@ -113,36 +114,36 @@ export function Sidebar({
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-stone-900 leading-tight">
+              <span className="text-sm font-bold tracking-tight text-[#1D1D1F] leading-tight">
                 SYNTAX SLAYER
               </span>
-              <span className="text-[11px] font-semibold text-[#EA580C] tracking-wide">
+              <span className="text-[11px] font-semibold text-[#007AFF] tracking-wide">
                 Smart Learning
               </span>
             </div>
           </Link>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-stone-500 hover:bg-[#F5F2EB] hover:text-stone-900 lg:hidden transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F] lg:hidden transition-colors"
+            aria-label="Tutup Menu"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Categorized Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5">
           {Object.entries(groupedItems).map(([groupTitle, items]) => (
             <div key={groupTitle} className="space-y-1">
-              <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-stone-600">
+              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
                 {groupTitle}
               </p>
-              <ul className="space-y-0.5">
+              <ul className="space-y-1">
                 {items.map((item) => {
                   const Icon = iconMap[item.icon] || LayoutDashboard;
                   const isActive =
                     pathname === item.href ||
-                    (item.href !== `/${role}` &&
-                      pathname.startsWith(item.href));
+                    (item.href !== `/${role}` && pathname.startsWith(item.href));
 
                   return (
                     <li key={`${item.href}-${item.label}`}>
@@ -150,16 +151,16 @@ export function Sidebar({
                         href={item.href}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150 apple-press",
+                          "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium min-h-[44px] transition-all duration-150 apple-press",
                           isActive
-                            ? "bg-[#EA580C] text-white shadow-xs font-semibold"
-                            : "text-stone-700 hover:bg-[#F5F2EB] hover:text-stone-900"
+                            ? "bg-[#007AFF]/10 text-[#007AFF] font-semibold shadow-[0_1px_2px_rgba(0,122,255,0.06)]"
+                            : "text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F]"
                         )}
                       >
                         <Icon
                           className={cn(
                             "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-white" : "text-stone-500"
+                            isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
                           )}
                         />
                         <span className="truncate">{item.label}</span>
@@ -172,24 +173,25 @@ export function Sidebar({
           ))}
         </nav>
 
-        {/* User Section (Refined Warm Stone Card) */}
-        <div className="border-t border-[#E7E2DA] p-3 bg-[#FBF9F5]">
-          <div className="flex items-center gap-2.5 rounded-xl border border-[#E7E2DA] bg-white p-2.5 shadow-2xs">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EA580C]/10 text-xs font-bold text-[#EA580C]">
+        {/* User Account Card (Section 10 Desktop/Mobile) */}
+        <div className="border-t border-[rgba(60,60,67,0.12)] p-3.5 bg-[#F7F7F5]">
+          <div className="flex items-center gap-2.5 rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-2.5 shadow-[var(--shadow-subtle)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#007AFF]/10 text-xs font-bold text-[#007AFF]">
               {getInitials(userName)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-stone-900 leading-tight">
+              <p className="truncate text-xs font-semibold text-[#1D1D1F] leading-tight">
                 {userName}
               </p>
-              <p className="truncate text-[10px] text-stone-500 font-mono">
+              <p className="truncate text-[11px] text-[#8E8E93]">
                 {userEmail}
               </p>
             </div>
             <button
               onClick={onLogout}
-              className="shrink-0 rounded-lg p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600 transition-colors apple-press"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#8E8E93] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors apple-press"
               title="Keluar"
+              aria-label="Keluar dari akun"
             >
               <LogOut className="h-4 w-4" />
             </button>

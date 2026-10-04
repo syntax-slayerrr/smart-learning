@@ -1,9 +1,33 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { createStudent, deleteStudent, resetStudentDevice, resetClassStudentDevices, updateStudentClass, updateStudentDetails } from "../actions";
-import { Plus, Trash2, Search, Loader2, Smartphone, Upload, Pencil, Printer, ShieldAlert, CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  createStudent,
+  deleteStudent,
+  resetStudentDevice,
+  resetClassStudentDevices,
+  updateStudentClass,
+  updateStudentDetails,
+} from "../actions";
+import {
+  Plus,
+  Trash2,
+  Search,
+  Loader2,
+  Smartphone,
+  Upload,
+  Pencil,
+  Printer,
+  RotateCcw,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  Filter,
+} from "lucide-react";
 import * as XLSX from "xlsx";
+import { Button } from "@/components/ui/button";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { cn } from "@/lib/utils";
 
 interface StudentRow {
   id: string;
@@ -20,9 +44,16 @@ interface ClassOption {
   grade: string;
 }
 
-export function StudentsClient({ students, classes }: { students: StudentRow[]; classes: ClassOption[] }) {
-  const [showForm, setShowForm] = useState(false);
+export function StudentsClient({
+  students,
+  classes,
+}: {
+  students: StudentRow[];
+  classes: ClassOption[];
+}) {
+  const [showAddSheet, setShowAddSheet] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentRow | null>(null);
+  const [selectedMobileStudent, setSelectedMobileStudent] = useState<StudentRow | null>(null);
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -41,9 +72,9 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
   });
 
   const handleResetAllDevicesInClass = () => {
-    const targetClassName = classes.find(c => c.id === selectedClassFilter)?.name || "yang difilter";
-    const confirmMsg = selectedClassFilter 
-      ? `Reset ikatan HP untuk SELURUH siswa di kelas ${targetClassName}? Siswa dapat login dengan HP baru.` 
+    const targetClassName = classes.find((c) => c.id === selectedClassFilter)?.name || "yang difilter";
+    const confirmMsg = selectedClassFilter
+      ? `Reset ikatan HP untuk SELURUH siswa di kelas ${targetClassName}? Siswa dapat login dengan HP baru.`
       : `Reset ikatan HP untuk SELURUH siswa yang terdaftar?`;
 
     if (!confirm(confirmMsg)) return;
@@ -53,14 +84,14 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
     });
   };
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleCreateSubmit = async (formData: FormData) => {
     setFormError("");
     startTransition(async () => {
       const result = await createStudent(formData);
       if (result.error) {
         setFormError(result.error);
       } else {
-        setShowForm(false);
+        setShowAddSheet(false);
       }
     });
   };
@@ -69,6 +100,9 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
     if (!confirm(`Hapus siswa "${name}"?`)) return;
     startTransition(async () => {
       await deleteStudent(id);
+      if (selectedMobileStudent?.id === id) {
+        setSelectedMobileStudent(null);
+      }
     });
   };
 
@@ -76,8 +110,14 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
     setFormError("");
     startTransition(async () => {
       const result = await updateStudentDetails(formData);
-      if (result.error) setFormError(result.error);
-      else setEditingStudent(null);
+      if (result.error) {
+        setFormError(result.error);
+      } else {
+        setEditingStudent(null);
+        if (selectedMobileStudent?.id === editingStudent?.id) {
+          setSelectedMobileStudent(null);
+        }
+      }
     });
   };
 
@@ -93,180 +133,202 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      const workbook = XLSX.read(buffer, { type: "array" });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      
-      // Convert to array of arrays to handle columns dynamically
       const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-      
+
       if (rawData.length < 2) {
         alert("File kosong atau tidak memiliki baris data.");
-        e.target.value = '';
+        e.target.value = "";
         return;
       }
 
-      const headers = rawData[0].map(h => String(h).toLowerCase().trim());
-      const nameIdx = headers.findIndex(h => h.includes('nama'));
-      const nisIdx = headers.findIndex(h => h.includes('nis'));
-      const kelasIdx = headers.findIndex(h => h.includes('kelas'));
+      const headers = rawData[0].map((h) => String(h).toLowerCase().trim());
+      const nameIdx = headers.findIndex((h) => h.includes("nama"));
+      const nisIdx = headers.findIndex((h) => h.includes("nis"));
+      const kelasIdx = headers.findIndex((h) => h.includes("kelas"));
 
       if (nameIdx === -1 || nisIdx === -1) {
-        alert("Format Salah! File Excel harus memiliki tulisan 'Nama' dan 'NIS' di baris paling atas. (Kolom 'Kelas' bersifat opsional).");
-        e.target.value = '';
+        alert(
+          "Format Salah! File Excel harus memiliki tulisan 'Nama' dan 'NIS' di baris paling atas. (Kolom 'Kelas' bersifat opsional)."
+        );
+        e.target.value = "";
         return;
       }
 
-      const dataRows = rawData.slice(1).filter(r => r[nameIdx] !== undefined && r[nisIdx] !== undefined);
-      
+      const dataRows = rawData
+        .slice(1)
+        .filter((r) => r[nameIdx] !== undefined && r[nisIdx] !== undefined);
+
       if (dataRows.length === 0) {
         alert("Tidak ada data siswa yang valid ditemukan dalam file.");
-        e.target.value = '';
+        e.target.value = "";
         return;
       }
-      
+
       if (!confirm(`Ditemukan ${dataRows.length} data siswa. Mulai import sekarang?`)) {
-        e.target.value = '';
+        e.target.value = "";
         return;
       }
 
-    setImportProgress({ current: 0, total: dataRows.length, show: true });
-    setImportErrors([]);
-    
-    let successCount = 0;
-    const errors: string[] = [];
+      setImportProgress({ current: 0, total: dataRows.length, show: true });
+      setImportErrors([]);
 
-    // Process sequentially to prevent overwhelming the server or hitting rate limits
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      const formData = new FormData();
-      formData.append('full_name', String(row[nameIdx]).trim());
-      formData.append('nis', String(row[nisIdx]).trim());
+      let successCount = 0;
+      const errors: string[] = [];
 
-      if (kelasIdx !== -1 && row[kelasIdx]) {
-        const classNameInExcel = String(row[kelasIdx]).trim().toLowerCase();
-        const matchedClass = classes.find(c => c.name.toLowerCase() === classNameInExcel);
-        if (matchedClass) {
-          formData.append('class_id', matchedClass.id);
-        } else {
-          // Warning but don't fail the insert
-          console.warn(`Kelas '${row[kelasIdx]}' untuk siswa ${row[nameIdx]} tidak ditemukan di database.`);
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i];
+        const formData = new FormData();
+        formData.append("full_name", String(row[nameIdx]).trim());
+        formData.append("nis", String(row[nisIdx]).trim());
+
+        if (kelasIdx !== -1 && row[kelasIdx]) {
+          const classNameInExcel = String(row[kelasIdx]).trim().toLowerCase();
+          const matchedClass = classes.find(
+            (c) => c.name.toLowerCase() === classNameInExcel
+          );
+          if (matchedClass) {
+            formData.append("class_id", matchedClass.id);
+          }
         }
+
+        const result = await createStudent(formData);
+        if (result.error) {
+          errors.push(`Baris ${i + 2} (${row[nameIdx]}): ${result.error}`);
+        } else {
+          successCount++;
+        }
+        setImportProgress({ current: i + 1, total: dataRows.length, show: true });
       }
 
-      const result = await createStudent(formData);
-      if (result.error) {
-        errors.push(`Baris ${i + 2} (${row[nameIdx]}): ${result.error}`);
+      if (errors.length > 0) {
+        setImportErrors(errors);
+        alert(
+          `Import Selesai dengan beberapa catatan: ${successCount} Berhasil, ${errors.length} Gagal.`
+        );
       } else {
-        successCount++;
+        alert(`Luar Biasa! Berhasil mengimpor ${successCount} siswa tanpa masalah.`);
+        setImportProgress({ current: 0, total: 0, show: false });
+        window.location.reload();
       }
-      setImportProgress({ current: i + 1, total: dataRows.length, show: true });
-    }
-
-    if (errors.length > 0) {
-      setImportErrors(errors);
-      alert(`Import Selesai dengan beberapa masalah: ${successCount} Berhasil, ${errors.length} Gagal. Lihat daftar error di bawah.`);
-    } else {
-      alert(`Luar Biasa! Berhasil mengimpor ${successCount} siswa tanpa masalah.`);
-      setImportProgress({ current: 0, total: 0, show: false });
-      window.location.reload();
-    }
-    
-    } catch (error) {
+    } catch {
       alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
     }
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleResetDevice = (id: string, name: string) => {
-    if (!confirm(`Reset kunci perangkat untuk "${name}"? Siswa dapat menggunakan perangkat baru pada absensi berikutnya.`)) return;
+    if (
+      !confirm(
+        `Reset kunci perangkat untuk "${name}"? Siswa dapat menggunakan perangkat baru pada absensi berikutnya.`
+      )
+    )
+      return;
     startTransition(async () => {
       await resetStudentDevice(id);
     });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:max-w-md">
+    <div className="space-y-5">
+      {/* Search, Filter, Primary Actions Bar */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        {/* Search & Filter */}
+        <div className="flex flex-1 flex-col sm:flex-row gap-2.5 max-w-xl">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]" />
             <input
               type="text"
-              placeholder="Cari nama atau NIS..."
+              placeholder="Cari siswa atau NIS..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white py-2 pl-10 pr-4 text-sm text-[#1D1D1F] outline-none transition-all placeholder:text-[#8E8E93] focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
             />
           </div>
-          <select
-            value={selectedClassFilter}
-            onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-          >
-            <option value="">Semua Kelas</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="relative sm:w-48 shrink-0">
+            <select
+              value={selectedClassFilter}
+              onChange={(e) => setSelectedClassFilter(e.target.value)}
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none transition-all focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+            >
+              <option value="">Semua Kelas</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Tombol Reset HP Massal */}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleResetAllDevicesInClass}
             disabled={isPending}
-            title="Reset ikatan HP siswa agar bisa login dari perangkat baru"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+            title="Reset ikatan HP siswa"
+            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] active:scale-[0.98] transition-all"
           >
-            <RotateCcw className="h-4 w-4 text-amber-600" />
-            <span className="hidden md:inline">Reset HP {selectedClassFilter ? "Kelas Ini" : "Semua"}</span>
-            <span className="md:hidden">Reset HP</span>
+            <RotateCcw className="h-4 w-4 text-[#8E8E93]" />
+            <span>Reset HP {selectedClassFilter ? "Kelas" : "Massal"}</span>
           </button>
 
-          <input 
-            type="file" 
-            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
+          <input
+            type="file"
+            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
           />
           <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium hover:bg-accent"
+            className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] active:scale-[0.98] transition-all"
           >
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Import Excel</span>
+            <Upload className="h-4 w-4 text-[#8E8E93]" />
+            <span>Import Excel</span>
           </button>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => {
+              setFormError("");
+              setShowAddSheet(true);
+            }}
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Tambah Siswa</span>
-            <span className="sm:hidden">Tambah</span>
-          </button>
+            <span>Tambah Siswa</span>
+          </Button>
         </div>
       </div>
 
-      {/* Import Progress Indicator */}
+      {/* Import Progress Bar */}
       {importProgress.show && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 animate-fade-in shadow-2xs">
+        <div className="rounded-2xl border border-[#007AFF]/20 bg-[#007AFF]/5 p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Proses Import Berjalan...</span>
-            <span className="text-xs font-mono font-bold text-primary">{importProgress.current} / {importProgress.total}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#007AFF]">
+              Mengimpor Data Siswa...
+            </span>
+            <span className="text-xs font-mono font-bold text-[#007AFF]">
+              {importProgress.current} / {importProgress.total}
+            </span>
           </div>
-          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300" 
-              style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+          <div className="h-2 w-full bg-[#E5E5EA] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#007AFF] transition-all duration-300"
+              style={{
+                width: `${(importProgress.current / importProgress.total) * 100}%`,
+              }}
             />
           </div>
           {importProgress.current === importProgress.total && importErrors.length > 0 && (
-            <div className="mt-4 space-y-2 text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 max-h-32 overflow-y-auto">
-              <p className="font-bold">Beberapa data gagal diproses:</p>
+            <div className="mt-4 space-y-2 text-xs text-[#FF3B30] bg-[#FF3B30]/10 p-3 rounded-xl border border-[#FF3B30]/20 max-h-32 overflow-y-auto">
+              <p className="font-semibold">Beberapa baris tidak dapat diimpor:</p>
               <ul className="list-disc pl-4 space-y-1">
                 {importErrors.map((err, idx) => (
                   <li key={idx}>{err}</li>
@@ -277,155 +339,87 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
         </div>
       )}
 
-      {/* Add Form */}
-      {showForm && (
-        <div className="animate-slide-up rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-4 text-sm font-semibold">Tambah Siswa Baru</h3>
-          {formError && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{formError}</div>
-          )}
-          <form action={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Nama Lengkap</label>
-              <input name="full_name" required placeholder="Nama lengkap siswa" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2 rounded-lg bg-blue-50/50 border border-blue-100 p-3">
-              <p className="text-xs text-blue-800 font-medium">ℹ️ Info Akun Otomatis:</p>
-              <p className="text-xs text-blue-600 mt-0.5">Akun akan digenerate otomatis: <strong>nama.nis@slayer.test</strong>. Password default: <strong>password123</strong></p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">NIS</label>
-              <input name="nis" required placeholder="Nomor Induk Siswa" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Kelas</label>
-              <select name="class_id" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value="">Pilih kelas...</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.grade})</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-2 sm:col-span-2">
-              <button type="submit" disabled={isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Simpan
-              </button>
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-accent">
-                Batal
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* MOBILE LIST (Under 640px) */}
+      <div className="sm:hidden space-y-2">
+        {filtered.map((s) => {
+          const classNameStr =
+            classes.find((c) => c.id === s.class_id)?.name ||
+            s.classes?.name ||
+            "Belum ada kelas";
 
-      {/* Edit Form */}
-      {editingStudent && (
-        <div className="animate-slide-up rounded-xl border border-amber-200 bg-amber-50/50 p-5">
-          <h3 className="mb-4 text-sm font-semibold text-amber-800">Edit Data Siswa</h3>
-          {formError && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{formError}</div>
-          )}
-          <form action={handleEditSubmit} className="grid gap-4 sm:grid-cols-2">
-            <input type="hidden" name="id" value={editingStudent.id} />
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Nama Lengkap</label>
-              <input name="full_name" defaultValue={editingStudent.profiles?.full_name} required placeholder="Nama lengkap siswa" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">NIS</label>
-              <input name="nis" defaultValue={editingStudent.nis} required placeholder="Nomor Induk Siswa" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            </div>
-
-            {/* Status Perangkat di Form Edit */}
-            <div className="sm:col-span-2 rounded-lg border p-3.5 bg-background flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${editingStudent.device_id ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
-                  <Smartphone className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">
-                    Status Kunci Perangkat (HP):{" "}
-                    {editingStudent.device_id ? (
-                      <span className="text-amber-600 font-bold">Terkunci (Terikat ke HP)</span>
-                    ) : (
-                      <span className="text-muted-foreground font-normal">Belum Terikat (Bebas)</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {editingStudent.device_id
-                      ? "Siswa hanya bisa absen dari 1 HP ini. Klik tombol di kanan jika siswa ganti HP baru."
-                      : "Siswa akan otomatis mengikat HP pertama yang digunakannya saat scan absensi."}
-                  </p>
+          return (
+            <div
+              key={s.id}
+              onClick={() => setSelectedMobileStudent(s)}
+              className="min-h-[58px] flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] active:bg-[#F2F2F0] active:scale-[0.99] transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-[#1D1D1F]">
+                  {s.profiles?.full_name || "—"}
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs font-mono text-[#8E8E93]">{s.nis}</span>
+                  <span className="text-xs text-[#8E8E93]">•</span>
+                  <span className="text-xs text-[#6E6E73] font-medium">{classNameStr}</span>
                 </div>
               </div>
-
-              {editingStudent.device_id && (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => {
-                    handleResetDevice(editingStudent.id, editingStudent.profiles?.full_name || "");
-                    setEditingStudent({ ...editingStudent, device_id: null });
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset Kunci HP Siswa Ini
-                </button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {s.device_id && (
+                  <span className="h-2 w-2 rounded-full bg-[#FF9F0A]" title="HP Terkunci" />
+                )}
+                <ChevronRight className="h-4 w-4 text-[#C7C7CC]" />
+              </div>
             </div>
+          );
+        })}
 
-            <div className="flex gap-2 sm:col-span-2">
-              <button type="submit" disabled={isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50 transition-colors">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Update Data
-              </button>
-              <button type="button" onClick={() => {setEditingStudent(null); setFormError("");}} className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-background bg-white transition-colors">
-                Batal
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+        {filtered.length === 0 && (
+          <div className="p-8 text-center bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] text-[#8E8E93] text-sm">
+            {search ? "Tidak ada siswa yang cocok." : "Belum ada data siswa."}
+          </div>
+        )}
+      </div>
 
-      {/* Table List */}
-      <div className="rounded-xl border border-border bg-card">
+      {/* DESKTOP TABLE (640px and above) */}
+      <div className="hidden sm:block rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">NIS</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">Kelas</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status HP</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">Email</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
+              <tr className="border-b border-[rgba(60,60,67,0.08)] bg-[#F7F7F5]/80 text-[#6E6E73]">
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Nama</th>
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">NIS</th>
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Kelas</th>
+                <th className="px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Status HP</th>
+                <th className="hidden lg:table-cell px-5 py-3.5 text-left font-semibold text-xs tracking-wider uppercase">Email</th>
+                <th className="px-5 py-3.5 text-right font-semibold text-xs tracking-wider uppercase">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-[rgba(60,60,67,0.08)]">
               {filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{s.profiles?.full_name || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{s.nis}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    <select 
-                      value={s.class_id || ""} 
+                <tr key={s.id} className="hover:bg-[#F7F7F5]/50 transition-colors">
+                  <td className="px-5 py-3.5 font-medium text-[#1D1D1F]">
+                    {s.profiles?.full_name || "—"}
+                  </td>
+                  <td className="px-5 py-3.5 font-mono text-xs text-[#6E6E73]">{s.nis}</td>
+                  <td className="px-5 py-3.5 text-[#6E6E73]">
+                    <select
+                      value={s.class_id || ""}
                       onChange={(e) => handleClassChange(s.id, e.target.value)}
                       disabled={isPending}
-                      className="bg-transparent border border-transparent text-sm outline-none cursor-pointer hover:border-input hover:bg-muted focus:bg-background focus:border-primary p-1 rounded transition-colors -ml-1"
+                      className="bg-transparent border border-transparent text-sm text-[#1D1D1F] outline-none cursor-pointer hover:border-[rgba(60,60,67,0.16)] hover:bg-[#F2F2F0] focus:bg-white focus:border-[#007AFF] px-2 py-1 rounded-lg transition-all -ml-2"
                     >
                       <option value="">— Kosong —</option>
-                      {classes.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
                       ))}
                     </select>
                   </td>
-
-                  {/* Kolom Status Perangkat HP */}
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     {s.device_id ? (
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF9F0A]/10 px-2.5 py-1 text-xs font-semibold text-[#FF9F0A]">
                           <Smartphone className="h-3 w-3" />
                           Terkunci
                         </span>
@@ -433,44 +427,48 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
                           type="button"
                           onClick={() => handleResetDevice(s.id, s.profiles?.full_name || "")}
                           disabled={isPending}
-                          title="Klik untuk mereset agar siswa bisa absen dari HP baru"
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-50 hover:underline transition-colors"
+                          title="Reset kunci HP"
+                          className="text-xs font-semibold text-[#FF3B30] hover:underline"
                         >
-                          <RotateCcw className="h-3 w-3" />
                           Reset
                         </button>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34C759]/10 px-2.5 py-1 text-xs font-semibold text-[#34C759]">
+                        <CheckCircle2 className="h-3 w-3" />
                         Bebas
                       </span>
                     )}
                   </td>
-
-                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">{s.profiles?.email || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="hidden lg:table-cell px-5 py-3.5 text-[#8E8E93] text-xs">
+                    {s.profiles?.email || "—"}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <div className="flex justify-end gap-1.5">
                       <button
-                        onClick={() => {setEditingStudent(s); setShowForm(false); setFormError("");}}
+                        onClick={() => {
+                          setEditingStudent(s);
+                          setFormError("");
+                        }}
                         disabled={isPending}
                         title="Edit Data Siswa"
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-amber-50 hover:text-amber-600"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F] transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => window.open(`/admin/students/print-card/${s.id}`, '_blank')}
+                        onClick={() => window.open(`/admin/students/print-card/${s.id}`, "_blank")}
                         disabled={isPending}
-                        title="Cetak Kartu Absen (Bagi yang tidak punya HP)"
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-blue-50 hover:text-blue-600"
+                        title="Cetak Kartu Absen"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#007AFF]/10 hover:text-[#007AFF] transition-colors"
                       >
                         <Printer className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(s.id, s.profiles?.full_name || "")}
                         disabled={isPending}
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        title="Hapus Siswa"
+                        className="rounded-lg p-2 text-[#6E6E73] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -480,8 +478,8 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    {search ? "Tidak ada siswa yang cocok" : "Belum ada data siswa"}
+                  <td colSpan={6} className="px-5 py-10 text-center text-[#8E8E93]">
+                    {search ? "Tidak ada siswa yang cocok dengan filter." : "Belum ada data siswa."}
                   </td>
                 </tr>
               )}
@@ -489,6 +487,254 @@ export function StudentsClient({ students, classes }: { students: StudentRow[]; 
           </table>
         </div>
       </div>
+
+      {/* BOTTOM SHEET / MODAL: TAMBAH SISWA */}
+      <BottomSheet
+        isOpen={showAddSheet}
+        onClose={() => setShowAddSheet(false)}
+        title="Tambah Siswa"
+        description="Lengkapi informasi untuk mendaftarkan siswa baru."
+      >
+        <form action={handleCreateSubmit} className="space-y-4">
+          {formError && (
+            <div className="rounded-xl border border-[#FF3B30]/20 bg-[#FF3B30]/10 p-3.5 text-xs text-[#FF3B30] font-medium">
+              {formError}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
+            <input
+              name="full_name"
+              required
+              placeholder="Contoh: Andi Pratama"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
+            <input
+              name="nis"
+              required
+              placeholder="Contoh: 20250001"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#1D1D1F]">Kelas</label>
+            <select
+              name="class_id"
+              className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+            >
+              <option value="">Pilih kelas...</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.grade})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.10)] p-3 text-xs text-[#6E6E73]">
+            Akun dibuat otomatis. Kredensial awal tersedia setelah siswa tersimpan.
+          </div>
+
+          <div className="flex gap-2.5 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowAddSheet(false)}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isPending}
+              className="flex-1"
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Simpan
+            </Button>
+          </div>
+        </form>
+      </BottomSheet>
+
+      {/* BOTTOM SHEET / MODAL: EDIT SISWA */}
+      <BottomSheet
+        isOpen={!!editingStudent}
+        onClose={() => setEditingStudent(null)}
+        title="Edit Data Siswa"
+        description="Perbarui informasi profil dan status perangkat siswa."
+      >
+        {editingStudent && (
+          <form action={handleEditSubmit} className="space-y-4">
+            <input type="hidden" name="id" value={editingStudent.id} />
+            {formError && (
+              <div className="rounded-xl border border-[#FF3B30]/20 bg-[#FF3B30]/10 p-3.5 text-xs text-[#FF3B30] font-medium">
+                {formError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#1D1D1F]">Nama lengkap</label>
+              <input
+                name="full_name"
+                defaultValue={editingStudent.profiles?.full_name}
+                required
+                className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#1D1D1F]">NIS</label>
+              <input
+                name="nis"
+                defaultValue={editingStudent.nis}
+                required
+                className="w-full min-h-[44px] rounded-xl border border-[rgba(60,60,67,0.16)] bg-white px-3.5 py-2 text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/15"
+              />
+            </div>
+
+            {/* Status Perangkat HP */}
+            <div className="rounded-xl border border-[rgba(60,60,67,0.12)] p-3.5 bg-[#F7F7F5] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-[#1D1D1F]">Status Kunci HP</span>
+                {editingStudent.device_id ? (
+                  <span className="text-xs font-semibold text-[#FF9F0A]">Terkunci ke 1 HP</span>
+                ) : (
+                  <span className="text-xs font-semibold text-[#34C759]">Bebas (Belum Terikat)</span>
+                )}
+              </div>
+              <p className="text-[11px] text-[#6E6E73]">
+                {editingStudent.device_id
+                  ? "Siswa hanya bisa absen dari perangkat ini. Klik tombol di bawah jika siswa mengganti HP."
+                  : "Siswa akan otomatis mengikat HP pertama yang digunakan saat absen."}
+              </p>
+              {editingStudent.device_id && (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    handleResetDevice(editingStudent.id, editingStudent.profiles?.full_name || "");
+                    setEditingStudent({ ...editingStudent, device_id: null });
+                  }}
+                  className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-[rgba(60,60,67,0.16)] bg-white text-xs font-semibold text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset Kunci HP Siswa Ini
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingStudent(null)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isPending}
+                className="flex-1"
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Simpan Perubahan
+              </Button>
+            </div>
+          </form>
+        )}
+      </BottomSheet>
+
+      {/* MOBILE ACTION SHEET FOR SELECTED STUDENT */}
+      <BottomSheet
+        isOpen={!!selectedMobileStudent}
+        onClose={() => setSelectedMobileStudent(null)}
+        title={selectedMobileStudent?.profiles?.full_name || "Detail Siswa"}
+        description={`NIS: ${selectedMobileStudent?.nis} • ${
+          classes.find((c) => c.id === selectedMobileStudent?.class_id)?.name ||
+          selectedMobileStudent?.classes?.name ||
+          "Tanpa Kelas"
+        }`}
+      >
+        {selectedMobileStudent && (
+          <div className="space-y-3">
+            <div className="p-3.5 rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.10)] space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-[#8E8E93]">Email Akun:</span>
+                <span className="font-mono text-[#1D1D1F]">{selectedMobileStudent.profiles?.email || "—"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-[#8E8E93]">Status Perangkat:</span>
+                <span className={selectedMobileStudent.device_id ? "text-[#FF9F0A] font-semibold" : "text-[#34C759] font-semibold"}>
+                  {selectedMobileStudent.device_id ? "Terkunci (Terikat HP)" : "Bebas"}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditingStudent(selectedMobileStudent);
+                  setSelectedMobileStudent(null);
+                }}
+                className="w-full justify-start gap-2.5"
+              >
+                <Pencil className="h-4 w-4 text-[#007AFF]" />
+                <span>Edit Informasi Siswa</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  window.open(`/admin/students/print-card/${selectedMobileStudent.id}`, "_blank");
+                }}
+                className="w-full justify-start gap-2.5"
+              >
+                <Printer className="h-4 w-4 text-[#34C759]" />
+                <span>Cetak Kartu Absen (QR)</span>
+              </Button>
+
+              {selectedMobileStudent.device_id && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    handleResetDevice(selectedMobileStudent.id, selectedMobileStudent.profiles?.full_name || "");
+                    setSelectedMobileStudent({ ...selectedMobileStudent, device_id: null });
+                  }}
+                  className="w-full justify-start gap-2.5 text-[#FF9F0A]"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset Kunci HP Siswa</span>
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  handleDelete(selectedMobileStudent.id, selectedMobileStudent.profiles?.full_name || "");
+                }}
+                className="w-full justify-start gap-2.5"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Hapus Data Siswa</span>
+              </Button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }
