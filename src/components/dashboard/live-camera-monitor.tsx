@@ -40,6 +40,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { createClient } from "@/lib/supabase/client";
 
 interface TelemetryPoint {
   id: string;
@@ -514,16 +515,34 @@ export function LiveCameraMonitor() {
     fetchTelemetry();
     fetchHermesNudge(telemetry, subjects);
 
+    // Enterprise Realtime: Dengarkan event insert telemetri baru secara instan via Supabase Realtime WebSocket
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime-classroom-telemetry")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "classroom_telemetry",
+        },
+        () => {
+          fetchTelemetry();
+        }
+      )
+      .subscribe();
+
     const interval = setInterval(() => {
       checkStreamStatus();
       fetchTelemetry();
-    }, 1500);
+    }, 2500);
 
     const nudgeInterval = setInterval(() => {
       fetchHermesNudge(telemetry, subjects);
-    }, 12000);
+    }, 15000);
 
     return () => {
+      supabase.removeChannel(channel);
       clearInterval(interval);
       clearInterval(nudgeInterval);
     };
