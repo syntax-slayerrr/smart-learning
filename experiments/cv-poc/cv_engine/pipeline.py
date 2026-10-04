@@ -91,6 +91,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
 
     server_http = jalankan_server_mjpeg(konfigurasi.port, status_server)
     kamera_aliran = KameraUtasTerpisah(sumber=konfigurasi.source, fps_target=konfigurasi.target_fps).mulai()
+    status_server.tautkan_kamera(kamera_aliran)
 
     # ==========================================================================
     # 4. Utas Pekerja Inferensi Asinkronus (Decoupled Multi-Threaded Inference)

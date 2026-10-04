@@ -24,6 +24,11 @@ import {
   CheckCircle2,
   Moon,
   Users,
+  Camera,
+  Usb,
+  AlertCircle,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import {
   AreaChart,
@@ -199,6 +204,59 @@ export function LiveCameraMonitor() {
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [aspectRatioMode, setAspectRatioMode] = useState<"portrait" | "landscape">("portrait");
 
+  // Dynamic Camera Source Switching States
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
+  const [availableWebcams, setAvailableWebcams] = useState<{ index: number; name: string; device_path?: string }[]>([]);
+  const [currentCameraSource, setCurrentCameraSource] = useState<string | number>("0");
+  const [isCameraHardwareConnected, setIsCameraHardwareConnected] = useState<boolean>(true);
+  const [customIpUrl, setCustomIpUrl] = useState<string>("http://10.10.10.33:8080/video");
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState<boolean>(false);
+  const [cameraSwitchNotice, setCameraSwitchNotice] = useState<string | null>(null);
+  const [cameraModalTab, setCameraModalTab] = useState<"webcam" | "ip">("webcam");
+  const [feedTimestamp, setFeedTimestamp] = useState<number>(Date.now());
+
+  const fetchAvailableCameras = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/camera_sources", { mode: "cors" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.available_cameras)) {
+          setAvailableWebcams(data.available_cameras);
+        }
+        if (data.current_source !== undefined) {
+          setCurrentCameraSource(data.current_source);
+        }
+        if (typeof data.camera_connected === "boolean") {
+          setIsCameraHardwareConnected(data.camera_connected);
+        }
+      }
+    } catch (err) {
+      console.warn("[LiveCameraMonitor] Gagal memuat daftar kamera fisik:", err);
+    }
+  };
+
+  const switchCameraSource = async (newSource: string | number) => {
+    setIsSwitchingCamera(true);
+    setCameraSwitchNotice(null);
+    try {
+      const encoded = encodeURIComponent(String(newSource).trim());
+      const res = await fetch(`http://localhost:5000/switch_camera?source=${encoded}`, { mode: "cors" });
+      const data = await res.json();
+      if (data?.success) {
+        setCurrentCameraSource(data.current_source ?? newSource);
+        setIsCameraHardwareConnected(Boolean(data.camera_connected));
+        setCameraSwitchNotice(data.message || `Berhasil beralih ke: ${newSource}`);
+        setFeedTimestamp(Date.now());
+      } else {
+        setCameraSwitchNotice(data?.message || "Gagal mengalihkan sumber kamera.");
+      }
+    } catch (err) {
+      setCameraSwitchNotice("Gagal menghubungi server kamera di port 5000. Pastikan engine Python aktif.");
+    } finally {
+      setIsSwitchingCamera(false);
+    }
+  };
+
   const rotateCamera = async (deg: string) => {
     setCameraRotation(deg);
     try {
@@ -236,6 +294,8 @@ export function LiveCameraMonitor() {
           const data = await res.json();
           if (data?.rotation) setCameraRotation(data.rotation);
           if (typeof data?.flip_h === "boolean") setIsFlipped(data.flip_h);
+          if (data?.current_source !== undefined) setCurrentCameraSource(data.current_source);
+          if (typeof data?.camera_connected === "boolean") setIsCameraHardwareConnected(data.camera_connected);
         } catch {}
       } else {
         setStreamOnline(false);
@@ -359,6 +419,7 @@ export function LiveCameraMonitor() {
 
   useEffect(() => {
     checkStreamStatus();
+    fetchAvailableCameras();
     fetchTelemetry();
     fetchHermesNudge(telemetry, subjects);
 
@@ -670,11 +731,32 @@ export function LiveCameraMonitor() {
           {/* Left Pane: Live Video Stream */}
           <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between bg-stone-950/2">
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-stone-600">
-                <span className="font-semibold text-stone-800 flex items-center gap-1.5">
-                  <Video className="h-4 w-4 text-[#EA580C]" />
-                  Visual Feed: {activeChannel.name}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-stone-800 flex items-center gap-1.5">
+                    <Video className="h-4 w-4 text-[#EA580C]" />
+                    Visual Feed: {activeChannel.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      fetchAvailableCameras();
+                      setShowCameraModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 text-[11px] font-medium shadow-2xs transition-all active:scale-[0.98]"
+                    title="Buka Pengaturan Kamera & Webcam"
+                  >
+                    <Camera className="h-3 w-3 text-orange-400" />
+                    <span>Sumber:</span>
+                    <span className="font-mono font-bold text-orange-200">
+                      {typeof currentCameraSource === "number" ? `Webcam ${currentCameraSource}` : "Kamera IP"}
+                    </span>
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        isCameraHardwareConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+                      }`}
+                    />
+                  </button>
+                </div>
                 <span className="font-mono text-[11px] text-stone-400">
                   {activeChannel.ipAddress}
                 </span>
@@ -767,7 +849,7 @@ export function LiveCameraMonitor() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       ref={videoImgRef}
-                      src={activeChannel.streamUrl}
+                      src={`${activeChannel.streamUrl}?t=${feedTimestamp}`}
                       alt={`Live Stream ${activeChannel.name}`}
                       className="w-full h-full object-contain"
                       onError={() => setStreamOnline(false)}
@@ -1107,6 +1189,235 @@ export function LiveCameraMonitor() {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL / DIALOG: PENGATURAN SUMBER KAMERA & WEBCAM EKSTERNAL                */}
+      {/* ========================================================================= */}
+      {showCameraModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="relative w-full max-w-lg rounded-2xl border border-stone-200 bg-[#FAF9F5] p-5 shadow-2xl space-y-4">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-stone-200/80 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-[#EA580C]">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 tracking-tight">
+                    Pengaturan Sumber Kamera & Webcam
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    Alihkan sumber video langsung dari UI tanpa restart engine Python
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCameraModal(false)}
+                className="rounded-lg p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Notification / Feedback Banner */}
+            {cameraSwitchNotice && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-2.5 flex items-center gap-2 text-xs text-orange-900 animate-in fade-in">
+                <CheckCircle2 className="h-4 w-4 text-[#EA580C] shrink-0" />
+                <span className="text-[11.5px] font-medium flex-1">{cameraSwitchNotice}</span>
+              </div>
+            )}
+
+            {/* Current Active Source Pill */}
+            <div className="rounded-xl border border-stone-200 bg-white p-3 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    isCameraHardwareConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"
+                  }`}
+                />
+                <span className="font-semibold text-stone-700">Sumber Aktif:</span>
+                <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+                  {typeof currentCameraSource === "number" ? `Webcam Device #${currentCameraSource}` : currentCameraSource}
+                </span>
+              </div>
+              <span
+                className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
+                  isCameraHardwareConnected
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {isCameraHardwareConnected ? "Kamera Terhubung" : "Menghubungkan..."}
+              </span>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex rounded-lg bg-stone-200/60 p-1 text-xs font-semibold">
+              <button
+                onClick={() => setCameraModalTab("webcam")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
+                  cameraModalTab === "webcam"
+                    ? "bg-white text-stone-900 shadow-2xs"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                <Usb className="h-3.5 w-3.5 text-[#EA580C]" />
+                <span>Webcam USB / Laptop</span>
+              </button>
+              <button
+                onClick={() => setCameraModalTab("ip")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
+                  cameraModalTab === "ip"
+                    ? "bg-white text-stone-900 shadow-2xs"
+                    : "text-stone-600 hover:text-stone-900"
+                }`}
+              >
+                <Smartphone className="h-3.5 w-3.5 text-[#EA580C]" />
+                <span>Kamera HP / Nirkabel (IP)</span>
+              </button>
+            </div>
+
+            {/* Tab 1 Content: Local Webcams */}
+            {cameraModalTab === "webcam" && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-xs text-stone-500">
+                  <span>Perangkat Terdeteksi:</span>
+                  <button
+                    onClick={fetchAvailableCameras}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-700 hover:text-orange-600 transition-colors"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    <span>Pindai Ulang Port USB</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
+                  {availableWebcams.length > 0 ? (
+                    availableWebcams.map((cam) => {
+                      const isActive = String(currentCameraSource) === String(cam.index);
+                      return (
+                        <div
+                          key={cam.index}
+                          className={`rounded-xl border p-3 flex items-center justify-between transition-all ${
+                            isActive
+                              ? "border-orange-500/40 bg-orange-50/50 shadow-2xs"
+                              : "border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                isActive ? "bg-[#EA580C] text-white" : "bg-stone-100 text-stone-600"
+                              }`}
+                            >
+                              <Usb className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-stone-900 truncate">
+                                {cam.name}
+                              </p>
+                              <p className="text-[10px] font-mono text-stone-500">
+                                Indeks Device: #{cam.index} {cam.device_path ? `(${cam.device_path})` : ""}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => switchCameraSource(cam.index)}
+                            disabled={isActive || isSwitchingCamera}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all active:scale-[0.98] shrink-0 ${
+                              isActive
+                                ? "bg-emerald-600 text-white cursor-default"
+                                : "bg-stone-900 hover:bg-stone-800 text-white"
+                            }`}
+                          >
+                            {isActive ? "✓ Aktif" : isSwitchingCamera ? "Menghubungkan..." : "Pilih Kamera"}
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 rounded-xl border border-stone-200 bg-white text-center text-xs text-stone-500">
+                      <p>Tidak ada device tambahan terdeteksi.</p>
+                      <button
+                        onClick={() => switchCameraSource(0)}
+                        className="mt-2 text-[#EA580C] font-bold hover:underline"
+                      >
+                        Gunakan Webcam Default (Device 0)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2 Content: IP Webcam (Phone / Wireless RTSP/HTTP) */}
+            {cameraModalTab === "ip" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    URL Video Stream (HTTP / RTSP)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customIpUrl}
+                      onChange={(e) => setCustomIpUrl(e.target.value)}
+                      placeholder="http://192.168.1.15:8080/video"
+                      className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                    <button
+                      onClick={() => switchCameraSource(customIpUrl)}
+                      disabled={isSwitchingCamera || !customIpUrl.trim()}
+                      className="rounded-xl bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 text-xs font-bold transition-all active:scale-[0.98] shrink-0 disabled:opacity-50"
+                    >
+                      {isSwitchingCamera ? "Menyambung..." : "Sambungkan"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <p className="text-[11px] font-semibold text-stone-500 mb-1.5">Preset Cepat Kamera HP:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => setCustomIpUrl("http://10.10.10.33:8080/video")}
+                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[10.5px] font-mono hover:bg-stone-100 text-stone-700"
+                    >
+                      IP Webcam (:8080/video)
+                    </button>
+                    <button
+                      onClick={() => setCustomIpUrl("http://192.168.1.15:4747/video")}
+                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[10.5px] font-mono hover:bg-stone-100 text-stone-700"
+                    >
+                      DroidCam (:4747/video)
+                    </button>
+                    <button
+                      onClick={() => switchCameraSource(0)}
+                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[10.5px] font-medium hover:bg-stone-100 text-stone-700"
+                    >
+                      Kembali ke Webcam Laptop (0)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="border-t border-stone-200/80 pt-3 flex items-center justify-between text-xs text-stone-400">
+              <span className="font-mono text-[10.5px]">
+                Engine: EDUAI_V4 • Port 5000
+              </span>
+              <button
+                onClick={() => setShowCameraModal(false)}
+                className="rounded-lg bg-stone-200 hover:bg-stone-300/80 text-stone-800 px-3.5 py-1.5 text-xs font-semibold transition-all"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

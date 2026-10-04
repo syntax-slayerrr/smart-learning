@@ -40,12 +40,14 @@ class StatusServerStreaming:
         self.bingkai_jpeg_terakhir: Optional[bytes] = None
         self.kunci_bingkai = threading.Lock()
         self.peristiwa_berhenti = threading.Event()
+        self.kamera: Any = None
 
         self.rotasi: str = "auto"
         self.cermin_h: bool = False
         self.kunci_rotasi = threading.Lock()
 
         # Alias kompatibilitas bahasa Inggris
+        self.camera = self.kamera
         self.gallery_manager = self.manajer_galeri
         self.sync_status_fn = self.fungsi_status_sinkronisasi
         self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
@@ -54,6 +56,11 @@ class StatusServerStreaming:
         self.rotation = self.rotasi
         self.flip_h = self.cermin_h
         self.rotation_lock = self.kunci_rotasi
+
+    def tautkan_kamera(self, kamera: Any) -> None:
+        """Menautkan instans KameraUtasTerpisah agar endpoint REST dapat mengontrol sumber secara dinamis."""
+        self.kamera = kamera
+        self.camera = kamera
 
     def perbarui_bingkai(self, data_bytes_jpeg: bytes) -> None:
         """Memperbarui frame terkini untuk disiarkan ke seluruh klien yang terhubung."""
@@ -102,6 +109,13 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
         # Meredam logging berlebih pada terminal
         pass
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-edge-device-key")
+        self.end_headers()
+
     def do_GET(self):
         state = self.state
         if state is None:
@@ -122,6 +136,9 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
 
             rot_val, cermin_val = state.ambil_orientasi()
             sinkron_val = state.fungsi_status_sinkronisasi()
+            sumber_aktif = state.kamera.sumber if (state.kamera and hasattr(state.kamera, "sumber")) else 0
+            kamera_konek = state.kamera.apakah_terhubung if (state.kamera and hasattr(state.kamera, "apakah_terhubung")) else False
+
             muatan = {
                 "status": "online",
                 "engine": "SYNTAX_SLAYER_EDUAI_V4_MODULAR",
@@ -129,12 +146,60 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                 "rotation": rot_val,
                 "flip_h": cermin_val,
                 "cloud_sync": sinkron_val,
+                "current_source": sumber_aktif,
+                "camera_connected": kamera_konek,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             self.wfile.write(json.dumps(muatan).encode("utf-8"))
             return
 
-        # 2. Endpoint Kontrol Rotasi Kamera
+        # 2a. Endpoint Daftar Perangkat Kamera Fisik & Status Sumber
+        if jalur_url in ("/camera_sources", "/camera/sources"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+            from cv_engine.streaming.camera import KameraUtasTerpisah
+            daftar_kamera = KameraUtasTerpisah.deteksi_kamera_tersedia()
+            sumber_aktif = state.kamera.sumber if (state.kamera and hasattr(state.kamera, "sumber")) else 0
+            kamera_konek = state.kamera.apakah_terhubung if (state.kamera and hasattr(state.kamera, "apakah_terhubung")) else False
+
+            jawaban = {
+                "success": True,
+                "current_source": sumber_aktif,
+                "camera_connected": kamera_konek,
+                "available_cameras": daftar_kamera,
+            }
+            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
+            return
+
+        # 2b. Endpoint Alihkan Sumber Kamera Secara Dinamis
+        if jalur_url in ("/switch_camera", "/camera/switch"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+            sumber_baru = parameter.get("source", [None])[0] or parameter.get("src", [None])[0]
+            if sumber_baru is not None and state.kamera and hasattr(state.kamera, "ganti_sumber"):
+                sukses, pesan = state.kamera.ganti_sumber(sumber_baru)
+                jawaban = {
+                    "success": sukses,
+                    "message": pesan,
+                    "current_source": state.kamera.sumber,
+                    "camera_connected": state.kamera.apakah_terhubung
+                }
+            else:
+                jawaban = {
+                    "success": False,
+                    "message": "Parameter 'source' tidak ditemukan atau modul kamera belum ditautkan",
+                    "current_source": state.kamera.sumber if state.kamera else 0
+                }
+            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
+            return
+
+        # 2c. Endpoint Kontrol Rotasi Kamera
         if jalur_url == "/rotate":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
