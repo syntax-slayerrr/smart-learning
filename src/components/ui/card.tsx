@@ -13,18 +13,18 @@ export function Card({
 }: CardProps) {
   const variantStyles = {
     default:
-      "bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_2px_12px_rgba(0,0,0,0.04)]",
+      "bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/10 shadow-xs",
     secondary:
-      "bg-[#F7F7F5] border border-[rgba(60,60,67,0.08)] shadow-[0_1px_3px_rgba(0,0,0,0.02)]",
-    outline: "bg-transparent border border-[rgba(60,60,67,0.16)]",
+      "bg-stone-50/80 dark:bg-zinc-800/80 border border-stone-200/80 dark:border-white/10 shadow-xs",
+    outline: "bg-transparent border border-stone-200 dark:border-white/10",
     interactive:
-      "bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[rgba(60,60,67,0.2)] active:scale-[0.99] transition-all duration-200 cursor-pointer",
+      "bg-white dark:bg-zinc-900 border border-stone-200 dark:border-white/10 shadow-xs hover:border-orange-500/40 hover:shadow-sm active:scale-[0.99] transition-all duration-150 cursor-pointer",
   };
 
   return (
     <div
       className={cn(
-        "rounded-[20px] p-5 text-[#1D1D1F]",
+        "rounded-2xl p-5 text-stone-900 dark:text-stone-100",
         variantStyles[variant],
         className
       )}
@@ -58,7 +58,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        "text-base font-semibold tracking-tight text-[#1D1D1F]",
+        "text-base font-semibold tracking-tight text-foreground",
         className
       )}
       {...props}
@@ -74,7 +74,7 @@ export function CardDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-xs text-[#6E6E73] leading-relaxed", className)} {...props}>
+    <p className={cn("text-xs text-muted-foreground leading-relaxed", className)} {...props}>
       {children}
     </p>
   );
@@ -100,7 +100,7 @@ export function CardFooter({
   return (
     <div
       className={cn(
-        "flex items-center pt-4 border-t border-[rgba(60,60,67,0.08)]",
+        "flex items-center pt-4 border-t border-border/80",
         className
       )}
       {...props}

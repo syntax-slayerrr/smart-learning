@@ -16,16 +16,16 @@ export function MobileTopNav({ role }: MobileTopNavProps) {
 
   const destinations = [
     { label: "Beranda", href: "/admin" },
-    { label: "Siswa", href: "/admin/students" },
-    { label: "Absensi", href: "/admin/attendance" },
-    { label: "AI Classroom", href: "/admin/camera-monitor" },
-    { label: "Laporan", href: "/admin/reports" },
+    { label: "Presensi Siswa", href: "/admin/attendance" },
+    { label: "Presensi Guru", href: "/admin/attendance/teachers" },
+    { label: "Direktori Siswa", href: "/admin/students" },
+    { label: "Laporan & Rekap", href: "/admin/reports" },
     { label: "Pengaturan", href: "/admin/settings" },
   ];
 
   return (
-    <div className="lg:hidden border-b border-[rgba(60,60,67,0.08)] bg-[#F7F7F5]/95 px-4 py-2 backdrop-blur-md overflow-x-auto scrollbar-none">
-      <nav className="flex items-center gap-1.5 min-w-max">
+    <div className="lg:hidden border-b border-stone-200 dark:border-white/10 bg-[#FBF9F5]/95 dark:bg-[#121110]/95 px-4 py-2 backdrop-blur-md overflow-x-auto scrollbar-none">
+      <nav className="flex items-center gap-2 min-w-max">
         {destinations.map((item) => {
           const isActive =
             item.href === "/admin"
@@ -37,10 +37,10 @@ export function MobileTopNav({ role }: MobileTopNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 select-none min-h-[36px] flex items-center",
+                "rounded-full px-4 py-2 text-xs font-medium transition-all duration-150 select-none min-h-[44px] flex items-center active:scale-[0.98]",
                 isActive
-                  ? "bg-[#007AFF] text-white font-semibold shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
-                  : "bg-white text-[#6E6E73] hover:text-[#1D1D1F] border border-[rgba(60,60,67,0.12)]"
+                  ? "bg-orange-600 text-white font-semibold shadow-xs"
+                  : "bg-white dark:bg-zinc-900 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 border border-stone-200 dark:border-white/10"
               )}
             >
               {item.label}

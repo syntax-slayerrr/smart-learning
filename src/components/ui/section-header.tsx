@@ -22,11 +22,11 @@ export function SectionHeader({
       )}
     >
       <div>
-        <h2 className="text-base font-semibold tracking-tight text-[#1D1D1F]">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
           {title}
         </h2>
         {description && (
-          <p className="text-xs text-[#6E6E73] mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
       {action && <div className="flex items-center gap-2 pt-1 sm:pt-0">{action}</div>}

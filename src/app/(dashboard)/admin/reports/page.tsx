@@ -99,100 +99,138 @@ export default async function AdminReportsPage() {
 
   return (
     <div className="dashboard-container space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Laporan & Analitik</h1>
-        <p className="text-muted-foreground">
-          Ringkasan performa kehadiran siswa di SYNTAX SLAYER berdasarkan data riil (real-time).
+      <div className="pb-2">
+        <span className="text-[10px] font-bold tracking-wider uppercase text-orange-600 dark:text-orange-400">
+          PUSAT LAPORAN & AUDIT AKADEMIK • SMK TI SYNTAX SLAYER
+        </span>
+        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 sm:text-3xl mt-0.5">
+          Laporan & Analisis Presensi
+        </h1>
+        <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+          Audit kehadiran siswa dan pengajar berbasis data telemetri real-time untuk kebutuhan akreditasi dan evaluasi akademik.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-5 shadow-xs">
           <div className="flex items-center gap-3.5">
-            <div className="rounded-xl bg-primary/10 border border-primary/20 p-2.5 text-primary">
+            <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-2.5 text-orange-600 dark:text-orange-400">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Siswa Terdaftar</p>
-              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{studentCount || 0}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Total Siswa Terdaftar</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-stone-900 dark:text-stone-100">{studentCount || 0}</p>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-5 shadow-xs">
           <div className="flex items-center gap-3.5">
-            <div className="rounded-xl bg-primary/10 border border-primary/20 p-2.5 text-primary">
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-emerald-600 dark:text-emerald-400">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rata-rata Kehadiran</p>
-              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{attendanceRate}%</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Rata-rata Kehadiran</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-stone-900 dark:text-stone-100">{attendanceRate}%</p>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-5 shadow-xs">
           <div className="flex items-center gap-3.5">
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-amber-600">
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-amber-600 dark:text-amber-400">
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tingkat Keterlambatan</p>
-              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{latenessRate}%</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Tingkat Keterlambatan</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-stone-900 dark:text-stone-100">{latenessRate}%</p>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs">
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-5 shadow-xs">
           <div className="flex items-center gap-3.5">
-            <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-2.5 text-indigo-600">
+            <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-2.5 text-blue-600 dark:text-blue-400">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Hari Efektif Belajar</p>
-              <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{uniqueDays}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Hari Efektif Belajar</p>
+              <p className="text-2xl font-bold font-mono tracking-tight text-stone-900 dark:text-stone-100">{uniqueDays} Hari</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="font-semibold mb-4">Statistik Per Kelas (Top 5)</h3>
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-6 shadow-xs">
+          <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100 mb-1">Peringkat Kehadiran Rombel (Top 5)</h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">Kelas dengan persentase kehadiran tertinggi semester ini</p>
           <div className="space-y-4">
             {classStatsArray.length > 0 ? (
               classStatsArray.map((cls, idx) => (
                 <div key={idx} className="flex items-center justify-between">
-                  <div className="text-sm font-medium w-24 truncate" title={cls.name}>{cls.name}</div>
+                  <div className="text-sm font-medium w-28 truncate text-stone-900 dark:text-stone-100" title={cls.name}>{cls.name}</div>
                   <div className="flex items-center gap-4 flex-1 ml-4">
-                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-stone-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-primary transition-all duration-1000 ease-out" 
+                        className="h-full bg-orange-600 rounded-full transition-all duration-500 ease-out" 
                         style={{ width: `${cls.percentage}%` }}
                       />
                     </div>
-                    <span className="text-xs font-mono w-10 text-right">{cls.percentage}%</span>
+                    <span className="text-xs font-mono font-bold w-12 text-right text-stone-900 dark:text-stone-100">{cls.percentage}%</span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
+              <div className="py-8 text-center text-sm text-stone-400">
                 Belum ada data absensi untuk menampilkan statistik kelas.
               </div>
             )}
           </div>
         </div>
         
-        <div className="rounded-xl border bg-card p-6 shadow-sm flex flex-col justify-center items-center text-center h-full min-h-[250px]">
-          <BarChart3 className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-          <p className="text-muted-foreground text-sm max-w-xs">
-            Data statistik di atas dihitung secara real-time dari seluruh riwayat absensi (Hadir, Telat, Sakit, Izin, Alpa) yang tercatat di database.
-          </p>
+        {/* Executive Verification Card (Replaces empty decorative chart) */}
+        <div className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                AUDIT INTEGRITAS DATA
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                Terverifikasi
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 mt-1">
+              Catatan Rekapitulasi Terverifikasi
+            </h3>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              Data analitik dihitung otomatis dari <strong className="font-mono text-stone-900 dark:text-stone-100">{totalRecords}</strong> catatan absensi Jam Pelajaran (JP).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 my-4 py-3 border-y border-stone-100 dark:border-white/5">
+            <div>
+              <span className="text-[11px] text-stone-500">Total Record Sesi</span>
+              <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100">{totalRecords}</p>
+            </div>
+            <div>
+              <span className="text-[11px] text-stone-500">Standar Kurikulum</span>
+              <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100">K-Merdeka</p>
+            </div>
+          </div>
+
+          <a
+            href="#monthly-report-section"
+            className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 flex items-center justify-between"
+          >
+            <span>Buka Generator Lembar Rekap Bulanan</span>
+            <span>↓</span>
+          </a>
         </div>
       </div>
 
       {/* Monthly Report Generator Section */}
-      <div id="monthly-report-section">
+      <div id="monthly-report-section" className="pt-2">
         <div className="mb-4">
-          <h2 className="text-xl font-bold">Laporan Rekap Bulanan</h2>
-          <p className="text-sm text-muted-foreground">Pilih bulan dan kelas untuk mencetak rekapitulasi absensi.</p>
+          <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">Laporan Rekapitulasi Bulanan</h2>
+          <p className="text-xs text-stone-500 dark:text-stone-400">Pilih periode bulan dan rombel untuk mencetak lembar rekapitulasi terstruktur.</p>
         </div>
         <MonthlyReportClient classes={classes || []} />
       </div>

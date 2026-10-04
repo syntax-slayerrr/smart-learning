@@ -1,62 +1,62 @@
 @import "tailwindcss";
 
 @theme {
-  /* Apple HIG Semantic Palette */
-  --color-background: #F7F7F5;
-  --color-foreground: #1D1D1F;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+  /* Warm Pearl Sand & Neutral Palette (Anti-AI Slop) */
+  --color-background: #FBF9F5;
+  --color-foreground: #1C1917;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, "SF Mono", "Menlo", monospace;
 
-  /* Primary Brand / Apple System Blue */
-  --color-primary: #007AFF;
-  --color-primary-hover: #0062CC;
-  --color-primary-active: #004FB3;
+  /* Primary Brand: Rich Solar Orange (#EA580C) */
+  --color-primary: #EA580C;
+  --color-primary-hover: #C2410C;
+  --color-primary-active: #9A3412;
   --color-primary-foreground: #FFFFFF;
-  --color-primary-subtle: rgba(0, 122, 255, 0.10);
+  --color-primary-subtle: rgba(234, 88, 12, 0.08);
 
   /* Surfaces & Materials */
   --color-card: #FFFFFF;
-  --color-card-foreground: #1D1D1F;
-  --color-surface-secondary: #F2F2F0;
-  --color-surface-tertiary: #EDEDEB;
+  --color-card-foreground: #1C1917;
+  --color-surface-secondary: #F5F2EB;
+  --color-surface-tertiary: #EFEAE1;
 
   /* Neutrals & Text Tokens */
-  --color-muted: #F2F2F0;
-  --color-muted-foreground: #6E6E73;
-  --color-border: rgba(60, 60, 67, 0.16);
-  --color-border-strong: rgba(60, 60, 67, 0.28);
-  --color-ring: #007AFF;
-  --color-input: rgba(60, 60, 67, 0.16);
+  --color-muted: #F5F2EB;
+  --color-muted-foreground: #78716C;
+  --color-border: #E7E2DA;
+  --color-border-strong: #D1C9BE;
+  --color-ring: #EA580C;
+  --color-input: #E7E2DA;
 
   /* Popover & Overlays */
   --color-popover: #FFFFFF;
-  --color-popover-foreground: #1D1D1F;
+  --color-popover-foreground: #1C1917;
 
   /* Sidebar Navigation */
-  --color-sidebar: #F7F7F5;
-  --color-sidebar-foreground: #1D1D1F;
-  --color-sidebar-border: rgba(60, 60, 67, 0.12);
-  --color-sidebar-ring: #007AFF;
-  --color-sidebar-accent: rgba(0, 122, 255, 0.08);
-  --color-sidebar-accent-foreground: #007AFF;
+  --color-sidebar: #F7F5F0;
+  --color-sidebar-foreground: #1C1917;
+  --color-sidebar-border: #E7E2DA;
+  --color-sidebar-ring: #EA580C;
+  --color-sidebar-accent: rgba(234, 88, 12, 0.08);
+  --color-sidebar-accent-foreground: #EA580C;
 
   /* Semantic Status */
-  --color-success: #34C759;
-  --color-warning: #FF9F0A;
-  --color-destructive: #FF3B30;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-destructive: #DC2626;
   --color-destructive-foreground: #FFFFFF;
-  --color-info: #5E5CE6;
-  --color-accent: #007AFF;
+  --color-info: #2563EB;
+  --color-accent: #EA580C;
   --color-accent-foreground: #FFFFFF;
-  --color-secondary: #F2F2F0;
-  --color-secondary-foreground: #1D1D1F;
+  --color-secondary: #F5F2EB;
+  --color-secondary-foreground: #1C1917;
 
   /* Restrained Apple Radius Scale */
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-pill: 999px;
 
   /* Apple-Grade Motion Curves */
@@ -67,30 +67,30 @@
 
 @layer base {
   :root {
-    --background: #F7F7F5;
+    --background: #FBF9F5;
     --surface: #FFFFFF;
-    --surface-secondary: #F2F2F0;
-    --surface-tertiary: #EDEDEB;
+    --surface-secondary: #F5F2EB;
+    --surface-tertiary: #EFEAE1;
 
-    --text-primary: #1D1D1F;
-    --text-secondary: #6E6E73;
-    --text-tertiary: #8E8E93;
-    --text-disabled: #AEAEB2;
+    --text-primary: #1C1917;
+    --text-secondary: #78716C;
+    --text-tertiary: #A8A29E;
+    --text-disabled: #D6D3D1;
 
-    --separator: rgba(60, 60, 67, 0.16);
-    --separator-strong: rgba(60, 60, 67, 0.28);
+    --separator: #E7E2DA;
+    --separator-strong: #D1C9BE;
 
-    --accent: #007AFF;
-    --accent-soft: rgba(0, 122, 255, 0.10);
+    --accent: #EA580C;
+    --accent-soft: rgba(234, 88, 12, 0.08);
 
-    --success: #34C759;
-    --warning: #FF9F0A;
-    --danger: #FF3B30;
-    --info: #5E5CE6;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --info: #2563EB;
 
-    --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.06);
-    --shadow-floating: 0 16px 50px rgba(0, 0, 0, 0.10);
+    --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-card: 0 4px 20px -2px rgba(28, 25, 23, 0.05);
+    --shadow-floating: 0 12px 36px -4px rgba(28, 25, 23, 0.08);
   }
 
   *,
@@ -101,20 +101,8 @@
 
   body {
     background-color: var(--background);
-    background-image:
-      radial-gradient(
-        circle at 15% 10%,
-        rgba(120, 180, 255, 0.12),
-        transparent 32%
-      ),
-      radial-gradient(
-        circle at 85% 75%,
-        rgba(155, 120, 255, 0.08),
-        transparent 34%
-      );
-    background-attachment: fixed;
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Plus Jakarta Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02" 1, "cv03" 1, "cv11" 1, "tnum" 1;

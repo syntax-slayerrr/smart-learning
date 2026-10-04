@@ -14,8 +14,8 @@ export function List({
 }: ListProps) {
   const variantStyles = {
     inset:
-      "divide-y divide-[rgba(60,60,67,0.08)] rounded-[20px] bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden",
-    plain: "divide-y divide-[rgba(60,60,67,0.08)] bg-transparent",
+      "divide-y divide-border rounded-2xl bg-card border border-border shadow-xs overflow-hidden",
+    plain: "divide-y divide-border bg-transparent",
     cards: "space-y-2.5 bg-transparent",
   };
 
@@ -56,16 +56,16 @@ export function ListRow({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {leading && <div className="flex-shrink-0">{leading}</div>}
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-[#1D1D1F] truncate">
+          <div className="text-sm font-semibold text-foreground truncate">
             {title}
           </div>
           {subtitle && (
-            <div className="text-xs text-[#6E6E73] truncate mt-0.5">
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
               {subtitle}
             </div>
           )}
           {metadata && (
-            <div className="text-[11px] text-[#8E8E93] truncate mt-0.5">
+            <div className="text-[11px] text-muted-foreground/80 truncate mt-0.5 font-mono">
               {metadata}
             </div>
           )}
@@ -75,7 +75,7 @@ export function ListRow({
       <div className="flex items-center gap-2 flex-shrink-0">
         {trailing}
         {chevron && (
-          <ChevronRight className="h-4 w-4 text-[#8E8E93] ml-1 flex-shrink-0" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground ml-1 flex-shrink-0" />
         )}
       </div>
     </>
@@ -84,8 +84,8 @@ export function ListRow({
   const sharedClasses = cn(
     "flex w-full items-center justify-between gap-3 px-4 py-3.5 min-h-[52px] text-left transition-colors duration-150 select-none",
     isCard
-      ? "rounded-2xl bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_1px_4px_rgba(0,0,0,0.02)] hover:border-[rgba(60,60,67,0.2)]"
-      : "hover:bg-[#F7F7F5]/80 active:bg-[#F2F2F0]",
+      ? "rounded-xl bg-card border border-border shadow-xs hover:border-border/80"
+      : "hover:bg-muted/50 active:bg-muted/80",
     className
   );
 
@@ -97,7 +97,7 @@ export function ListRow({
         onClick={onClick}
         className={cn(
           sharedClasses,
-          "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF] focus-visible:ring-inset"
+          "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset apple-press"
         )}
       >
         {content}

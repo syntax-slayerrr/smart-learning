@@ -41,7 +41,7 @@ export function LoginForm() {
                     setUsername(r);
                     setPassword("password123");
                   }}
-                  className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted/80 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer border border-border/60"
+                  className="text-[10px] px-2 py-1 rounded-md font-mono bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer border border-border/80 apple-press min-h-[32px] inline-flex items-center"
                   title={`Gunakan username ${r} (password123)`}
                 >
                   {r}
@@ -60,7 +60,7 @@ export function LoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin, guru, siswa, atau ortu"
-              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
+              className="w-full min-h-[44px] rounded-xl border border-border bg-card py-2.5 pl-10 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
             />
           </div>
         </div>
@@ -86,12 +86,12 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
+              className="w-full min-h-[44px] rounded-xl border border-border bg-card py-2.5 pl-10 pr-10 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15 font-mono"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
               tabIndex={-1}
               aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
             >
@@ -104,7 +104,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={pending}
-          className="apple-press group relative flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary-hover disabled:opacity-50 cursor-pointer"
+          className="apple-press group relative flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 min-h-[44px] text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary-hover disabled:opacity-50 cursor-pointer"
         >
           {pending ? (
             <>

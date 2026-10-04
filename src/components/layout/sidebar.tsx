@@ -85,7 +85,7 @@ export function Sidebar({
       {/* Mobile Backdrop Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-[#1D1D1F]/30 backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-stone-900/30 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -94,17 +94,17 @@ export function Sidebar({
       {/* Persistent / Sheet Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-[rgba(60,60,67,0.12)] bg-[#F7F7F5] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-stone-200 dark:border-white/10 bg-[#F7F5F0] dark:bg-[#121110] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-20 items-center justify-between border-b border-[rgba(60,60,67,0.12)] px-5 py-3 bg-[#F7F7F5]">
+        <div className="flex h-20 items-center justify-between border-b border-stone-200 dark:border-white/10 px-5 py-3 bg-[#F7F5F0] dark:bg-[#121110]">
           <Link
             href={`/${role}`}
             className="flex items-center gap-3 group"
           >
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[rgba(60,60,67,0.12)] bg-white p-1 shadow-[var(--shadow-subtle)] transition-transform duration-200 group-hover:scale-105">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-1 shadow-xs transition-transform duration-150 group-hover:scale-105">
               <Image
                 src="/brand/syntax-slayer-logo.png"
                 alt="SYNTAX SLAYER"
@@ -114,17 +114,17 @@ export function Sidebar({
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-[#1D1D1F] leading-tight">
+              <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-stone-100 leading-tight">
                 SYNTAX SLAYER
               </span>
-              <span className="text-[11px] font-semibold text-[#007AFF] tracking-wide">
-                Smart Learning
+              <span className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 tracking-wide">
+                SMK TI • Smart Learning
               </span>
             </div>
           </Link>
           <button
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F] lg:hidden transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-stone-500 hover:bg-stone-200/60 hover:text-stone-900 dark:hover:bg-zinc-800 dark:hover:text-stone-100 lg:hidden transition-colors"
             aria-label="Tutup Menu"
           >
             <X className="h-5 w-5" />
@@ -135,7 +135,7 @@ export function Sidebar({
         <nav className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5">
           {Object.entries(groupedItems).map(([groupTitle, items]) => (
             <div key={groupTitle} className="space-y-1">
-              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">
+              <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500">
                 {groupTitle}
               </p>
               <ul className="space-y-1">
@@ -151,16 +151,16 @@ export function Sidebar({
                         href={item.href}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium min-h-[44px] transition-all duration-150 apple-press",
+                          "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium min-h-[44px] transition-all duration-150 active:scale-[0.98]",
                           isActive
-                            ? "bg-[#007AFF]/10 text-[#007AFF] font-semibold shadow-[0_1px_2px_rgba(0,122,255,0.06)]"
-                            : "text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F]"
+                            ? "bg-orange-500/10 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400 font-semibold border-l-2 border-orange-600 dark:border-orange-500 shadow-xs"
+                            : "text-stone-600 dark:text-stone-400 hover:bg-stone-200/50 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-stone-100"
                         )}
                       >
                         <Icon
                           className={cn(
                             "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
+                            isActive ? "text-orange-600 dark:text-orange-400" : "text-stone-400 dark:text-stone-500"
                           )}
                         />
                         <span className="truncate">{item.label}</span>
@@ -173,23 +173,23 @@ export function Sidebar({
           ))}
         </nav>
 
-        {/* User Account Card (Section 10 Desktop/Mobile) */}
-        <div className="border-t border-[rgba(60,60,67,0.12)] p-3.5 bg-[#F7F7F5]">
-          <div className="flex items-center gap-2.5 rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-2.5 shadow-[var(--shadow-subtle)]">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#007AFF]/10 text-xs font-bold text-[#007AFF]">
+        {/* User Account Card */}
+        <div className="border-t border-stone-200 dark:border-white/10 p-3.5 bg-[#F7F5F0] dark:bg-[#121110]">
+          <div className="flex items-center gap-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-900 p-2.5 shadow-xs">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-xs font-bold text-orange-600 dark:text-orange-400">
               {getInitials(userName)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-[#1D1D1F] leading-tight">
+              <p className="truncate text-xs font-semibold text-stone-900 dark:text-stone-100 leading-tight">
                 {userName}
               </p>
-              <p className="truncate text-[11px] text-[#8E8E93]">
+              <p className="truncate text-[11px] font-mono text-stone-500 dark:text-stone-400">
                 {userEmail}
               </p>
             </div>
             <button
               onClick={onLogout}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#8E8E93] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-colors apple-press"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-500/10 hover:text-red-600 transition-colors active:scale-[0.98]"
               title="Keluar"
               aria-label="Keluar dari akun"
             >

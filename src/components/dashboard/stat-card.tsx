@@ -24,42 +24,42 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-[18px] border border-[rgba(60,60,67,0.12)] bg-white p-5 apple-card shadow-[var(--shadow-subtle)] group",
+        "rounded-2xl border border-border bg-card p-5 apple-card shadow-xs group",
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1.5 min-w-0">
-          <p className="text-xs font-semibold text-[#6E6E73] truncate">
+          <p className="text-xs font-semibold text-muted-foreground truncate">
             {title}
           </p>
-          <p className="text-3xl font-bold tracking-tight text-[#1D1D1F] tabular">
+          <p className="text-3xl font-bold tracking-tight text-foreground font-mono tabular-nums">
             {value}
           </p>
           {description && (
-            <p className="text-xs text-[#8E8E93] truncate">{description}</p>
+            <p className="text-xs text-muted-foreground/80 truncate">{description}</p>
           )}
           {trend && (
             <div className="pt-0.5">
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
+                  "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border",
                   trend.positive
-                    ? "bg-[#34C759]/10 text-[#34C759]"
-                    : "bg-[#FF3B30]/10 text-[#FF3B30]"
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    : "bg-destructive/10 text-destructive border-destructive/20"
                 )}
               >
                 <span>{trend.positive ? "↑" : "↓"}</span>
-                <span className="font-semibold">{Math.abs(trend.value)}%</span>
-                <span className="text-[#8E8E93] text-[11px] ml-0.5">
+                <span className="font-semibold font-mono">{Math.abs(trend.value)}%</span>
+                <span className="text-muted-foreground text-[11px] ml-0.5">
                   vs periode lalu
                 </span>
               </span>
             </div>
           )}
         </div>
-        <div className="rounded-xl bg-[#F2F2F0] p-2.5 text-[#1D1D1F] shrink-0 transition-transform duration-200 group-hover:scale-105">
-          <Icon className="h-5 w-5 text-[#1D1D1F]" />
+        <div className="rounded-xl bg-muted p-2.5 text-foreground shrink-0 transition-transform duration-200 group-hover:scale-105">
+          <Icon className="h-5 w-5 text-foreground" />
         </div>
       </div>
     </div>

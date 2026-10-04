@@ -29,28 +29,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "relative inline-flex items-center justify-center font-medium transition-all duration-200 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF] focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
+      "relative inline-flex items-center justify-center font-medium transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
 
     const sizeStyles = {
-      sm: "h-9 min-h-[36px] sm:min-h-[44px] px-3.5 text-xs rounded-xl gap-1.5",
+      sm: "h-9 min-h-[36px] sm:min-h-[44px] px-3.5 text-xs rounded-lg gap-1.5",
       md: "h-11 min-h-[44px] px-4 text-sm rounded-xl gap-2",
-      lg: "h-12 min-h-[48px] px-6 text-base rounded-2xl gap-2.5",
+      lg: "h-12 min-h-[48px] px-6 text-base rounded-xl gap-2.5",
       icon: "h-11 w-11 min-h-[44px] min-w-[44px] p-0 rounded-xl justify-center",
     };
 
     const variantStyles = {
       primary:
-        "bg-[#007AFF] text-white shadow-sm hover:bg-[#0062CC] active:bg-[#004FB3] border border-transparent shadow-[0_2px_8px_rgba(0,122,255,0.25)]",
+        "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800 border border-orange-700/20 shadow-xs",
       secondary:
-        "bg-white text-[#1D1D1F] border border-[rgba(60,60,67,0.12)] hover:bg-[#F2F2F0] hover:border-[rgba(60,60,67,0.2)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+        "bg-white dark:bg-zinc-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-white/10 hover:bg-stone-50 dark:hover:bg-zinc-800 active:bg-stone-100 shadow-xs",
       outline:
-        "bg-transparent text-[#1D1D1F] border border-[rgba(60,60,67,0.2)] hover:bg-[#F2F2F0]",
+        "bg-transparent text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-white/10 hover:bg-stone-100/60 dark:hover:bg-zinc-800",
       ghost:
-        "bg-transparent text-[#1D1D1F] hover:bg-[#F2F2F0] hover:text-[#1D1D1F]",
+        "bg-transparent text-stone-700 dark:text-stone-300 hover:bg-stone-200/50 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-stone-100",
       destructive:
-        "bg-[#FF3B30] text-white hover:bg-[#D70015] border border-transparent shadow-[0_2px_8px_rgba(255,59,48,0.25)]",
+        "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 border border-red-700/20 shadow-xs",
       glass:
-        "bg-white/80 backdrop-blur-md text-[#1D1D1F] border border-[rgba(60,60,67,0.12)] hover:bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.04)]",
+        "bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md text-stone-900 dark:text-stone-100 border border-stone-200/80 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-900 shadow-xs",
     };
 
     return (

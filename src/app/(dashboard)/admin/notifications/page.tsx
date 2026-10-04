@@ -61,11 +61,18 @@ export default async function NotificationsPage() {
   }));
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Log Notifikasi WhatsApp</h1>
-        <p className="text-sm text-muted-foreground">
-          Pantau riwayat pengiriman pesan WhatsApp ke orang tua.
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
+            SMK TI SYNTAX SLAYER • GATEWAY AUDIT
+          </span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Log Notifikasi & Pengiriman WhatsApp
+        </h1>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          Pantau riwayat dispatch pesan real-time ke wali murid untuk absensi harian, keterlambatan, dan peringatan kehadiran siswa.
         </p>
       </div>
 

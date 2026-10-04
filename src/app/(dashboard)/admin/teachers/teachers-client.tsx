@@ -138,31 +138,60 @@ export function TeachersClient({ teachers, subjects }: { teachers: TeacherRow[];
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card">
+      {/* Desktop Data Table */}
+      <div className="hidden md:block rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">NIP</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">Mapel</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">Email</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
+          <table className="w-full text-left text-xs">
+            <thead className="bg-stone-50 dark:bg-stone-900/60 border-b border-stone-200 dark:border-white/10 text-stone-500 font-semibold uppercase tracking-wider text-[10px]">
+              <tr>
+                <th className="py-3 px-4">Nama Lengkap & Pendidik</th>
+                <th className="py-3 px-4 w-40">NIP</th>
+                <th className="py-3 px-4">Mata Pelajaran Diampu</th>
+                <th className="py-3 px-4">Email Akun</th>
+                <th className="py-3 px-4 text-right w-24">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-stone-100 dark:divide-white/5">
               {filtered.map((t) => (
-                <tr key={t.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{t.profiles?.full_name || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{t.nip}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">{t.teacher_subjects?.length ? t.teacher_subjects.map((ts) => Array.isArray(ts.subjects) ? ts.subjects[0]?.name : ts.subjects?.name).filter(Boolean).join(", ") : "—"}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">{t.profiles?.email || "—"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => {setEditingTeacher(t); setShowForm(false); setFormError("");}} disabled={isPending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-amber-50 hover:text-amber-600">
+                <tr key={t.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-900/30 transition-colors">
+                  <td className="py-3 px-4 font-bold text-stone-900 dark:text-white">{t.profiles?.full_name || "—"}</td>
+                  <td className="py-3 px-4 font-mono font-medium text-stone-600 dark:text-stone-300">{t.nip}</td>
+                  <td className="py-3 px-4 text-stone-600 dark:text-stone-400">
+                    {t.teacher_subjects?.length ? (
+                      <div className="flex flex-wrap gap-1">
+                        {t.teacher_subjects.map((ts, idx) => {
+                          const name = Array.isArray(ts.subjects) ? ts.subjects[0]?.name : ts.subjects?.name;
+                          if (!name) return null;
+                          return (
+                            <span key={idx} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-white/5">
+                              {name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-stone-400 italic">Belum ada mapel</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 font-mono text-[11px] text-stone-500">{t.profiles?.email || "—"}</td>
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setEditingTeacher(t); setShowForm(false); setFormError(""); }}
+                        disabled={isPending}
+                        className="rounded-lg p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors active:scale-[0.96]"
+                        title="Edit Data Guru"
+                      >
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button onClick={() => handleDelete(t.id, t.profiles?.full_name || "")} disabled={isPending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(t.id, t.profiles?.full_name || "")}
+                        disabled={isPending}
+                        className="rounded-lg p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors active:scale-[0.96]"
+                        title="Hapus Data Guru"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -170,11 +199,73 @@ export function TeachersClient({ teachers, subjects }: { teachers: TeacherRow[];
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">{search ? "Tidak ditemukan" : "Belum ada data guru"}</td></tr>
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-xs text-stone-400">
+                    {search ? "Tidak ditemukan guru yang cocok dengan pencarian" : "Belum ada data guru terdaftar"}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Adaptive Cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((t) => (
+          <div key={t.id} className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-stone-950 p-4 space-y-2.5 shadow-2xs">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h4 className="text-sm font-bold text-stone-900 dark:text-white">{t.profiles?.full_name || "—"}</h4>
+                <p className="text-[10px] font-mono text-stone-500 mt-0.5">NIP: {t.nip}</p>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setEditingTeacher(t); setShowForm(false); setFormError(""); }}
+                  disabled={isPending}
+                  className="rounded-lg p-1.5 text-stone-400 hover:text-amber-600 hover:bg-amber-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(t.id, t.profiles?.full_name || "")}
+                  disabled={isPending}
+                  className="rounded-lg p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-stone-100 dark:border-white/5 space-y-1.5 text-xs">
+              <div className="text-[11px] text-stone-500 font-mono truncate">
+                {t.profiles?.email || "—"}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {t.teacher_subjects?.length ? (
+                  t.teacher_subjects.map((ts, idx) => {
+                    const name = Array.isArray(ts.subjects) ? ts.subjects[0]?.name : ts.subjects?.name;
+                    if (!name) return null;
+                    return (
+                      <span key={idx} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
+                        {name}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span className="text-[10px] text-stone-400 italic">Belum ada mapel diampu</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-stone-300 dark:border-white/10 bg-white dark:bg-stone-950 p-8 text-center text-xs text-stone-400">
+            {search ? "Tidak ditemukan guru yang cocok dengan kata kunci" : "Belum ada data guru"}
+          </div>
+        )}
       </div>
     </div>
   );
