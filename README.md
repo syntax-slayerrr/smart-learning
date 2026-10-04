@@ -4,6 +4,11 @@
 
 Platform terintegrasi yang menghubungkan **Edge Computer Vision Intelligence** (Python, YOLO26n, MediaPipe Heavy 3D, ArcFace 512-d) dengan **Fullstack Web Platform** (Next.js 16, TypeScript, Supabase PostgreSQL, Tailwind CSS) untuk mendeteksi dinamika belajar di kelas, kehadiran siswa, intervensi dini siswa berisiko (*At-Risk Students*), dan pelaporan otomatis ke orang tua melalui WhatsApp.
 
+> 📖 **Dokumentasi & Panduan Utama Tim:**
+> * 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Panduan Kontribusi Tim, Standar UI/UX, dan Guardrail Penggunaan AI (Anti-Overengineering).
+> * 🏛️ **[MASTER_ARSITEKTUR_3_DEVELOPER.md](docs/MASTER_ARSITEKTUR_3_DEVELOPER.md)** — Blueprint Arsitektur Global, Matriks DSA, Kamus Istilah Presentasi & Defense Playbook Juri.
+> * 🎥 **[CV_ENGINE_GUIDE.md](docs/CV_ENGINE_GUIDE.md)** — Panduan Teknis Edge AI Vision Engine Python.
+
 ---
 
 ## 👥 Pembagian Tugas & Tanggung Jawab Tim (3 Developers)
