@@ -422,13 +422,26 @@ export function LiveCameraMonitor() {
 
   const totalDetected = telemetry.detected_students_count || subjects.length;
 
+  // Algoritma Reduksi Histogram Aktivitas Single-Pass: O(N) kompleksitas waktu
   const counts = {
-    attentive: subjects.filter((s) => s.activity === "attentive").length,
-    writing: subjects.filter((s) => s.activity === "writing").length,
-    hand_raised: telemetry.hand_raise_count || subjects.filter((s) => s.activity === "hand_raised").length,
-    using_phone: subjects.filter((s) => s.activity === "using_phone").length,
-    sleep: telemetry.sleep_detected_count || subjects.filter((s) => s.activity === "sleep").length,
+    attentive: 0,
+    writing: 0,
+    hand_raised: telemetry.hand_raise_count || 0,
+    using_phone: 0,
+    sleep: telemetry.sleep_detected_count || 0,
   };
+
+  let hitunganAngkatTanganLokal = 0;
+  let hitunganTidurLokal = 0;
+  for (const subject of subjects) {
+    if (subject.activity === "attentive") counts.attentive++;
+    else if (subject.activity === "writing") counts.writing++;
+    else if (subject.activity === "using_phone") counts.using_phone++;
+    else if (subject.activity === "hand_raised") hitunganAngkatTanganLokal++;
+    else if (subject.activity === "sleep") hitunganTidurLokal++;
+  }
+  if (!telemetry.hand_raise_count) counts.hand_raised = hitunganAngkatTanganLokal;
+  if (!telemetry.sleep_detected_count) counts.sleep = hitunganTidurLokal;
 
   const focusIndex = totalDetected > 0
     ? Math.min(100, Math.round(((counts.attentive + counts.writing) / Math.max(1, totalDetected)) * 100))
