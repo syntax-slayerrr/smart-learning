@@ -19,6 +19,7 @@ Fitur Utama v4.0.0:
 """
 
 import argparse
+from collections import deque
 import json
 import math
 import os
@@ -591,6 +592,21 @@ def draw_hud(frame, stats, fps, session_id, sync_status, rot_info, infer_ms=0.0)
                 cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 225, 185), 1, cv2.LINE_AA)
 
 
+def calculate_angle_3pts(p1, p2, p3):
+    """
+    Menghitung sudut derajat siku (p2 adalah sendi siku, p1 bahu, p3 pergelangan tangan).
+    Digunakan untuk membedakan menggaruk kepala (< 90 derajat) vs angkat tangan (> 105 derajat).
+    """
+    v1 = np.array([p1.x - p2.x, p1.y - p2.y], dtype=np.float32)
+    v2 = np.array([p3.x - p2.x, p3.y - p2.y], dtype=np.float32)
+    n1 = np.linalg.norm(v1)
+    n2 = np.linalg.norm(v2)
+    if n1 < 1e-4 or n2 < 1e-4:
+        return 0.0
+    cosine = np.dot(v1, v2) / (n1 * n2)
+    return float(math.degrees(math.acos(np.clip(cosine, -1.0, 1.0))))
+
+
 def filter_overlapping_poses(pose_landmarks_list, frame_shape, iou_thresh=0.30, center_dist_thresh=95):
     """
     Menghilangkan duplikat pose (ghost tracks) akibat pantulan layar atau overlap multi-pose.
@@ -655,14 +671,19 @@ class SubjectTracker:
         self.tracks = {}
         self.next_id = 1
         self.sleep_timer = {}
-        self.hand_timer = {}
+        self.hand_start_timer = {}  # Guardrail 1: Hold duration gate for hand raise
+        self.hand_latch_timer = {}  # Guardrail 1: Hysteresis latch
+        self.wrist_history = {}     # Guardrail 2: Recent wrist coordinates for motion energy
+        self.lost_tracks = {}       # Guardrail 5: Re-ID seat anchoring (up to 4.0s)
 
     def update_hybrid(self, yolo_boxes, raw_pose_landmarks_list, frame_shape, curr_time):
         """
-        Fusi Multi-Tahap:
-        1. YOLO26n bertindak sebagai Anchor Spasial Utama (100% NMS-Free, Bebas Kotak Ganda/Ghost Tracks).
-        2. MediaPipe Heavy menyematkan kerangka 33 titik 3D ke dalam setiap kotak YOLO.
-        3. Jika YOLO26 belum mendeteksi subjek (atau transisi), fallback mulus ke MediaPipe Pose-NMS.
+        Fusi Multi-Tahap Enterprise (5 Lapisan Guardrails):
+        1. YOLO26n: Master Spatial Anchor (100% NMS-Free, Bebas Kotak Ganda).
+        2. MediaPipe Heavy: 33-Keypoints 3D Kinematics.
+        3. Elbow Angle & Hold Gate: Mengeliminasi salah deteksi garuk kepala/kacamata.
+        4. Hand Motion Energy: Mengeliminasi salah deteksi siswa tekun menulis sebagai tidur.
+        5. EMA Smoothing & Seat-Anchored Re-ID: Mencegah jitter kotak & menjaga ID/Nama stabil.
         """
         h, w = frame_shape[:2]
         matched_ids = set()
@@ -685,10 +706,8 @@ class SubjectTracker:
                 for lms in filtered_poses:
                     if len(lms) < 17:
                         continue
-                    # Hitung pusat torso (rata-rata bahu dan hidung)
                     ls = lms[11]
                     rs = lms[12]
-                    nose = lms[0]
                     tcx = ((ls.x + rs.x) / 2.0) * w
                     tcy = ((ls.y + rs.y) / 2.0) * h
                     dist = math.hypot(ycx - tcx, ycy - tcy)
@@ -762,7 +781,7 @@ class SubjectTracker:
                 gaze_dir = "Depan / Papan Tulis"
                 has_pose = False
 
-            # Association / Nearest Distance Tracking
+            # Association: 1. Cek Active Tracks, 2. Cek Lost Tracks (Guardrail 5: Seat-Anchored Re-ID)
             best_id = None
             best_dist = 160
             for tid, trk in self.tracks.items():
@@ -774,16 +793,47 @@ class SubjectTracker:
                     best_dist = dist
                     best_id = tid
 
+            # Guardrail 5: Jika tidak cocok di active tracks, cek lost tracks dalam radius kursi (Re-ID)
+            if best_id is None and len(self.lost_tracks) > 0:
+                for lid, ltrk in list(self.lost_tracks.items()):
+                    if curr_time - ltrk["last_seen"] <= 4.0:
+                        lcx, lcy = ltrk["center"]
+                        if np.hypot(cx - lcx, cy - lcy) < 170:
+                            best_id = lid
+                            self.tracks[lid] = ltrk
+                            del self.lost_tracks[lid]
+                            break
+
             tid_check = best_id or self.next_id
 
             # Posture: Sitting vs Standing
             posture = "standing" if py < h * 0.25 and ph > h * 0.55 else "sitting"
 
-            # Sleep & Hand Raise
+            # Sleep & Hand Raise (Guardrail 1 & 2)
             if has_pose:
-                is_head_dropped = (nose.y >= shoulder_mid_y - 0.03) or (head_tilt > 55.0 and cy > h * 0.50)
+                # Guardrail 2: Hand Motion Energy Tracker (Writing vs Still)
+                if tid_check not in self.wrist_history:
+                    self.wrist_history[tid_check] = deque(maxlen=8)
+                self.wrist_history[tid_check].append((curr_time, lw.x, lw.y, rw.x, rw.y))
+
+                wrist_motion = 0.0
+                wh = self.wrist_history[tid_check]
+                if len(wh) >= 4:
+                    dt = max(1e-4, wh[-1][0] - wh[0][0])
+                    dist_l = sum(math.hypot(wh[k][1] - wh[k-1][1], wh[k][2] - wh[k-1][2]) for k in range(1, len(wh)))
+                    dist_r = sum(math.hypot(wh[k][3] - wh[k-1][3], wh[k][4] - wh[k-1][4]) for k in range(1, len(wh)))
+                    wrist_motion = (dist_l + dist_r) / (2.0 * dt)
+
+                is_desk_writing = (lw.y > ls.y + 0.06 or rw.y > rs.y + 0.06) and (wrist_motion > 0.015) and (nose.y > shoulder_mid_y - 0.14)
+
+                # True Sleep Gate: kepala menunduk/rebah DAN tangan tidak bergerak aktif
+                is_head_dropped = (nose.y >= shoulder_mid_y - 0.02) or (head_tilt > 55.0 and cy > h * 0.45)
                 is_sleep = False
-                if is_head_dropped:
+
+                if is_desk_writing:
+                    self.sleep_timer.pop(tid_check, None)
+                    is_sleep = False
+                elif is_head_dropped and (wrist_motion < 0.010):
                     if tid_check not in self.sleep_timer:
                         self.sleep_timer[tid_check] = curr_time
                     elif curr_time - self.sleep_timer[tid_check] > 3.5:
@@ -791,15 +841,15 @@ class SubjectTracker:
                 else:
                     self.sleep_timer.pop(tid_check, None)
 
-                # Hand raise mutually exclusive with sleep
-                if not is_sleep and nose.y < shoulder_mid_y:
-                    left_raised = (lw.y < ls.y - 0.02) and (getattr(lw, 'visibility', 0.5) > 0.30)
-                    right_raised = (rw.y < rs.y - 0.02) and (getattr(rw, 'visibility', 0.5) > 0.30)
-                    is_hand_raw = left_raised or right_raised
-                else:
-                    is_hand_raw = False
-                    left_raised = False
-                    right_raised = False
+                # Guardrail 1: Elbow Angle Kinematics & Face Distance Gate (Menghilangkan Garuk Kepala / Kacamata)
+                angle_l = calculate_angle_3pts(ls, le, lw)
+                angle_r = calculate_angle_3pts(rs, re, rw)
+                dist_head_l = math.hypot(lw.x - nose.x, lw.y - nose.y)
+                dist_head_r = math.hypot(rw.x - nose.x, rw.y - nose.y)
+
+                left_raised = (lw.y < ls.y - 0.04) and (angle_l >= 105.0) and (dist_head_l > 0.07) and (getattr(lw, 'visibility', 0.5) > 0.30)
+                right_raised = (rw.y < rs.y - 0.04) and (angle_r >= 105.0) and (dist_head_r > 0.07) and (getattr(rw, 'visibility', 0.5) > 0.30)
+                is_hand_raw = (left_raised or right_raised) and (not is_sleep)
 
                 hand_box = None
                 if is_hand_raw:
@@ -808,18 +858,26 @@ class SubjectTracker:
                     hy_px = int(active_wrist.y * h)
                     hand_box = (max(0, hw_px - 28), max(0, hy_px - 28), 56, 56)
 
+                # Hold duration gate (>= 0.7s) + Hysteresis Latch
                 if is_hand_raw and not is_sleep:
-                    self.hand_timer[tid_check] = curr_time
-                    is_hand_raised = True
-                elif not is_sleep and tid_check in self.hand_timer and (curr_time - self.hand_timer[tid_check] < 0.6):
-                    is_hand_raised = True
+                    if tid_check not in self.hand_start_timer:
+                        self.hand_start_timer[tid_check] = curr_time
+                    if curr_time - self.hand_start_timer[tid_check] >= 0.7:
+                        is_hand_raised = True
+                        self.hand_latch_timer[tid_check] = curr_time
+                    else:
+                        is_hand_raised = (tid_check in self.hand_latch_timer and curr_time - self.hand_latch_timer[tid_check] < 0.7)
                 else:
-                    is_hand_raised = False
-                    if is_sleep:
-                        self.hand_timer.pop(tid_check, None)
-                        hand_box = None
+                    self.hand_start_timer.pop(tid_check, None)
+                    is_hand_raised = (not is_sleep) and (tid_check in self.hand_latch_timer and curr_time - self.hand_latch_timer[tid_check] < 0.7)
 
-                # Activity
+                if is_sleep:
+                    is_hand_raised = False
+                    hand_box = None
+                    self.hand_start_timer.pop(tid_check, None)
+                    self.hand_latch_timer.pop(tid_check, None)
+
+                # Activity & Attention Score
                 if is_sleep:
                     activity = "sleep"
                     action_text = "Rebahan / Tidur di Meja"
@@ -828,6 +886,10 @@ class SubjectTracker:
                     activity = "hand_raised"
                     action_text = "Angkat Tangan (Bertanya)"
                     attention_score = 98
+                elif is_desk_writing:
+                    activity = "writing"
+                    action_text = "Fokus Menulis / Meja"
+                    attention_score = 96
                 elif posture == "standing":
                     activity = "attentive"
                     action_text = "Berdiri di Depan"
@@ -850,13 +912,18 @@ class SubjectTracker:
 
             sub_label = f"Postur: {'Duduk' if posture == 'sitting' else 'Berdiri'} • Fokus: {attention_score}% • {gaze_dir}"
 
+            # Guardrail 4: EMA Coordinate Smoothing (Zero Jitter)
             if best_id is not None:
                 trk = self.tracks[best_id]
                 old_x, old_y, old_w, old_h = trk["box"]
-                smooth_x = int(0.75 * px + 0.25 * old_x)
-                smooth_y = int(0.75 * py + 0.25 * old_y)
-                smooth_w = int(0.75 * pw + 0.25 * old_w)
-                smooth_h = int(0.75 * ph + 0.25 * old_h)
+
+                if math.hypot(px - old_x, py - old_y) > 90:
+                    smooth_x, smooth_y, smooth_w, smooth_h = px, py, pw, ph
+                else:
+                    smooth_x = int(0.22 * px + 0.78 * old_x)
+                    smooth_y = int(0.22 * py + 0.78 * old_y)
+                    smooth_w = int(0.22 * pw + 0.78 * old_w)
+                    smooth_h = int(0.22 * ph + 0.78 * old_h)
 
                 trk["box"] = (smooth_x, smooth_y, smooth_w, smooth_h)
                 trk["center"] = (smooth_x + smooth_w / 2.0, smooth_y + smooth_h / 2.0)
@@ -881,6 +948,8 @@ class SubjectTracker:
                     "id": new_id,
                     "student_name": "Zaldy (Siswa)",
                     "is_recognized": True,
+                    "seat_latched": True,
+                    "identity_votes": {"Zaldy (Siswa)": 3},
                     "box": (px, py, pw, ph),
                     "center": (cx, cy),
                     "landmarks": landmarks,
@@ -899,12 +968,18 @@ class SubjectTracker:
                 }
                 matched_ids.add(new_id)
 
-        # Cleanup lost tracks (> 2.5s)
-        dead_ids = [tid for tid, trk in self.tracks.items() if curr_time - trk["last_seen"] > 2.5]
-        for did in dead_ids:
-            del self.tracks[did]
-            self.sleep_timer.pop(did, None)
-            self.hand_timer.pop(did, None)
+        # Cleanup lost tracks: move to lost_tracks for up to 4.0s grace period (Guardrail 5: Seat Anchoring)
+        for tid, trk in list(self.tracks.items()):
+            if curr_time - trk["last_seen"] > 2.2:
+                self.lost_tracks[tid] = trk
+                del self.tracks[tid]
+                self.sleep_timer.pop(tid, None)
+                self.hand_start_timer.pop(tid, None)
+                self.hand_latch_timer.pop(tid, None)
+                self.wrist_history.pop(tid, None)
+
+        # Purge lost tracks older than 4.0s
+        self.lost_tracks = {tid: trk for tid, trk in self.lost_tracks.items() if curr_time - trk["last_seen"] <= 4.0}
 
         return list(self.tracks.values())
 
@@ -1169,8 +1244,13 @@ def run_opencv_engine(args):
                                     for trk in active_tracks:
                                         tcx, tcy = trk["center"]
                                         if math.hypot(fcx - tcx, fcy - tcy) < 220:
-                                            trk["student_name"] = best_sname
-                                            trk["is_recognized"] = True
+                                            # Guardrail 3: Temporal Identity Voting Buffer & Seat Latching
+                                            trk.setdefault("identity_votes", {})
+                                            trk["identity_votes"][best_sname] = trk["identity_votes"].get(best_sname, 0) + 1
+                                            if trk["identity_votes"][best_sname] >= 2:
+                                                trk["student_name"] = best_sname
+                                                trk["is_recognized"] = True
+                                                trk["seat_latched"] = True
                                             break
                 except Exception:
                     pass
