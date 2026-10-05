@@ -220,9 +220,50 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Fetch all subjects and course materials for the student shelf
+    const { data: allSubjects } = await admin
+      .from("subjects")
+      .select("id, name, code")
+      .order("name");
+
+    const { data: allMaterials } = await admin
+      .from("course_materials")
+      .select("id, title, description, subject_id, page_count, created_at")
+      .order("created_at", { ascending: false });
+
+    // Format subject shelf data
+    const formattedSubjects = (allSubjects || []).map((sub: any) => {
+      const subMaterials = (allMaterials || []).filter((m: any) => m.subject_id === sub.id);
+      return {
+        id: sub.id,
+        name: sub.name,
+        code: sub.code,
+        materialsCount: subMaterials.length,
+        materials: subMaterials.map((m: any, idx: number) => ({
+          id: m.id,
+          title: m.title,
+          description: m.description,
+          pageCount: m.page_count || 24,
+          readingTime: `${Math.max(10, (m.page_count || 24) * 2)} mnt`,
+          status: idx === 0 ? "in_progress" : idx === 1 ? "completed" : "locked",
+          topicsCount: idx === 0 ? (formattedChapters.length || 3) : 2,
+        })),
+        assignments: [
+          {
+            id: `task-${sub.id}-1`,
+            title: `Tugas Analisis & Implementasi ${sub.name}`,
+            deadline: "Jumat, 23:59 WIB",
+            status: sub.code === "TKJ" ? "need_defense" : "submitted",
+            score: sub.code === "TKJ" ? undefined : 92,
+          }
+        ]
+      };
+    });
+
     return NextResponse.json({
       success: true,
       data: {
+        subjects: formattedSubjects,
         material: {
           id: material.id,
           title: material.title,
@@ -230,6 +271,8 @@ export async function GET(request: NextRequest) {
           fileUrl: material.file_url,
           fileName: material.file_name,
           pageCount: material.page_count || 32,
+          subjectId: material.subject_id,
+          subjectName: material.subjects?.name || "Jaringan Komputer",
         },
         chapters: formattedChapters,
         conceptGraph: {

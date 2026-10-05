@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { MobileBottomNav } from "./mobile-bottom-nav";
@@ -24,6 +25,8 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const pathname = usePathname();
+  const isNotebook = pathname?.startsWith("/student/notebook");
 
   const handleLogout = () => {
     startTransition(() => {
@@ -34,29 +37,39 @@ export function DashboardLayout({
   return (
     <div className="flex min-h-dvh h-dvh overflow-hidden bg-transparent">
       {/* Sidebar navigation for desktop and slide drawer for mobile menu */}
-      <Sidebar
-        role={role}
-        userName={userName}
-        userEmail={userEmail}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={handleLogout}
-      />
+      {!isNotebook && (
+        <Sidebar
+          role={role}
+          userName={userName}
+          userEmail={userEmail}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main App Canvas with Integrated Atmospheric Depth */}
       <div className="flex flex-1 flex-col overflow-hidden relative bg-transparent">
-        <Header role={role} onMenuClick={() => setSidebarOpen(true)} />
+        {!isNotebook && <Header role={role} onMenuClick={() => setSidebarOpen(true)} />}
 
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10">
+        <main
+          className={
+            isNotebook
+              ? "flex-1 overflow-hidden p-0 focus:outline-none relative z-10 h-full w-full"
+              : "flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10"
+          }
+        >
           {children}
         </main>
 
-        {/* Native Apple HIG Bottom Tab Bar for Mobile */}
-        <MobileBottomNav role={role} onOpenMenu={() => setSidebarOpen(true)} />
+        {/* Native Apple HIG Bottom Tab Bar for Mobile (Hidden in Focus Mode) */}
+        {!isNotebook && (
+          <MobileBottomNav role={role} onOpenMenu={() => setSidebarOpen(true)} />
+        )}
       </div>
 
       <InstallPrompt />
-      {role !== "student" && <HermesCopilotWidget />}
+      {role !== "student" && !isNotebook && <HermesCopilotWidget />}
     </div>
   );
 }

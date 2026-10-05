@@ -613,12 +613,12 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`flex flex-col h-full sm:h-[720px] sm:max-h-[820px] bg-slate-50/40 sm:bg-white/95 dark:bg-[#1C1C1E] sm:backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 dark:border-white/10 shadow-none sm:shadow-sm overflow-hidden overscroll-contain relative ${className}`}
+      className={`flex flex-col h-full sm:h-[720px] sm:max-h-[820px] bg-white/80 backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 shadow-none sm:shadow-sm overflow-hidden overscroll-contain relative ${className}`}
     >
       {/* ============================================================== */}
       {/* 1. TOP GROUND TRUTH SOURCE BAR (Always Anchored at Top)        */}
       {/* ============================================================== */}
-      <div className="shrink-0 z-20 border-b border-black/[0.06] dark:border-white/10 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl px-3.5 sm:px-5 py-2.5 sm:py-3">
+      <div className="shrink-0 z-20 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl px-3.5 sm:px-5 py-2.5 sm:py-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
           {/* Left: Source File Info & Verified Status */}
           <div className="flex items-center gap-2.5 min-w-0">
@@ -1057,7 +1057,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
         /* ============================================================ */
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           {/* Chapter Selector Tabs (Scrollable Apple Pills) */}
-          <div className="shrink-0 flex border-b border-black/[0.06] dark:border-white/10 bg-slate-50/70 dark:bg-[#1C1C1E] overflow-x-auto text-xs scrollbar-none px-3 sm:px-4 py-2 gap-1.5">
+          <div className="shrink-0 flex border-b border-black/[0.06] bg-slate-50/70 overflow-x-auto text-xs scrollbar-none px-3 sm:px-4 py-2 gap-1.5">
             {chapters.map((chap, idx) => {
               const isActive = activeChapterIndex === idx;
               return (
@@ -1134,10 +1134,10 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
 
           {/* Feature 2: Floating Apple Contextual Menu saat Blok Teks */}
           {selectedText && (
-            <div className="absolute bottom-16 inset-x-3 sm:inset-x-8 p-3 rounded-2xl bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 text-slate-900 dark:text-white shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 animate-in slide-in-from-bottom-3 z-30">
+            <div className="absolute bottom-16 inset-x-3 sm:inset-x-8 p-3 rounded-2xl bg-white/95 backdrop-blur-2xl border border-black/10 text-slate-900 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 animate-in slide-in-from-bottom-3 z-30">
               <div className="flex items-center gap-2 pl-1 text-xs truncate max-w-sm">
                 <Highlighter className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span className="truncate italic text-slate-600 dark:text-slate-300">
+                <span className="truncate italic text-slate-600">
                   "{selectedText.slice(0, 48)}..."
                 </span>
               </div>
@@ -1149,7 +1149,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
                     selectionNoteSaved
                       ? "bg-emerald-600 text-white cursor-default"
-                      : "bg-black/[0.06] dark:bg-white/[0.1] hover:bg-black/[0.1] text-slate-700 dark:text-slate-200"
+                      : "bg-black/[0.06] hover:bg-black/[0.1] text-slate-700"
                   }`}
                   title="Simpan kutipan ini langsung ke catatan flashcard"
                 >
@@ -1185,13 +1185,13 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           )}
 
           {/* Reader Footer Controls & Pagination */}
-          <div className="shrink-0 z-20 bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/10 px-4 py-3 flex items-center justify-between">
+          <div className="shrink-0 z-20 bg-white/95 backdrop-blur-xl border-t border-black/[0.06] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setViewMode("studio")}
-                className="text-xs h-8 gap-1.5 rounded-xl border-black/10 dark:border-white/10"
+                className="text-xs h-8 gap-1.5 rounded-xl border-black/10"
               >
                 <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
                 <span>Diskusi di AI Studio</span>
@@ -1203,20 +1203,20 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
               <span className="hidden sm:inline text-[11px] text-slate-400 font-medium">
                 Geser jari ke kanan untuk AI Studio
               </span>
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-mono">
+              <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
                 <span>Hal {currentPage}</span>
-                <div className="flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] p-0.5 rounded-xl border border-black/5">
+                <div className="flex items-center gap-1 bg-black/[0.04] p-0.5 rounded-xl border border-black/5">
                   <button
                     disabled={currentPage <= 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                    className="p-1 rounded-lg hover:bg-white disabled:opacity-30 transition-all"
                     title="Halaman sebelumnya"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => p + 1)}
-                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                    className="p-1 rounded-lg hover:bg-white disabled:opacity-30 transition-all"
                     title="Halaman berikutnya"
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
@@ -1236,11 +1236,11 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           {/* Dimmed backdrop */}
           <div
             onClick={() => setActiveCitationPeek(null)}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           />
 
           {/* Slide-Up Bottom Sheet Card */}
-          <div className="relative w-full sm:max-w-lg bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-hidden">
+          <div className="relative w-full sm:max-w-lg bg-white/95 backdrop-blur-2xl border border-black/10 shadow-2xl rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-hidden">
             {/* iOS Pull Handle Bar */}
             <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto -mt-1 shrink-0" />
 
