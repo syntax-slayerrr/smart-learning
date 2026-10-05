@@ -911,6 +911,9 @@ export default function StudentNotebookPage() {
               fileName={activeMaterialDetails?.fileName || "Modul_Subnetting_IPv4.pdf"}
               fileUrl={activeMaterialDetails?.fileUrl || ""}
               chapters={chapters}
+              studentId="student-mock-zaldy"
+              onNavigateToReader={() => setStudyMode("reader")}
+              className="border-0 shadow-none bg-transparent"
             />
           </div>
         )}

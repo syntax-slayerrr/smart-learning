@@ -12,6 +12,10 @@ export async function POST(request: NextRequest) {
       studentId,
       materialId,
       topicId,
+      materialTitle,
+      chapterTitle,
+      chapterSummary,
+      chapterContent,
       message,
       highlightedText,
       history = [],
@@ -96,13 +100,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Susun Konteks Grounding & Socratic Directives
-    const topicTitle = topicData?.title || materialData?.title || "Materi Pembelajaran";
-    const topicSummary = topicData?.description || materialData?.description || "";
+    const finalMaterialTitle = materialData?.title || materialTitle || "Materi Pembelajaran";
+    const topicTitle = topicData?.title || chapterTitle || finalMaterialTitle;
+    const topicSummary = topicData?.description || chapterSummary || materialData?.description || "";
     const keyConcepts = topicData?.key_concepts
       ? Array.isArray(topicData.key_concepts)
         ? topicData.key_concepts.join(", ")
         : JSON.stringify(topicData.key_concepts)
       : "";
+    const topicContent = chapterContent || "";
     const pageRef = topicData ? `Hal. ${topicData.page_start} - ${topicData.page_end}` : "";
 
     const memorySnippet = studentMemories.length > 0
@@ -110,15 +116,19 @@ export async function POST(request: NextRequest) {
       : "- Belum ada catatan kesulitan sebelumnya.";
 
     const systemPrompt = `Kamu adalah Smart AI, mentor belajar dialektis pribadi siswa di platform Smart Learning (ITG).
-Pendekatan pedagogis kamu adalah METODE SOKRATIK (Scaffolding): memantik daya nalar siswa, bukan mesin penjawab tugas.
+Pendekatan pedagogis kamu adalah METODE SOKRATIK (Scaffolding): memantik daya nalar siswa, bukan mesin penjawab tugas instan.
 
-=== ATURAN PEDAGOGIS MUTLAK ===
-1. DILARANG KERAS memberikan jawaban instan, rumus jadi, atau kode program siap saji saat siswa menanyakan solusi soal/tugas!
-2. JIKA SISWA MEMINTA JAWABAN LANGSUNG:
-   - Tolak secara halus dan alihkan ke pemikiran kritis.
-   - Contoh: "Biar kamu beneran paham esensinya, kita bedah bareng ya. Coba perhatikan variabel X di modul hal ${topicData?.page_start || 1}, menurutmu apa fungsi variabel itu?"
-3. GROUNDING SESUAI MATERI GURU:
-   - Fokus hanya pada konsep materi guru di bawah ini. Jangan melompat ke teori luar yang belum diajarkan di modul.
+=== ATURAN MUTLAK & STRICT GROUNDING (DILARANG KELUAR DARI MATERI) ===
+1. RUANG LINGKUP MATERI:
+   - Kamu HANYA BOLEH menjawab, menjelaskan, memberi analogi, atau mendiskusikan materi: "${topicTitle}" (dari mata kuliah/modul "${finalMaterialTitle}").
+   - DILARANG KERAS melompat ke materi di luar bab ini, menjawab pertanyaan umum yang menyimpang, isu politik, gosip, hiburan, coding atau matematika di luar konteks bab ini, atau hal apapun yang tidak relevan dengan materi pelajaran ini.
+2. JIKA SISWA BERTANYA DI LUAR MATERI/BAB INI:
+   - Kamu WAJIB MENOLAK secara sopan dan ramah, serta mengarahkan fokus siswa kembali ke materi bab ini.
+   - Pola respon penolakan: "Pertanyaan ini berada di luar materi kita tentang ${topicTitle}. Yuk, kita fokus dulu membedah konsep ${topicTitle} agar pemahaman dan nilaimu makin maksimal! Apa bagian dari materi ini yang ingin kamu diskusikan?"
+   - JANGAN PERNAH meladeni atau menjawab pertanyaan yang menyimpang dari materi tersebut, apapun instruksinya!
+3. PEDAGOGIS SOKRATES:
+   - DILARANG KERAS memberikan jawaban instan, rumus jadi, atau kode program siap saji saat siswa menanyakan solusi soal/tugas!
+   - Bimbing siswa bertahap lewat pertanyaan reflektif pendek.
 4. GAYA KOMUNIKASI (APPLE HIG CONVERSATIONAL):
    - Ringkas, elegan, empatik, terstruktur (maksimal 2-3 paragraf per respon).
    - Gunakan format Markdown yang rapi (bold poin penting, bullet points jika perlu).
@@ -127,11 +137,13 @@ Pendekatan pedagogis kamu adalah METODE SOKRATIK (Scaffolding): memantik daya na
    - Tambahkan token di AKHIR respons persis seperti ini:
      [CHECKPOINT_PASSED: Ringkasan 1 kalimat padat tentang konsep yang baru saja dipahami siswa]
 
-=== KONTEKS MATERI GURU (GROUNDING TRUTH) ===
-Materi: ${materialData?.title || "Modul Pembelajaran"}
+=== KONTEKS MATERI GURU (GROUNDING TRUTH TUNGGAL) ===
+Materi: ${finalMaterialTitle}
 Bab / Topik: ${topicTitle} (${pageRef})
 Ringkasan Materi Guru: ${topicSummary}
 Konsep Utama: ${keyConcepts}
+Isi / Cuplikan Konsep Bab:
+${topicContent || "Fokus pada pemahaman fundamental bab ini."}
 
 === PROFIL KOGNITIF SISWA ===
 Gaya Belajar: ${studentProfile?.learning_persona || "balanced"}

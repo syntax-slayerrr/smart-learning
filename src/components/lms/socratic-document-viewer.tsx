@@ -1,39 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Sparkles,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
   Send,
   Lightbulb,
-  Video,
   BookmarkPlus,
   Check,
   Volume2,
   VolumeX,
-  Highlighter,
   RotateCcw,
   BookOpen,
-  ArrowRight,
-  HelpCircle,
-  Download,
-  ExternalLink,
-  MessageSquare,
-  Compass,
-  CheckCircle2,
-  FileDown,
-  Layers,
-  PanelLeftClose,
-  PanelLeftOpen,
   Headphones,
   X,
-  Bookmark,
-  Share2,
-  Mic,
-  Network,
-  Target,
+  CheckCircle2,
+  Lock,
+  ChevronDown,
+  ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,398 +25,263 @@ import { saveOfflineNote } from "@/lib/offline-lms-cache";
 
 export interface DocumentChapter {
   id: string;
+  chapterNumber: number;
   title: string;
-  chapterNumber?: number;
-  pageStart?: number;
-  pageEnd?: number;
-  pages?: string;
-  isCriticalZone?: boolean;
-  criticalZoneDrop?: number;
-  confusionScore?: number;
-  detectedTimestamp?: string;
+  pageStart: number;
+  pageEnd: number;
+  summary: string;
+  keyTakeaways: string[];
   contentSnippet?: string;
-  summary?: string;
-  keyTakeaways?: string[];
 }
 
 export interface SocraticDocumentViewerProps {
-  chapters?: DocumentChapter[];
-  materialTitle?: string;
-  materialId?: string;
+  materialId: string;
+  materialTitle: string;
+  fileName: string;
   fileUrl?: string;
-  fileName?: string;
+  chapters?: DocumentChapter[];
   studentId?: string;
   initialPage?: number;
   initialPrompt?: string;
   className?: string;
+  onNavigateToReader?: (chapterIndex: number, page?: number) => void;
+  onSaveNote?: (note: string) => void;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "student" | "assistant";
+  text: string;
+  timestamp: string;
+  citations?: Array<{
+    page: number;
+    quoteSnippet: string;
+    chapterTitle?: string;
+  }>;
+  checkpointPassed?: {
+    concept: string;
+    summary: string;
+  };
+  highlightRef?: string;
 }
 
 const DEFAULT_CHAPTERS: DocumentChapter[] = [
   {
-    id: "chap-1",
+    id: "ch-1",
     chapterNumber: 1,
-    title: "Bab 1: Pengantar Arsitektur Jaringan & Model OSI",
+    title: "Pengantar & Konsep Fundamental",
     pageStart: 1,
-    pageEnd: 12,
-    isCriticalZone: false,
-    contentSnippet: `Jaringan komputer adalah sistem yang menghubungkan dua atau lebih perangkat komputasi untuk bertukar data dan berbagi sumber daya. Model referensi OSI (Open Systems Interconnection) membagi komunikasi jaringan menjadi 7 lapisan terstruktur: Physical, Data Link, Network, Transport, Session, Presentation, dan Application. Setiap layer memiliki tanggung jawab enkapsulasi data tersendiri.
-
-Pada model TCP/IP, arsitektur disederhanakan menjadi 4 lapisan: Network Access, Internet, Transport, dan Application. Router beroperasi pada Network Layer (Layer 3) menggunakan IP Address untuk meneruskan paket lintas subnet logis.`,
-    keyTakeaways: ["7 Lapisan Model OSI", "Perbedaan OSI vs TCP/IP", "Enkapsulasi & PDU"],
+    pageEnd: 10,
+    summary: "Dasar-dasar arsitektur, terminologi kunci, dan prinsip kerja sistem.",
+    keyTakeaways: [
+      "Pemahaman struktur hierarki dan protokol dasar",
+      "Perbedaan antara physical layer dan logical layer",
+    ],
+    contentSnippet: "Modul ini membahas prinsip fundamental arsitektur dan sistem transmisi data.",
   },
   {
-    id: "chap-2",
+    id: "ch-2",
     chapterNumber: 2,
-    title: "Bab 2: Subnetting, Notasi CIDR, dan Alokasi VLSM",
-    pageStart: 13,
-    pageEnd: 28,
-    isCriticalZone: true,
-    confusionScore: 42,
-    detectedTimestamp: "Sesi Kelas Fisik Pagi Ini",
-    contentSnippet: `Pengalamatan IPv4 menggunakan 32-bit yang dipisahkan menjadi empat oktet numerik. Subnetting adalah teknik membagi satu jaringan fisik besar menjadi beberapa sub-jaringan logis yang lebih efisien.
-
-Notasi CIDR (/24, /27, /28) menentukan berapa bit yang dipinjam dari host ID untuk alokasi network prefix.
-Dalam alokasi VLSM (Variable Length Subnet Masking), kita mengurutkan kebutuhan host dari yang terbesar ke yang terkecil guna meminimalkan pemborosan alamat IP publik maupun privat.
-
-Rumus krusial jumlah host yang valid: 2^n - 2 (di mana n adalah sisa bit host). Dua alamat selalu dialokasikan khusus dan tidak boleh dipasang pada perangkat: Network ID (semua bit host bernilai 0 biner) dan Broadcast Address (semua bit host bernilai 1 biner).`,
-    keyTakeaways: ["Struktur Oktet IPv4", "Notasi Prefix CIDR", "Perhitungan Host Valid (2^n - 2)", "Hierarki Alokasi VLSM"],
-  },
-  {
-    id: "chap-3",
-    chapterNumber: 3,
-    title: "Bab 3: Dynamic Routing Protocols (RIP & OSPF)",
-    pageStart: 29,
-    pageEnd: 45,
-    isCriticalZone: false,
-    contentSnippet: `Routing dinamis memungkinkan router secara otomatis bertukar informasi topologi dan memperbarui tabel routing ketika terjadi perubahan tautan fisik secara real-time.
-
-Routing Information Protocol (RIP) berbasis Distance Vector dengan metrik hop count maksimal 15 hop, cocok untuk jaringan skala kecil tanpa segmentasi kompleks.
-Open Shortest Path First (OSPF) adalah Link-State Protocol berbasis algoritma SPF (Dijkstra). OSPF menawarkan konvergensi sangat cepat, bebas routing loop, dan mendukung hierarki multi-area dengan Area 0 (Backbone Area) sebagai poros pertukaran paket antar-area.`,
-    keyTakeaways: ["Distance Vector vs Link State", "Batas Metrik RIP 15 Hop", "Algoritma Dijkstra OSPF", "Desain Multi-Area OSPF"],
+    title: "Implementasi & Analisis Lanjutan",
+    pageStart: 11,
+    pageEnd: 24,
+    summary: "Perhitungan matematis, pembagian alokasi, dan optimasi performa.",
+    keyTakeaways: [
+      "Metode alokasi efisien dan kalkulasi bitmask",
+      "Pencegahan broadcast overhead dan isolasi collision",
+    ],
+    contentSnippet: "Pembagian rentang alamat secara hierarkis untuk efisiensi routing.",
   },
 ];
 
-interface ChatMessage {
-  id: string;
-  role: "assistant" | "user";
-  text: string;
-  checkpointPassed?: boolean;
-  noteDraft?: string;
-  noteSaved?: boolean;
-  highlightContext?: string;
-  citation?: {
-    chapterNumber?: number;
-    page?: number;
-    label?: string;
-  };
-}
-
-interface CitationPeekState {
-  chapterNumber: number;
-  page: number;
-  title: string;
-  snippet: string;
-  takeaways: string[];
-}
-
 export function SocraticDocumentViewer({
-  chapters: externalChapters,
-  materialTitle = "Modul Praktis Subnetting IPv4 & VLSM Jaringan Komputer",
   materialId,
-  fileUrl,
+  materialTitle,
   fileName,
-  studentId = "std-001",
-  initialPage = 13,
+  fileUrl,
+  chapters = DEFAULT_CHAPTERS,
+  studentId = "student-default",
+  initialPage = 1,
   initialPrompt,
   className = "",
+  onNavigateToReader,
+  onSaveNote,
 }: SocraticDocumentViewerProps) {
-  const chapters =
-    externalChapters && externalChapters.length > 0
-      ? externalChapters
-      : DEFAULT_CHAPTERS;
+  const safeChapters = chapters && chapters.length > 0 ? chapters : DEFAULT_CHAPTERS;
 
-  // View Mode: 'studio' (Smart AI Chat) or 'reader' (Full Document Reader)
-  const [viewMode, setViewMode] = useState<"studio" | "reader">(() => {
-    return initialPrompt ? "studio" : "studio";
-  });
-
-  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(() => {
-    const critIdx = chapters.findIndex(
-      (c) => c.isCriticalZone || Boolean(c.criticalZoneDrop)
+  const [activeChapterIndex, setActiveChapterIndex] = useState(() => {
+    const idx = safeChapters.findIndex(
+      (c) => initialPage >= c.pageStart && initialPage <= c.pageEnd
     );
-    return critIdx >= 0 ? critIdx : 0;
+    return idx !== -1 ? idx : 0;
   });
 
-  const activeChapter = chapters[activeChapterIndex] || chapters[0] || DEFAULT_CHAPTERS[0];
+  const activeChapter = safeChapters[activeChapterIndex] || safeChapters[0];
 
-  const [currentPage, setCurrentPage] = useState<number>(() => {
-    return initialPage || activeChapter?.pageStart || 1;
-  });
-
-  const [socraticQuery, setSocraticQuery] = useState<string>("");
-  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
-  const [selectedText, setSelectedText] = useState<string>("");
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [isAudioOverviewPlaying, setIsAudioOverviewPlaying] = useState<boolean>(false);
-  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
-  const [selectionNoteSaved, setSelectionNoteSaved] = useState<boolean>(false);
-
-  // Feature 1: Apple Slide-Up Sheet for Citation Peek & Pop
-  const [activeCitationPeek, setActiveCitationPeek] = useState<CitationPeekState | null>(null);
-
-  // Feature 4: Touch swipe gestures state
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-
-  const documentRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  // Chat conversation state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
-      id: "msg-welcome",
-      role: "assistant",
-      text: `Halo Zaldy! Aku **Smart AI**, mentor belajarmu yang terhubung langsung dengan modul resmi dari dosen/guru.
-
-Di sini aku membimbing nalar mandirimu secara bertahap lewat metode Sokrates. Kamu bisa bertanya konsep, menganalisis studi kasus, atau meminta analogi sederhana.
-
-${
-  activeChapter.isCriticalZone || activeChapter.criticalZoneDrop
-    ? `⚠️ **Catatan Kelas Fisik:** Kamera AI mencatat materi **${activeChapter.title}** ini sempat memicu kebingungan (${activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42}% atensi drop). Mau kita bedah logikanya bersama?`
-    : `Materi aktif saat ini: **${activeChapter.title}**. Apa yang ingin kamu diskusikan?`
-}`,
-      citation: {
-        chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
-        page: activeChapter.pageStart || 13,
-        label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}, Hal ${activeChapter.pageStart || 13}`,
-      },
+      id: "welcome-msg",
+      sender: "assistant",
+      text: `Halo! Aku **Smart AI**, mentor dialektikamu untuk materi **${activeChapter.title}** (${materialTitle}).\n\nDiskusi kita **terkunci penuh pada materi bab ini**. Tanyakan konsep yang ingin kamu perdalam, atau kita bisa bedah bersama dari dasar tanpa jalan pintas!`,
+      timestamp: "Baru saja",
     },
   ]);
 
-  // Auto-scroll inside message feed when new message arrives
+  const [promptInput, setPromptInput] = useState("");
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [activeCitationPeek, setActiveCitationPeek] = useState<{
+    page: number;
+    quoteSnippet: string;
+    chapterTitle?: string;
+  } | null>(null);
+
+  // Audio speech synthesis state
+  const [activeSpeakingId, setActiveSpeakingId] = useState<string | null>(null);
+  const [isAudioSummaryPlaying, setIsAudioSummaryPlaying] = useState(false);
+  const [savedCheckpoints, setSavedCheckpoints] = useState<Record<string, boolean>>({});
+  const [showChapterMenu, setShowChapterMenu] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll chat to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
-    if (viewMode === "studio") {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToBottom();
+  }, [chatMessages, isAiThinking]);
+
+  // Initial prompt trigger
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSendPrompt(initialPrompt);
     }
-  }, [chatMessages, isAiLoading, viewMode]);
+  }, [initialPrompt]);
 
-  // When chapter changes, update chapter greeting
+  // Stop TTS on unmount
   useEffect(() => {
-    const isCrit = activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop);
-    const dropScore = activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42;
-
-    const chapterGreeting: ChatMessage = {
-      id: `greeting-${activeChapter.id}-${Date.now()}`,
-      role: "assistant",
-      text: isCrit
-        ? `Mari kita bedah logika penting di **${activeChapter.title}**, terutama rumus kapasitas host **2ⁿ - 2**.
-
-Mengapa angka 2 wajib selalu dikurangkan dari total kombinasi bit host, dan apa konsekuensinya jika sebuah host komputer diberi alamat biner yang semuanya bernilai 0 atau 1?`
-        : `Halo Zaldy! Kamu sedang menelaah **${activeChapter.title}**. Konsep atau studi kasus apa yang ingin kamu bahas bersama Smart AI?`,
-      citation: {
-        chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
-        page: activeChapter.pageStart || 1,
-        label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
-      },
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
+  }, []);
 
-    setChatMessages([chapterGreeting]);
-  }, [activeChapterIndex]);
-
-  // Feature 4: Touch swipe gesture handlers (Native App Feeling)
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-
-    // Minimum swipe distance 60px & predominantly horizontal
-    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
-      if (deltaX < 0 && viewMode === "studio") {
-        // Swipe Left: Beralih ke Reader Modul
-        setViewMode("reader");
-      } else if (deltaX > 0 && viewMode === "reader") {
-        // Swipe Right: Beralih ke Smart AI Studio
-        setViewMode("studio");
-      }
-    }
-  };
-
-  // Feature 1: Apple Slide-Up Sheet (Peek & Pop) on citation click
-  const handleOpenCitationPeek = (chapNumber?: number, page?: number) => {
-    const targetChap =
-      chapters.find((c, i) => (c.chapterNumber || i + 1) === chapNumber) ||
-      activeChapter;
-    setActiveCitationPeek({
-      chapterNumber: targetChap.chapterNumber || chapNumber || 1,
-      page: page || targetChap.pageStart || 1,
-      title: targetChap.title,
-      snippet:
-        targetChap.contentSnippet ||
-        targetChap.summary ||
-        "Kutipan materi resmi modul guru.",
-      takeaways: targetChap.keyTakeaways || [],
-    });
-  };
-
-  // Switch to reader at specific chapter & page
-  const handleJumpToSource = (chapNumber?: number, page?: number) => {
-    if (chapNumber) {
-      const idx = chapters.findIndex(
-        (c, i) => (c.chapterNumber || i + 1) === chapNumber
-      );
-      if (idx >= 0) setActiveChapterIndex(idx);
-    }
-    if (page) {
-      setCurrentPage(page);
-    }
-    setViewMode("reader");
-  };
-
-  // Handle Text Selection inside Document View
-  const handleTextSelection = () => {
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim().length > 3) {
-      setSelectedText(selection.toString().trim());
-      setSelectionNoteSaved(false);
+  // Update welcome message if chapter changed and chat is at start
+  const handleSelectChapter = (index: number) => {
+    setActiveChapterIndex(index);
+    setShowChapterMenu(false);
+    const targetChapter = safeChapters[index];
+    if (chatMessages.length <= 1) {
+      setChatMessages([
+        {
+          id: `welcome-${targetChapter.id}`,
+          sender: "assistant",
+          text: `Fokus materi sekarang dialihkan ke **Bab ${targetChapter.chapterNumber}: ${targetChapter.title}**.\n\nPembahasan kita tetap **terkunci pada materi bab ini**. Apa yang ingin kamu diskusikan dari konsep bab ini?`,
+          timestamp: "Baru saja",
+        },
+      ]);
     } else {
-      setSelectedText("");
+      // Append transition message
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `trans-${Date.now()}`,
+          sender: "assistant",
+          text: `*Fokus materi sekarang dialihkan ke **Bab ${targetChapter.chapterNumber}: ${targetChapter.title}**. Semua pertanyaan berikutnya terfokus pada bab ini.*`,
+          timestamp: "Baru saja",
+        },
+      ]);
     }
   };
 
-  // Feature 2: Pin selected quote directly to student notes
-  const handlePinSelectedQuote = async () => {
-    if (!selectedText.trim()) return;
-    try {
-      setSelectionNoteSaved(true);
-      await saveOfflineNote({
-        material_id: materialId || "",
-        chapter_id: activeChapter.id,
-        quote: `Kutipan Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
-        my_note: selectedText,
-      });
-
-      // Also sync to backend API if online
-      if (typeof navigator !== "undefined" && navigator.onLine) {
-        await fetch("/api/lms/student/notes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentId,
-            materialId,
-            topicId: activeChapter.id,
-            noteContent: selectedText,
-            socraticContext: {
-              topicTitle: activeChapter.title,
-              savedAt: new Date().toISOString(),
-            },
-          }),
-        }).catch(() => null);
-      }
-    } catch (err) {
-      console.warn("Gagal pin catatan seleksi:", err);
-    }
-  };
-
-  // Feature 3: Audio Overview 1-Tap (NotebookLM Deep Dive Audio)
-  const handleToggleAudioOverview = () => {
+  // TTS Toggle for a message
+  const toggleSpeakMessage = (msgId: string, text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    if (isAudioOverviewPlaying) {
+    if (activeSpeakingId === msgId) {
       window.speechSynthesis.cancel();
-      setIsAudioOverviewPlaying(false);
+      setActiveSpeakingId(null);
       return;
     }
 
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-
-    const takeawaysText =
-      activeChapter.keyTakeaways && activeChapter.keyTakeaways.length > 0
-        ? `Intisari pembahasan mencakup: ${activeChapter.keyTakeaways.join(", ")}.`
-        : "";
-
-    const overviewScript = `Ringkasan Audio ${activeChapter.title}. ${activeChapter.contentSnippet?.slice(0, 320) || ""}. ${takeawaysText} Mari pahami konsep ini secara bertahap bersama Smart AI.`;
-
-    const cleanText = overviewScript.replace(/[*_#`[\]]/g, "");
+    window.speechSynthesis.cancel();
+    const cleanText = text
+      .replace(/\[CHECKPOINT_PASSED:[^\]]*\]/g, "")
+      .replace(/[*#_`]/g, "");
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "id-ID";
     utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.onend = () => setActiveSpeakingId(null);
+    utterance.onerror = () => setActiveSpeakingId(null);
 
-    utterance.onend = () => setIsAudioOverviewPlaying(false);
-    utterance.onerror = () => setIsAudioOverviewPlaying(false);
-
-    setIsAudioOverviewPlaying(true);
+    setActiveSpeakingId(msgId);
     window.speechSynthesis.speak(utterance);
   };
 
-  // Text-to-Speech function for individual AI responses
-  const handleToggleSpeech = (text: string) => {
+  // Audio Summary for whole chapter
+  const toggleAudioSummary = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    if (isSpeaking) {
+    if (isAudioSummaryPlaying) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+      setIsAudioSummaryPlaying(false);
       return;
     }
 
-    if (isAudioOverviewPlaying) {
-      window.speechSynthesis.cancel();
-      setIsAudioOverviewPlaying(false);
-    }
-
-    const cleanText = text.replace(/[*_#`[\]]/g, "");
-    const utterance = new SpeechSynthesisUtterance(cleanText);
+    window.speechSynthesis.cancel();
+    const summaryText = `Ringkasan audio untuk Bab ${activeChapter.chapterNumber}, ${activeChapter.title}. ${activeChapter.summary}. Konsep kunci: ${activeChapter.keyTakeaways.join(". ")}.`;
+    const utterance = new SpeechSynthesisUtterance(summaryText);
     utterance.lang = "id-ID";
-    utterance.rate = 1.05;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsAudioSummaryPlaying(false);
+    utterance.onerror = () => setIsAudioSummaryPlaying(false);
 
-    setIsSpeaking(true);
+    setIsAudioSummaryPlaying(true);
     window.speechSynthesis.speak(utterance);
   };
 
-  // Keyboard stability: prevent window/screen jumping when focused
-  const handleInputFocus = () => {
-    // Only scroll within chat messages if needed, without triggering window-level layout shift
+  // Reset conversation
+  const handleResetChat = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setActiveSpeakingId(null);
+    setIsAudioSummaryPlaying(false);
+    setChatMessages([
+      {
+        id: `welcome-${Date.now()}`,
+        sender: "assistant",
+        text: `Halo Zaldy! Aku **Smart AI**, mentor dialektikamu untuk materi **${activeChapter.title}**.\n\nPembahasan kita **terkunci penuh pada materi bab ini**. Silakan ajukan pertanyaan seputar konsep materi ini.`,
+        timestamp: "Baru saja",
+      },
+    ]);
   };
 
-  // Kirim pertanyaan ke Smart AI backend
-  const handleSendPrompt = async (
-    promptOverride?: string,
-    highlightOverride?: string
-  ) => {
-    const textToSend = promptOverride || socraticQuery;
-    const highlight =
-      highlightOverride !== undefined ? highlightOverride : selectedText;
+  // Send Prompt with Strict Grounding to API
+  const handleSendPrompt = async (customPrompt?: string, highlight?: string) => {
+    const textToSend = (customPrompt || promptInput).trim();
+    if (!textToSend || isAiThinking) return;
 
-    if (!textToSend.trim() || isAiLoading) return;
-
-    // Ensure we are in studio view mode
-    setViewMode("studio");
-
-    const userMessageId = `usr-${Date.now()}`;
-    const userMsg: ChatMessage = {
-      id: userMessageId,
-      role: "user",
+    const userMsgId = `student-${Date.now()}`;
+    const userMessage: ChatMessage = {
+      id: userMsgId,
+      sender: "student",
       text: textToSend,
-      highlightContext: highlight || undefined,
+      timestamp: "Baru saja",
+      highlightRef: highlight,
     };
 
-    setChatMessages((prev) => [...prev, userMsg]);
-    setSocraticQuery("");
-    setSelectedText("");
-    setIsAiLoading(true);
+    setChatMessages((prev) => [...prev, userMessage]);
+    if (!customPrompt) setPromptInput("");
+    setIsAiThinking(true);
 
     try {
       const historyPayload = chatMessages.slice(-6).map((m) => ({
-        role: m.role,
+        role: m.sender === "student" ? "user" : "assistant",
         content: m.text,
       }));
 
@@ -443,773 +292,456 @@ Mengapa angka 2 wajib selalu dikurangkan dari total kombinasi bit host, dan apa 
           studentId,
           materialId,
           topicId: activeChapter.id,
+          materialTitle: materialTitle || "Materi Pembelajaran",
+          chapterTitle: activeChapter.title,
+          chapterSummary: activeChapter.summary,
+          chapterContent: activeChapter.contentSnippet || activeChapter.summary,
           message: textToSend,
           highlightedText: highlight,
           history: historyPayload,
         }),
       });
 
+      if (!res.ok) throw new Error("Gagal menghubungi server Smart AI");
+
       const data = await res.json();
+      let aiText = data.reply || data.response || "";
 
-      if (data.success) {
-        const aiMsg: ChatMessage = {
-          id: `ai-${Date.now()}`,
-          role: "assistant",
-          text: data.reply,
-          checkpointPassed: data.checkpointPassed,
-          noteDraft: data.noteDraft,
-          citation: {
-            chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
-            page: currentPage,
-            label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}, Hal ${currentPage}`,
-          },
+      // Parse Checkpoint token if present
+      let checkpointData: { concept: string; summary: string } | undefined = undefined;
+      const checkpointMatch = aiText.match(/\[CHECKPOINT_PASSED:\s*([^\]]+)\]/i);
+      if (checkpointMatch) {
+        checkpointData = {
+          concept: `Pemahaman Bab ${activeChapter.chapterNumber}`,
+          summary: checkpointMatch[1].trim(),
         };
-        setChatMessages((prev) => [...prev, aiMsg]);
-      } else {
-        throw new Error(data.error || "Gagal menghubungi Smart AI");
+        aiText = aiText.replace(/\[CHECKPOINT_PASSED:[^\]]+\]/i, "").trim();
       }
-    } catch (err: any) {
-      // Fallback socratic response jika offline / dev mode
-      const fallbackReply = textToSend.toLowerCase().includes("analogi")
-        ? `Bayangkan kamu punya sebidang tanah luas (**Network ID**: 192.168.1.0/24, total 256 m²). 
 
-Jika dipotong rata (/26), tiap ruang dapat 64 m². Tapi lab komputer butuh 50 m², sedangkan pos satpam cuma butuh 4 m²! 
-Tanah di pos satpam jadi mubazir 60 m².
-
-Dengan **VLSM**, kamu potong fleksibel: kasih kavling /26 (64 m²) untuk Lab, dan cukup potong kavling /29 (8 m²) untuk pos satpam. Menurutmu, apa manfaat terbesar dari teknik ini?`
-        : `Mari kita bedah logikanya bersama. Perhatikan rumus **2^n - 2**. 
-
-Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istimewa' di setiap blok jaringan yang berhak atas dua alamat tersebut?`;
+      const citations = [
+        {
+          page: activeChapter.pageStart,
+          quoteSnippet: activeChapter.summary,
+          chapterTitle: activeChapter.title,
+        },
+      ];
 
       setChatMessages((prev) => [
         ...prev,
         {
-          id: `ai-fallback-${Date.now()}`,
-          role: "assistant",
-          text: fallbackReply,
-          checkpointPassed: false,
-          citation: {
-            chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
-            page: currentPage,
-            label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
-          },
+          id: `ai-${Date.now()}`,
+          sender: "assistant",
+          text: aiText,
+          timestamp: "Baru saja",
+          citations,
+          checkpointPassed: checkpointData,
         },
       ]);
+    } catch {
+      // Fallback grounded answer
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-fallback-${Date.now()}`,
+            sender: "assistant",
+            text: `Terkait pertanyaanmu mengenai **${activeChapter.title}**: mari kita bedah prinsip dasarnya terlebih dahulu.\n\n${activeChapter.summary}\n\nMenurutmu, bagaimana bagian ini terhubung dengan tantangan yang sedang kamu hadapi?`,
+            timestamp: "Baru saja",
+            citations: [
+              {
+                page: activeChapter.pageStart,
+                quoteSnippet: activeChapter.summary,
+                chapterTitle: activeChapter.title,
+              },
+            ],
+          },
+        ]);
+      }, 700);
     } finally {
-      setIsAiLoading(false);
+      setIsAiThinking(false);
     }
   };
 
-  // Auto-send prompt when coming from Concept Graph action
-  useEffect(() => {
-    if (initialPrompt && initialPrompt.trim()) {
-      handleSendPrompt(initialPrompt.trim());
-    }
-  }, [initialPrompt]);
-
-  // Simpan checkpoint pemahaman ke catatan siswa
-  const handlePinNote = async (msgId: string, noteContent: string) => {
-    setSavingNoteId(msgId);
+  // Save Checkpoint to Notes
+  const handleSaveCheckpointToNotes = async (msgId: string, concept: string, summary: string) => {
     try {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await saveOfflineNote({
-          material_id: materialId || "",
-          chapter_id: activeChapter.id,
-          quote: activeChapter.title,
-          my_note: noteContent,
-        });
-        setChatMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
-        );
-        return;
-      }
-
-      const res = await fetch("/api/lms/student/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          materialId,
-          topicId: activeChapter.id,
-          noteContent,
-          socraticContext: {
-            topicTitle: activeChapter.title,
-            savedAt: new Date().toISOString(),
-          },
-        }),
-      });
-
-      if (res.ok) {
-        setChatMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
-        );
-      } else {
-        throw new Error("Respon server gagal");
-      }
-    } catch (err) {
-      console.warn("Fallback menyimpan catatan ke cache lokal offline:", err);
-      await saveOfflineNote({
-        material_id: materialId || "",
+      const noteContent = `### ✨ Checkpoint Pemahaman: ${activeChapter.title}\n\n**${concept}**\n${summary}\n\n*Dicatat otomatis dari sesi Socratic Smart AI pada ${new Date().toLocaleDateString("id-ID")}*`;
+      saveOfflineNote({
+        material_id: materialId,
         chapter_id: activeChapter.id,
-        quote: activeChapter.title,
+        quote: concept,
         my_note: noteContent,
       });
-      setChatMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
-      );
-    } finally {
-      setSavingNoteId(null);
+      if (onSaveNote) {
+        onSaveNote(noteContent);
+      }
+      setSavedCheckpoints((prev) => ({ ...prev, [msgId]: true }));
+    } catch (e) {
+      console.error("Gagal menyimpan catatan checkpoint:", e);
     }
   };
 
-  // Helper formatter for markdown text (bold, code, bullet points)
-  const renderFormattedText = (rawText: string) => {
-    const lines = rawText.split("\n");
-    return (
-      <div className="space-y-2">
-        {lines.map((line, idx) => {
-          if (!line.trim()) {
-            return <div key={idx} className="h-1" />;
-          }
-
-          // Render bold and inline code cleanly
-          const parts = line.split(/(\*\*.*?\*\*|`.*?`)/g);
-
-          return (
-            <p key={idx} className="leading-relaxed">
-              {parts.map((part, pIdx) => {
-                if (part.startsWith("**") && part.endsWith("**")) {
-                  return (
-                    <strong
-                      key={pIdx}
-                      className="font-semibold text-slate-900 dark:text-white"
-                    >
-                      {part.slice(2, -2)}
-                    </strong>
-                  );
-                }
-                if (part.startsWith("`") && part.endsWith("`")) {
-                  return (
-                    <code
-                      key={pIdx}
-                      className="font-mono text-[11px] bg-black/[0.05] dark:bg-white/[0.1] px-1.5 py-0.5 rounded text-[#007AFF] dark:text-blue-400 font-medium"
-                    >
-                      {part.slice(1, -1)}
-                    </code>
-                  );
-                }
-                return part;
-              })}
-            </p>
-          );
-        })}
-      </div>
-    );
-  };
+  // Quick suggestion prompts
+  const suggestions = useMemo(
+    () => [
+      `💡 Apa konsep paling krusial di ${activeChapter.title}?`,
+      `🔍 Berikan analogi sederhana untuk memahami materi ini`,
+      `🎯 Beri aku 1 pertanyaan reflektif untuk menguji nalar`,
+      `📋 Rangkum inti perbedaan prinsip utama di bab ini`,
+    ],
+    [activeChapter.title]
+  );
 
   return (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className={`flex flex-col h-full sm:h-[720px] sm:max-h-[820px] bg-white/80 backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 shadow-none sm:shadow-sm overflow-hidden overscroll-contain relative ${className}`}
+      className={`relative flex flex-col h-full w-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden ${className}`}
     >
-      {/* ============================================================== */}
-      {/* 1. TOP GROUND TRUTH SOURCE BAR (Always Anchored at Top)        */}
-      {/* ============================================================== */}
-      <div className="shrink-0 z-20 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl px-3.5 sm:px-5 py-2.5 sm:py-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-          {/* Left: Source File Info & Verified Status */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#007AFF] flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-800/40">
-              <FileText className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                  {materialTitle}
-                </span>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Modul Guru
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="truncate max-w-[180px] sm:max-w-xs font-mono">
-                  {fileName || "Modul_Resmi.pdf"}
-                </span>
-                <span>•</span>
-                <span>{chapters.length} Bab</span>
-              </div>
-            </div>
+      {/* 1. TOP HEADER: Clean Glass Bar */}
+      <header className="shrink-0 h-16 px-4 sm:px-6 bg-white/75 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center justify-between gap-3 z-10">
+        {/* Left: Branding & Grounded Context */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative flex items-center justify-center h-9 w-9 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
+            <Sparkles className="h-4.5 w-4.5" />
           </div>
 
-          {/* Right: Actions, Audio Overview & Native Segmented Switcher */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap sm:flex-nowrap">
-            {/* Feature 3: Audio Overview 1-Tap Button */}
-            <button
-              onClick={handleToggleAudioOverview}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 shrink-0 ${
-                isAudioOverviewPlaying
-                  ? "bg-blue-500 text-white border-blue-400 shadow-sm animate-pulse"
-                  : "bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] text-slate-700 dark:text-slate-200 border-black/5 dark:border-white/5"
-              }`}
-              title="Dengarkan intisari lisan bab ini (NotebookLM Deep Dive Audio)"
-            >
-              <Headphones className={`h-3.5 w-3.5 ${isAudioOverviewPlaying ? "text-white" : "text-[#007AFF]"}`} />
-              <span className="text-xs">
-                {isAudioOverviewPlaying ? "Hentikan Audio" : "Audio Bab"}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight truncate">
+                Smart AI Studio
+              </h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                <Lock className="h-2.5 w-2.5" />
+                Terkunci Pada Materi
               </span>
-            </button>
-
-            {/* Download Original File Button */}
-            {fileUrl ? (
-              <a
-                href={fileUrl}
-                download={fileName || `${materialTitle}.pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden xs:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] text-slate-700 dark:text-slate-200 text-xs font-semibold border border-black/5 dark:border-white/5 transition-all active:scale-95 shrink-0"
-                title="Unduh berkas modul original yang diunggah guru"
-              >
-                <Download className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span className="text-xs">Unduh</span>
-              </a>
-            ) : (
-              <button
-                onClick={() =>
-                  alert("Dokumen original tersinkronisasi dalam cache offline PWA.")
-                }
-                className="hidden xs:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 text-xs font-semibold border border-black/5 transition-all shrink-0"
-              >
-                <Download className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span className="text-xs">Unduh</span>
-              </button>
-            )}
-
-            {/* Apple Segmented Switcher: Studio vs Reader */}
-            <div className="inline-flex p-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-2xl border border-black/5 dark:border-white/5">
-              <button
-                onClick={() => setViewMode("studio")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all ${
-                  viewMode === "studio"
-                    ? "bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-bold shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900"
-                }`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Smart AI</span>
-              </button>
-              <button
-                onClick={() => setViewMode("reader")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all ${
-                  viewMode === "reader"
-                    ? "bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-bold shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900"
-                }`}
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                <span>Baca Modul</span>
-              </button>
             </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              Bab {activeChapter.chapterNumber}: {activeChapter.title}
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* ============================================================== */}
-      {/* 2. BODY CONTENT (FULL-SCREEN STUDIO OR FULL-SCREEN READER)     */}
-      {/* ============================================================== */}
-      {viewMode === "studio" ? (
-        /* ============================================================ */
-        /* --- MODE 1: SMART AI SOCRATIC STUDIO (NOTEBOOKLM PARADIGM)   */
-        /* ============================================================ */
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3.5 scrollbar-none">
-            {chatMessages.map((msg) => (
+        {/* Right: Controls (Chapter Switcher, Audio, Reset) */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Chapter Selector Dropdown */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowChapterMenu(!showChapterMenu)}
+              className="h-8 px-2.5 rounded-xl text-xs font-medium bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white flex items-center gap-1.5"
+            >
+              <span className="max-w-[100px] sm:max-w-[140px] truncate">
+                Bab {activeChapter.chapterNumber}
+              </span>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </Button>
+
+            {showChapterMenu && (
+              <div className="absolute right-0 mt-1.5 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Fokus Pembahasan Bab
+                </div>
+                {safeChapters.map((chap, idx) => (
+                  <button
+                    key={chap.id}
+                    onClick={() => handleSelectChapter(idx)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${
+                      idx === activeChapterIndex
+                        ? "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    <span className="truncate pr-2">
+                      Bab {chap.chapterNumber}: {chap.title}
+                    </span>
+                    {idx === activeChapterIndex && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Audio Overview Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleAudioSummary}
+            className={`h-8 w-8 p-0 rounded-xl bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 ${
+              isAudioSummaryPlaying ? "text-blue-600 border-blue-300 bg-blue-50" : "text-slate-600"
+            }`}
+            title="Dengarkan Ringkasan Bab"
+          >
+            <Headphones className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Reset Dialogue */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetChat}
+            className="h-8 w-8 p-0 rounded-xl bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 text-slate-500 hover:text-slate-700"
+            title="Reset Percakapan"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </header>
+
+      {/* 2. CHAT FEED: Dedicated Clean Socratic Stream */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
+        {chatMessages.map((msg) => {
+          const isStudent = msg.sender === "student";
+          const isSpeaking = activeSpeakingId === msg.id;
+
+          return (
+            <div
+              key={msg.id}
+              className={`flex flex-col ${isStudent ? "items-end" : "items-start"} max-w-full`}
+            >
+              {/* Highlight Ref Tag */}
+              {msg.highlightRef && (
+                <div className="mb-1.5 px-3 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-900/30 text-[11px] text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-700/30 max-w-[85%] truncate italic">
+                  &ldquo;{msg.highlightRef}&rdquo;
+                </div>
+              )}
+
+              {/* Message Capsule */}
               <div
-                key={msg.id}
-                className={`flex flex-col ${
-                  msg.role === "user" ? "items-end" : "items-start"
+                className={`group relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 transition-all ${
+                  isStudent
+                    ? "bg-[#007AFF] text-white shadow-sm max-w-[85%] sm:max-w-[75%]"
+                    : "bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/70 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-[90%] sm:max-w-[82%]"
                 }`}
               >
-                {/* Highlight Context Badge if any */}
-                {msg.highlightContext && (
-                  <div className="mb-1 text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] px-2 py-0.5 rounded-lg max-w-[85%] truncate">
-                    <Highlighter className="h-2.5 w-2.5 text-amber-500 shrink-0" />
-                    <span className="truncate italic">"{msg.highlightContext}"</span>
-                  </div>
-                )}
+                {/* Assistant Label */}
+                {!isStudent && (
+                  <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-white/10">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight">
+                        Smart AI Mentor
+                      </span>
+                    </div>
 
-                {/* Message Bubble */}
-                <div
-                  className={`max-w-[92%] sm:max-w-[85%] rounded-3xl p-3.5 sm:p-4 text-xs sm:text-[13.5px] leading-relaxed shadow-sm ${
-                    msg.role === "user"
-                      ? "bg-[#007AFF] text-white rounded-br-md font-medium"
-                      : "bg-white dark:bg-[#2C2C2E] text-slate-800 dark:text-slate-200 rounded-bl-md border border-black/5 dark:border-white/5"
-                  }`}
-                >
-                  {msg.role === "assistant" ? (
-                    renderFormattedText(msg.text)
-                  ) : (
-                    <div className="whitespace-pre-line">{msg.text}</div>
-                  )}
-
-                  {/* Grounded Citation & Actions for Assistant */}
-                  {msg.role === "assistant" && (
-                    <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between gap-2 text-[11px]">
-                      {/* Feature 1: Apple Slide-Up Sheet Trigger (Peek & Pop) */}
-                      {msg.citation && (
-                        <button
-                          onClick={() =>
-                            handleOpenCitationPeek(
-                              msg.citation?.chapterNumber,
-                              msg.citation?.page
-                            )
-                          }
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-[#007AFF] dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/40 font-semibold hover:bg-blue-100 transition-all active:scale-95"
-                          title="Klik untuk intip cuplikan sumber resmi tanpa menutup chat"
-                        >
-                          <BookOpen className="h-3 w-3" />
-                          <span>{msg.citation.label || "Lihat Sumber Modul"}</span>
-                          <span className="text-[9px] bg-[#007AFF] text-white px-1.5 py-0.2 rounded-full font-bold">Intip</span>
-                        </button>
-                      )}
-
-                      {/* Speech synthesis toggle */}
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleToggleSpeech(msg.text)}
-                        className="flex items-center gap-1 text-slate-500 hover:text-[#007AFF] transition-colors ml-auto"
-                        title="Dengarkan penjelasan suara"
+                        onClick={() => toggleSpeakMessage(msg.id, msg.text)}
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        title={isSpeaking ? "Hentikan Suara" : "Dengarkan Jawaban"}
                       >
                         {isSpeaking ? (
-                          <>
-                            <VolumeX className="h-3 w-3 text-red-500" />
-                            <span className="text-red-500">Berhenti</span>
-                          </>
+                          <VolumeX className="h-3.5 w-3.5 text-red-500 animate-pulse" />
                         ) : (
-                          <>
-                            <Volume2 className="h-3 w-3" />
-                            <span>Dengarkan</span>
-                          </>
+                          <Volume2 className="h-3.5 w-3.5" />
                         )}
                       </button>
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {/* Message Body */}
+                <div className="text-sm leading-relaxed whitespace-pre-wrap font-normal">
+                  {msg.text}
                 </div>
 
-                {/* Checkpoint Note Pinning Card */}
-                {msg.checkpointPassed && msg.noteDraft && (
-                  <div className="mt-2 w-[92%] sm:w-[85%] rounded-2xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 shadow-sm animate-fade-in">
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300">
-                          Checkpoint Pemahaman Tercapai!
-                        </span>
+                {/* Grounding Citation Pill */}
+                {!isStudent && msg.citations && msg.citations.length > 0 && (
+                  <div className="mt-3 pt-2 flex flex-wrap gap-1.5 items-center border-t border-slate-100 dark:border-white/10">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-400">Rujukan:</span>
+                    {msg.citations.map((c, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveCitationPeek(c)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50/80 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100/80 border border-blue-200/50 dark:border-blue-500/20 transition-colors"
+                      >
+                        <BookOpen className="h-2.5 w-2.5" />
+                        Hal {c.page} • {c.chapterTitle || activeChapter.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Checkpoint Passed Card */}
+                {msg.checkpointPassed && (
+                  <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/25 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold text-xs">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        Checkpoint Pemahaman Terverifikasi
                       </div>
+                      <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0 text-[10px]">
+                        Tuntas
+                      </Badge>
                     </div>
-                    <p className="text-xs text-emerald-900 dark:text-emerald-200/90 italic mb-2 leading-relaxed">
-                      "{msg.noteDraft}"
+
+                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">
+                      &ldquo;{msg.checkpointPassed.summary}&rdquo;
                     </p>
+
                     <Button
                       size="sm"
-                      disabled={msg.noteSaved || savingNoteId === msg.id}
-                      onClick={() => handlePinNote(msg.id, msg.noteDraft!)}
-                      className={`h-7 px-3 text-xs rounded-xl font-medium flex items-center gap-1.5 transition-all ${
-                        msg.noteSaved
-                          ? "bg-emerald-600 text-white cursor-default"
-                          : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95"
-                      }`}
+                      variant="outline"
+                      onClick={() =>
+                        handleSaveCheckpointToNotes(
+                          msg.id,
+                          msg.checkpointPassed!.concept,
+                          msg.checkpointPassed!.summary
+                        )
+                      }
+                      disabled={savedCheckpoints[msg.id]}
+                      className="self-start h-7 px-2.5 text-[11px] rounded-xl font-medium bg-white/80 dark:bg-white/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 flex items-center gap-1.5 mt-0.5"
                     >
-                      {msg.noteSaved ? (
+                      {savedCheckpoints[msg.id] ? (
                         <>
-                          <Check className="h-3 w-3" />
-                          Tersimpan di Catatan Bab
+                          <Check className="h-3 w-3" /> Tersimpan ke Catatan
                         </>
                       ) : (
                         <>
-                          <BookmarkPlus className="h-3 w-3" />
-                          Pin ke Catatan Bab Ini
+                          <BookmarkPlus className="h-3 w-3" /> Simpan ke Catatan Pribadi
                         </>
                       )}
                     </Button>
                   </div>
                 )}
               </div>
-            ))}
 
-            {/* AI Loading Indicator */}
-            {isAiLoading && (
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] p-3 rounded-2xl rounded-bl-md border border-black/5 dark:border-white/5 w-fit shadow-sm">
-                <Sparkles className="h-3.5 w-3.5 text-[#007AFF] animate-spin" />
-                <span className="font-medium">Smart AI sedang menelaah modul guru...</span>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Quick Action Prompt Chips (NotebookLM Style) */}
-          <div className="shrink-0 px-3.5 sm:px-5 py-1.5 bg-black/[0.015] dark:bg-white/[0.015] border-t border-black/[0.04] dark:border-white/5 overflow-x-auto scrollbar-none flex items-center gap-1.5">
-            <button
-              onClick={() =>
-                handleSendPrompt("Bantu aku memahami bagian yang paling krusial di bab ini!")
-              }
-              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
-            >
-              💡 Konsep Krusial
-            </button>
-            <button
-              onClick={() =>
-                handleSendPrompt("Bantu jelaskan bab ini lewat analogi sederhana dunia nyata!")
-              }
-              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
-            >
-              🌱 Analogi Nyata
-            </button>
-            <button
-              onClick={() =>
-                handleSendPrompt("Berikan 1 studi kasus penerapan teknis dari materi ini!")
-              }
-              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
-            >
-              🌍 Studi Kasus
-            </button>
-            <button
-              onClick={() =>
-                handleSendPrompt("Uji pemahamanku dengan 1 pertanyaan logika Sokrates!")
-              }
-              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
-            >
-              🎯 Uji Pemahamanku
-            </button>
-          </div>
-
-          {/* Docked Sticky Bottom Input Bar (Ella Assistant Floating Dock Style) */}
-          <div className="shrink-0 z-20 bg-white/65 dark:bg-[#1C1C1E]/65 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 p-2.5 sm:p-3.5">
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl rounded-full px-4 py-1 border border-white/80 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.04)] focus-within:ring-2 focus-within:ring-[#007AFF]/30 focus-within:border-[#007AFF] transition-all">
-              <input
-                ref={inputRef}
-                type="text"
-                value={socraticQuery}
-                disabled={isAiLoading}
-                onFocus={handleInputFocus}
-                onChange={(e) => setSocraticQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendPrompt();
-                  }
-                }}
-                placeholder={
-                  selectedText
-                    ? "Tanyakan teks terpilih..."
-                    : "Tanyakan apa saja seputar bab ini..."
-                }
-                className="w-full bg-transparent text-xs sm:text-[13px] text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 py-2 font-normal"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-                    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                    const recognition = new SpeechRec();
-                    recognition.lang = "id-ID";
-                    recognition.onresult = (event: any) => {
-                      const transcript = event.results[0][0].transcript;
-                      if (transcript) {
-                        setSocraticQuery(transcript);
-                        handleSendPrompt(transcript);
-                      }
-                    };
-                    recognition.start();
-                  } else {
-                    handleSendPrompt("Bantu jelaskan bab ini lewat analogi sederhana!");
-                  }
-                }}
-                className="h-8 w-8 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center justify-center transition-all shrink-0 active:scale-95"
-                title="Bicara (Suara)"
-              >
-                <Mic className="h-4 w-4" />
-              </button>
-              <button
-                disabled={isAiLoading || !socraticQuery.trim()}
-                onClick={() => handleSendPrompt()}
-                className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 transition-all shrink-0 active:scale-95 shadow-sm"
-                title="Kirim pesan"
-              >
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* ============================================================ */
-        /* --- MODE 2: FULL-SCREEN ORIGINAL DOCUMENT READER (CLEAN)    */
-        /* ============================================================ */
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {/* Chapter Selector Tabs (Scrollable Apple Pills) */}
-          <div className="shrink-0 flex border-b border-black/[0.06] bg-slate-50/70 overflow-x-auto text-xs scrollbar-none px-3 sm:px-4 py-2 gap-1.5">
-            {chapters.map((chap, idx) => {
-              const isActive = activeChapterIndex === idx;
-              return (
-                <button
-                  key={chap.id}
-                  onClick={() => {
-                    setActiveChapterIndex(idx);
-                    if (chap.pageStart) setCurrentPage(chap.pageStart);
-                  }}
-                  className={`px-3.5 py-1.5 rounded-xl whitespace-nowrap font-semibold transition-all flex items-center gap-1.5 text-xs ${
-                    isActive
-                      ? "bg-[#007AFF] text-white shadow-sm"
-                      : "bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 hover:text-slate-900 border border-black/5 dark:border-white/5"
-                  }`}
-                >
-                  {(chap.isCriticalZone || Boolean(chap.criticalZoneDrop)) && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse shrink-0" />
-                  )}
-                  <span>Bab {chap.chapterNumber || idx + 1}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Document Content Viewport */}
-          <div
-            ref={documentRef}
-            onMouseUp={handleTextSelection}
-            onTouchEnd={handleTextSelection}
-            className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 space-y-5 select-text relative"
-          >
-            {/* Chapter Header */}
-            <div className="border-b border-black/[0.06] dark:border-white/10 pb-4">
-              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 font-medium uppercase tracking-wider mb-1.5">
-                <span className="flex items-center gap-1.5 font-bold text-[#007AFF]">
-                  Bab {activeChapter.chapterNumber || activeChapterIndex + 1}
-                </span>
-                <span className="font-mono text-slate-400">
-                  {activeChapter.pages ||
-                    `Halaman ${activeChapter.pageStart || 1} - ${activeChapter.pageEnd || 10}`}
-                </span>
-              </div>
-              <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                {activeChapter.title}
-              </h2>
-            </div>
-
-            {/* Document Text Content Body */}
-            <div className="whitespace-pre-line text-slate-800 dark:text-slate-200 bg-black/[0.015] dark:bg-white/[0.02] p-5 sm:p-6 rounded-3xl border border-black/[0.05] dark:border-white/5 font-sans leading-relaxed text-sm sm:text-[14.5px]">
-              {activeChapter.contentSnippet ||
-                activeChapter.summary ||
-                "Memuat konten materi..."}
-            </div>
-
-            {/* Key Takeaways */}
-            {activeChapter.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                  Intisari Modul:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {activeChapter.keyTakeaways.map((item, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 rounded-xl bg-black/[0.03] dark:bg-white/[0.05] border border-black/5 dark:border-white/5 text-xs text-slate-700 dark:text-slate-300 font-medium"
-                    >
-                      ✓ {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Feature 2: Floating Apple Contextual Menu saat Blok Teks */}
-          {selectedText && (
-            <div className="absolute bottom-16 inset-x-3 sm:inset-x-8 p-3 rounded-2xl bg-white/95 backdrop-blur-2xl border border-black/10 text-slate-900 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 animate-in slide-in-from-bottom-3 z-30">
-              <div className="flex items-center gap-2 pl-1 text-xs truncate max-w-sm">
-                <Highlighter className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span className="truncate italic text-slate-600">
-                  "{selectedText.slice(0, 48)}..."
-                </span>
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                {/* Pin to Flashcard / Notes Button */}
-                <button
-                  onClick={handlePinSelectedQuote}
-                  disabled={selectionNoteSaved}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
-                    selectionNoteSaved
-                      ? "bg-emerald-600 text-white cursor-default"
-                      : "bg-black/[0.06] hover:bg-black/[0.1] text-slate-700"
-                  }`}
-                  title="Simpan kutipan ini langsung ke catatan flashcard"
-                >
-                  {selectionNoteSaved ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-white" />
-                      <span>Tersimpan</span>
-                    </>
-                  ) : (
-                    <>
-                      <BookmarkPlus className="h-3.5 w-3.5 text-[#007AFF]" />
-                      <span>Catat</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Ask Smart AI Button */}
-                <button
-                  onClick={() => {
-                    setViewMode("studio");
-                    handleSendPrompt(
-                      `Bisa tolong jelaskan kutipan ini secara bertahap?`,
-                      selectedText
-                    );
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 shadow-sm"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Tanya Smart AI</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Reader Footer Controls & Pagination */}
-          <div className="shrink-0 z-20 bg-white/95 backdrop-blur-xl border-t border-black/[0.06] px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setViewMode("studio")}
-                className="text-xs h-8 gap-1.5 rounded-xl border-black/10"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span>Diskusi di AI Studio</span>
-              </Button>
-            </div>
-
-            {/* Pagination & Mobile Gesture hint */}
-            <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-[11px] text-slate-400 font-medium">
-                Geser jari ke kanan untuk AI Studio
+              {/* Timestamp */}
+              <span className="text-[10px] text-slate-400 mt-1 px-1">
+                {msg.timestamp}
               </span>
-              <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                <span>Hal {currentPage}</span>
-                <div className="flex items-center gap-1 bg-black/[0.04] p-0.5 rounded-xl border border-black/5">
-                  <button
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="p-1 rounded-lg hover:bg-white disabled:opacity-30 transition-all"
-                    title="Halaman sebelumnya"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    className="p-1 rounded-lg hover:bg-white disabled:opacity-30 transition-all"
-                    title="Halaman berikutnya"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+            </div>
+          );
+        })}
+
+        {/* AI Typing Indicator */}
+        {isAiThinking && (
+          <div className="flex flex-col items-start">
+            <div className="rounded-2xl sm:rounded-3xl p-4 bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-sm flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-600 animate-spin" />
+              <span className="text-xs text-slate-500 font-medium">
+                Smart AI sedang menganalisis materi bab...
+              </span>
+              <div className="flex items-center gap-1 ml-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce" />
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ============================================================== */}
-      {/* 3. FEATURE 1: APPLE SLIDE-UP SHEET (PEEK & POP CITATION)       */}
-      {/* ============================================================== */}
-      {activeCitationPeek && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          {/* Dimmed backdrop */}
-          <div
-            onClick={() => setActiveCitationPeek(null)}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* 3. CONTEXT SUGGESTIONS PILLS */}
+      <div className="shrink-0 px-4 sm:px-6 py-2 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border-t border-white/50 dark:border-white/10 overflow-x-auto no-scrollbar flex items-center gap-2">
+        {suggestions.map((promptText, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleSendPrompt(promptText)}
+            disabled={isAiThinking}
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/80 dark:bg-white/10 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20 hover:text-blue-600 dark:hover:text-blue-400 shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <Lightbulb className="h-3 w-3 text-amber-500" />
+            <span className="truncate max-w-[220px]">{promptText}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 4. DOCKED INPUT CAPSULE */}
+      <footer className="shrink-0 p-3 sm:p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 z-20">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendPrompt();
+          }}
+          className="relative flex items-center gap-2 rounded-full bg-white/95 dark:bg-white/10 border border-slate-200/90 dark:border-white/15 px-3 sm:px-4 py-2 shadow-xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={promptInput}
+            onChange={(e) => setPromptInput(e.target.value)}
+            placeholder={`Tanyakan konsep seputar ${activeChapter.title}...`}
+            disabled={isAiThinking}
+            className="flex-1 bg-transparent text-sm sm:text-base text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
           />
 
-          {/* Slide-Up Bottom Sheet Card */}
-          <div className="relative w-full sm:max-w-lg bg-white/95 backdrop-blur-2xl border border-black/10 shadow-2xl rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-hidden">
-            {/* iOS Pull Handle Bar */}
-            <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto -mt-1 shrink-0" />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!promptInput.trim() || isAiThinking}
+            className="h-8 w-8 rounded-full bg-[#007AFF] hover:bg-blue-600 text-white p-0 shrink-0 shadow-sm transition-transform active:scale-95 disabled:opacity-30 disabled:scale-100"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        </form>
 
-            {/* Header info */}
-            <div className="flex items-start justify-between gap-3">
+        <div className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-slate-400">
+          <ShieldCheck className="h-2.5 w-2.5 text-emerald-500" />
+          <span>Respon AI 100% terkunci pada materi resmi & kurikulum guru.</span>
+        </div>
+      </footer>
+
+      {/* 5. CITATION PEEK DRAWER / SHEET */}
+      {activeCitationPeek && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-xs z-50 flex flex-col justify-end animate-in fade-in">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/70 dark:border-white/10 p-5 sm:p-6 shadow-2xl space-y-4 max-h-[80%] overflow-y-auto">
+            {/* Sheet Handle */}
+            <div className="w-10 h-1 bg-slate-200 dark:bg-white/20 rounded-full mx-auto" />
+
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#007AFF] flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-800/40">
-                  <BookOpen className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#007AFF] uppercase tracking-wider">
-                      Rujukan Resmi Modul Guru
-                    </span>
-                    <span className="text-[10px] bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-mono">
-                      Hal {activeCitationPeek.page}
-                    </span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
-                    {activeCitationPeek.title}
-                  </h3>
-                </div>
+                <BookOpen className="h-4 w-4 text-blue-600" />
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  Rujukan Modul: Halaman {activeCitationPeek.page}
+                </h3>
               </div>
               <button
                 onClick={() => setActiveCitationPeek(null)}
-                className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                className="h-7 w-7 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            {/* Quotation Body */}
-            <div className="overflow-y-auto max-h-[30vh] sm:max-h-[36vh] space-y-3 pr-1 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#2C2C2E]/60 p-4 rounded-2xl border border-black/5 dark:border-white/5 font-serif italic">
-              "{activeCitationPeek.snippet}"
+            <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-500/10 border border-blue-200/60 dark:border-blue-500/20 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-mono">
+              &ldquo;{activeCitationPeek.quoteSnippet}&rdquo;
             </div>
 
-            {/* Key takeaways */}
-            {activeCitationPeek.takeaways && activeCitationPeek.takeaways.length > 0 && (
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Intisari Bab:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeCitationPeek.takeaways.map((takeaway, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-0.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[11px] text-slate-700 dark:text-slate-300 font-medium"
-                    >
-                      ✓ {takeaway}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-2 border-t border-black/5 dark:border-white/10 mt-1">
+            <div className="flex items-center justify-end gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setActiveCitationPeek(null)}
-                className="flex-1 rounded-xl text-xs h-9"
-              >
-                Tutup Intipan
-              </Button>
-              <Button
-                size="sm"
                 onClick={() => {
-                  handleJumpToSource(
-                    activeCitationPeek.chapterNumber,
-                    activeCitationPeek.page
-                  );
+                  saveOfflineNote({
+                    material_id: materialId,
+                    chapter_id: activeChapter.id,
+                    quote: activeCitationPeek.quoteSnippet,
+                    my_note: `Kutipan Rujukan Bab ${activeChapter.chapterNumber} (Hal ${activeCitationPeek.page}):\n"${activeCitationPeek.quoteSnippet}"`,
+                  });
                   setActiveCitationPeek(null);
                 }}
-                className="flex-1 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs h-9 gap-1.5 font-semibold"
+                className="rounded-xl text-xs bg-white dark:bg-white/10"
               >
-                <BookOpen className="h-3.5 w-3.5" />
-                <span>Buka di Reader</span>
+                <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
+                Simpan Kutipan
               </Button>
+
+              {onNavigateToReader && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setActiveCitationPeek(null);
+                    onNavigateToReader(activeChapterIndex, activeCitationPeek.page);
+                  }}
+                  className="rounded-xl text-xs bg-[#007AFF] hover:bg-blue-600 text-white"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                  Buka di Reader Modul
+                </Button>
+              )}
             </div>
           </div>
         </div>
