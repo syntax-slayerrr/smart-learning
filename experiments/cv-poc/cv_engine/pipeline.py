@@ -97,6 +97,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     # 4. Utas Pekerja Inferensi Asinkronus (Decoupled Multi-Threaded Inference)
     # Menghindari penurunan frame rate kamera saat model deep learning berjalan
     # ==========================================================================
+    # 1. Pekerja Inferensi Spasial Asinkron (YOLO + MediaPipe Pose) - Frekuensi Tinggi (30 FPS)
     kunci_pose_bersama = threading.Lock()
     daftar_landmark_terkini: List[Any] = []
     daftar_kotak_yolo_terkini: List[Any] = []
@@ -145,6 +146,70 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     utas_inferensi = threading.Thread(target=lingkaran_kerja_inferensi_ai, daemon=True)
     utas_inferensi.start()
 
+    # 2. Pekerja Inferensi Biometrik Asinkron (ArcFace Multi-Rate Pipeline)
+    # Berjalan pada frekuensi terpisah (1x per 2.0s per siswa) dan otomatis tidur jika semua kursi telah terkunci
+    kunci_biometrik_bersama = threading.Lock()
+    bingkai_siap_biometrik: Optional[np.ndarray] = None
+    sinyal_biometrik = threading.Event()
+    hasil_biometrik_terkini: List[Dict[str, Any]] = []
+    apakah_perlu_pemindaian_biometrik: bool = True
+
+    def lingkaran_kerja_inferensi_biometrik():
+        nonlocal hasil_biometrik_terkini, bingkai_siap_biometrik
+        waktu_scan_terakhir = 0.0
+
+        while status_pekerja_aktif:
+            sinyal_biometrik.wait(timeout=0.25)
+            sinyal_biometrik.clear()
+
+            waktu_saat_ini = time.time()
+            ada_pemicu_daftar = manajer_galeri.peristiwa_pemicu.is_set()
+
+            # Throttle frekuensi: cukup jalan per interval (default 2s), kecuali dipicu tombol UI web
+            if not ada_pemicu_daftar and (waktu_saat_ini - waktu_scan_terakhir < konfigurasi.face_interval_sec):
+                continue
+
+            with kunci_biometrik_bersama:
+                frame_wajah = None if bingkai_siap_biometrik is None else bingkai_siap_biometrik.copy()
+                perlu_scan = apakah_perlu_pemindaian_biometrik
+
+            if frame_wajah is None or (not perlu_scan and not ada_pemicu_daftar):
+                continue
+
+            try:
+                if saluran_wajah.apakah_siap():
+                    hasil_wajah = saluran_wajah.deteksi_dan_ekstraksi_wajah(frame_wajah, lebar_inferensi=400)
+                    daftar_cocok = []
+
+                    for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
+                        # Pendaftaran profil wajah baru jika dipicu secara interaktif dari Web UI
+                        if manajer_galeri.peristiwa_pemicu.is_set():
+                            nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
+                            manajer_galeri.daftarkan_wajah(nama_siswa, vektor_fitur)
+                            manajer_galeri.bersihkan_pemicu()
+
+                        # Pencocokan biometrik kemiripan kosinus terhadap galeri
+                        nama_cocok, skor_cocok = manajer_galeri.cari_kemiripan_wajah(
+                            vektor_fitur,
+                            ambang_batas=konfigurasi.face_sim_thresh
+                        )
+
+                        if nama_cocok:
+                            daftar_cocok.append({
+                                "box": kotak_landmark_5,
+                                "name": nama_cocok,
+                                "score": skor_cocok
+                            })
+
+                    with kunci_biometrik_bersama:
+                        hasil_biometrik_terkini = daftar_cocok
+                    waktu_scan_terakhir = waktu_saat_ini
+            except Exception:
+                pass
+
+    utas_biometrik = threading.Thread(target=lingkaran_kerja_inferensi_biometrik, daemon=True)
+    utas_biometrik.start()
+
     waktu_sebelumnya = time.time()
     waktu_telemetri_terakhir = time.time()
     pencacah_frame = 0
@@ -192,53 +257,54 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 waktu_sekarang
             )
 
-            # Pengenalan Wajah ArcFace & Pendaftaran Biometrik (Setiap 4 frame atau saat tombol web ditekan)
-            if saluran_wajah.apakah_siap() and (pencacah_frame % 4 == 0 or manajer_galeri.peristiwa_pemicu.is_set()):
-                try:
-                    hasil_wajah = saluran_wajah.deteksi_dan_ekstraksi_wajah(frame, lebar_inferensi=400)
-                    for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
-                        # 1. Pendaftaran profil wajah baru jika dipicu
-                        if manajer_galeri.peristiwa_pemicu.is_set():
-                            nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
-                            manajer_galeri.daftarkan_wajah(nama_siswa, vektor_fitur)
-                            manajer_galeri.bersihkan_pemicu()
+            # Multi-Rate Biometrik: Kirim sinyal ke pekerja biometrik jika ada siswa belum teridentifikasi / belum terkunci
+            ada_siswa_perlu_verifikasi = (
+                manajer_galeri.peristiwa_pemicu.is_set() or
+                any(not s.get("is_recognized", False) or not s.get("seat_latched", False) for s in subjek_aktif)
+            ) if len(subjek_aktif) > 0 else manajer_galeri.peristiwa_pemicu.is_set()
 
-                        # 2. Pencocokan biometrik kemiripan kosinus terhadap galeri
-                        nama_cocok, skor_cocok = manajer_galeri.cari_kemiripan_wajah(
-                            vektor_fitur,
-                            ambang_batas=konfigurasi.face_sim_thresh
-                        )
+            with kunci_biometrik_bersama:
+                apakah_perlu_pemindaian_biometrik = ada_siswa_perlu_verifikasi
+                if ada_siswa_perlu_verifikasi:
+                    bingkai_siap_biometrik = frame
+                    sinyal_biometrik.set()
 
-                        if nama_cocok and len(subjek_aktif) > 0:
-                            wajah_pusat_x = kotak_landmark_5[0] + kotak_landmark_5[2] / 2.0
-                            wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
-                            
-                            subjek_terdekat = None
-                            jarak_terdekat = 280.0
-                            for data_siswa in subjek_aktif:
-                                tcx, tcy = data_siswa["center"]
-                                jarak_wajah = math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy)
-                                if jarak_wajah < jarak_terdekat:
-                                    jarak_terdekat = jarak_wajah
-                                    subjek_terdekat = data_siswa
+                # Ambil hasil pencocokan biometrik non-blocking dari worker
+                antrean_wajah_selesai = list(hasil_biometrik_terkini)
+                hasil_biometrik_terkini.clear()
 
-                            if subjek_terdekat is not None:
-                                # Jamin keunikan identitas: cabut nama ini jika pernah melekat di track lain
-                                for s in subjek_aktif:
-                                    if s is not subjek_terdekat and s.get("student_name") == nama_cocok:
-                                        s["student_name"] = f"Siswa #{s['id']}"
-                                        s["is_recognized"] = False
-                                        s["seat_latched"] = False
+            # Terapkan hasil pencocokan biometrik ke subjek yang relevan tanpa lag
+            for item_wajah in antrean_wajah_selesai:
+                kotak_landmark_5 = item_wajah["box"]
+                nama_cocok = item_wajah["name"]
+                if len(subjek_aktif) > 0:
+                    wajah_pusat_x = kotak_landmark_5[0] + kotak_landmark_5[2] / 2.0
+                    wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
 
-                                # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
-                                subjek_terdekat.setdefault("identity_votes", {})
-                                subjek_terdekat["identity_votes"][nama_cocok] = subjek_terdekat["identity_votes"].get(nama_cocok, 0) + 1
-                                if subjek_terdekat["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
-                                    subjek_terdekat["student_name"] = nama_cocok
-                                    subjek_terdekat["is_recognized"] = True
-                                    subjek_terdekat["seat_latched"] = True
-                except Exception:
-                    pass
+                    subjek_terdekat = None
+                    jarak_terdekat = 280.0
+                    for data_siswa in subjek_aktif:
+                        tcx, tcy = data_siswa["center"]
+                        jarak_wajah = math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy)
+                        if jarak_wajah < jarak_terdekat:
+                            jarak_terdekat = jarak_wajah
+                            subjek_terdekat = data_siswa
+
+                    if subjek_terdekat is not None:
+                        # Jamin keunikan identitas: cabut nama ini jika pernah melekat di track lain
+                        for s in subjek_aktif:
+                            if s is not subjek_terdekat and s.get("student_name") == nama_cocok:
+                                s["student_name"] = f"Siswa #{s['id']}"
+                                s["is_recognized"] = False
+                                s["seat_latched"] = False
+
+                        # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
+                        subjek_terdekat.setdefault("identity_votes", {})
+                        subjek_terdekat["identity_votes"][nama_cocok] = subjek_terdekat["identity_votes"].get(nama_cocok, 0) + 1
+                        if subjek_terdekat["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
+                            subjek_terdekat["student_name"] = nama_cocok
+                            subjek_terdekat["is_recognized"] = True
+                            subjek_terdekat["seat_latched"] = True
 
             # Agregasi Ringkasan Statistik Kelas
             statistik_kelas = {
@@ -352,6 +418,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
 
     finally:
         status_pekerja_aktif = False
+        sinyal_inferensi.set()
+        sinyal_biometrik.set()
         pengirim_telemetri.berhenti()
         kamera_aliran.lepaskan()
         status_server.peristiwa_berhenti.set()

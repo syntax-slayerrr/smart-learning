@@ -113,6 +113,7 @@ MAKSIMAL_FRAME_TENTATIVE_HILANG     = 1      # Track tentatif langsung dihapus j
 TOLERANSI_TRACK_HILANG_DETIK        = 5.0    # Jeda toleransi waktu saat siswa terkonfirmasi tertutup sementara
 AMBANG_IOU_PELACAKAN                = 0.30   # Ambang batas tumpang tindih spasial (IoU)
 AMBANG_BIAYA_ASOSIASI_MAKSIMAL      = 0.80   # Ambang batas gabungan IoU + Jarak Centroid Ternormalisasi
+INTERVAL_INFERENSI_WAJAH_DETIK     = 2.0    # Frekuensi inferensi pengenalan wajah asinkron (detik)
 SEAT_ANCHOR_MAX_RADIUS_PX           = 140.0  # Radius jangkar spasial kursi meja siswa (anti swap ID)
 SEAT_ANCHOR_TTL_SEC                 = 15.0   # Toleransi retensi kursi saat siswa tertutup guru atau teman sekelas
 
@@ -152,6 +153,7 @@ class KonfigurasiEngine:
     yolo_conf_thresh: float = 0.50
     yolo_imgsz: int = 320
     face_sim_thresh: float = 0.38
+    face_interval_sec: float = 2.0
 
 # Alias kompatibilitas
 EngineConfig = KonfigurasiEngine
