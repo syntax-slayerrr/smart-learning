@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   QrCode,
-  Bell,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -175,36 +174,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 sm:space-y-6">
-      {/* 1. Mobile Contextual Greeting & Atmosphere (Proton Vault Header Style) */}
-      <div className="flex items-center justify-between pt-1 sm:hidden">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-bold text-sm shadow-[0_4px_12px_-2px_rgba(15,23,42,0.3)] border border-white/20">
-            <span>A</span>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
-                Admin Portal
-              </span>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span className="text-[11px] text-slate-400">ITG</span>
-            </div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-              {greeting}, Admin
-            </h1>
-          </div>
-        </div>
-
-        {/* Action / Notification Pill */}
-        <Link
-          href="/admin/notifications"
-          className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 border border-slate-200/80 shadow-[var(--shadow-3d-chip)] active:scale-95 transition-transform"
-          aria-label="Notifikasi"
-        >
-          <Bell className="h-4 w-4 stroke-[1.8]" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-600" />
-        </Link>
+      {/* 1. Mobile Contextual Greeting */}
+      <div className="pt-0.5 sm:hidden">
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          {greeting}, Admin
+        </h1>
       </div>
 
       {/* Desktop Page Header */}

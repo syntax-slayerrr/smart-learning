@@ -47,7 +47,7 @@ export function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden relative bg-transparent">
         <Header role={role} onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10">
           {children}
         </main>
 

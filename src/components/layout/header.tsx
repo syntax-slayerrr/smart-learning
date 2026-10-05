@@ -89,7 +89,7 @@ export function Header({ role, onMenuClick }: HeaderProps) {
       )}
 
       {/* Right: Notifications & Quick Profile */}
-      <div className="flex items-center gap-2">
+      <div className="hidden sm:flex items-center gap-2">
         <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center">
           <NotificationBell />
         </div>
