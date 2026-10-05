@@ -21,6 +21,7 @@ const migrationFiles = [
   "supabase/migrations/20261003_seating_and_resting_telemetry.sql",
   "supabase/migrations/add_wa_notify_mode_to_school_settings.sql",
   "supabase/migrations/20261005_smart_lms_notebook.sql",
+  "supabase/migrations/20261005_smart_ai_cognitive_memory.sql",
 ];
 
 // Helper to split SQL script by statement respecting $$ dollar quoted strings

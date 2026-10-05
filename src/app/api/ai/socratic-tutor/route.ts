@@ -1,0 +1,223 @@
+import { NextRequest, NextResponse } from "next/server";
+import { call9Router, ROUTER_MODELS } from "@/lib/ai/9router";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
+  try {
+    const admin = createAdminClient();
+    const body = await request.json();
+    const {
+      studentId,
+      materialId,
+      topicId,
+      message,
+      highlightedText,
+      history = [],
+    } = body;
+
+    if (!message || !message.trim()) {
+      return NextResponse.json(
+        { success: false, error: "Message is required" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Ambil data topik materi guru
+    let topicData: any = null;
+    let materialData: any = null;
+
+    if (topicId) {
+      const { data: tData } = await admin
+        .from("material_topics")
+        .select("*, course_materials(*)")
+        .eq("id", topicId)
+        .single();
+      topicData = tData;
+      materialData = tData?.course_materials;
+    } else if (materialId) {
+      const { data: mData } = await admin
+        .from("course_materials")
+        .select("*")
+        .eq("id", materialId)
+        .single();
+      materialData = mData;
+
+      // Ambil topik pertama jika ada
+      const { data: firstTopic } = await admin
+        .from("material_topics")
+        .select("*")
+        .eq("material_id", materialId)
+        .order("topic_order", { ascending: true })
+        .limit(1)
+        .single();
+      topicData = firstTopic;
+    }
+
+    // 2. Ambil Profil Kognitif & Memori Siswa
+    let studentProfile: any = null;
+    let studentMemories: any[] = [];
+
+    if (studentId) {
+      const { data: prof } = await admin
+        .from("student_ai_profiles")
+        .select("*")
+        .eq("student_id", studentId)
+        .maybeSingle();
+
+      if (!prof) {
+        // Buat default profil jika belum ada
+        const { data: newProf } = await admin
+          .from("student_ai_profiles")
+          .insert({
+            student_id: studentId,
+            learning_persona: "balanced",
+            master_summary: "Siswa aktif mempelajari materi kurikulum secara mandiri.",
+            weak_concepts: [],
+            mastered_concepts: [],
+          })
+          .select()
+          .single();
+        studentProfile = newProf;
+      } else {
+        studentProfile = prof;
+      }
+
+      // Ambil 3 memori kognitif terakhir
+      const { data: mems } = await admin
+        .from("student_cognitive_memories")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("importance_weight", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(3);
+      studentMemories = mems || [];
+    }
+
+    // 3. Susun Konteks Grounding & Socratic Directives
+    const topicTitle = topicData?.title || materialData?.title || "Materi Pembelajaran";
+    const topicSummary = topicData?.description || materialData?.description || "";
+    const keyConcepts = topicData?.key_concepts
+      ? Array.isArray(topicData.key_concepts)
+        ? topicData.key_concepts.join(", ")
+        : JSON.stringify(topicData.key_concepts)
+      : "";
+    const pageRef = topicData ? `Hal. ${topicData.page_start} - ${topicData.page_end}` : "";
+
+    const memorySnippet = studentMemories.length > 0
+      ? studentMemories.map((m) => `- [${m.source}] ${m.key_insight}`).join("\n")
+      : "- Belum ada catatan kesulitan sebelumnya.";
+
+    const systemPrompt = `Kamu adalah Smart AI, mentor belajar dialektis pribadi siswa di platform Smart Learning (ITG).
+Pendekatan pedagogis kamu adalah METODE SOKRATIK (Scaffolding): memantik daya nalar siswa, bukan mesin penjawab tugas.
+
+=== ATURAN PEDAGOGIS MUTLAK ===
+1. DILARANG KERAS memberikan jawaban instan, rumus jadi, atau kode program siap saji saat siswa menanyakan solusi soal/tugas!
+2. JIKA SISWA MEMINTA JAWABAN LANGSUNG:
+   - Tolak secara halus dan alihkan ke pemikiran kritis.
+   - Contoh: "Biar kamu beneran paham esensinya, kita bedah bareng ya. Coba perhatikan variabel X di modul hal ${topicData?.page_start || 1}, menurutmu apa fungsi variabel itu?"
+3. GROUNDING SESUAI MATERI GURU:
+   - Fokus hanya pada konsep materi guru di bawah ini. Jangan melompat ke teori luar yang belum diajarkan di modul.
+4. GAYA KOMUNIKASI (APPLE HIG CONVERSATIONAL):
+   - Ringkas, elegan, empatik, terstruktur (maksimal 2-3 paragraf per respon).
+   - Gunakan format Markdown yang rapi (bold poin penting, bullet points jika perlu).
+5. CHECKPOINT PEMAHAMAN (PIN OTOMATIS KE CATATAN):
+   - Jika siswa berhasil menjawab pertanyaanmu dengan benar atau berhasil mengonseptualisasikan logika inti, berikan apresiasi.
+   - Tambahkan token di AKHIR respons persis seperti ini:
+     [CHECKPOINT_PASSED: Ringkasan 1 kalimat padat tentang konsep yang baru saja dipahami siswa]
+
+=== KONTEKS MATERI GURU (GROUNDING TRUTH) ===
+Materi: ${materialData?.title || "Modul Pembelajaran"}
+Bab / Topik: ${topicTitle} (${pageRef})
+Ringkasan Materi Guru: ${topicSummary}
+Konsep Utama: ${keyConcepts}
+
+=== PROFIL KOGNITIF SISWA ===
+Gaya Belajar: ${studentProfile?.learning_persona || "balanced"}
+Catatan Kognitif Sebelumnya:
+${memorySnippet}
+${highlightedText ? `\nTeks yang Sedang Disorot Siswa di Modul:\n"${highlightedText}"` : ""}`;
+
+    // 4. Susun Message History
+    const conversationMessages: any[] = [
+      { role: "system", content: systemPrompt },
+    ];
+
+    if (Array.isArray(history) && history.length > 0) {
+      // Ambil 6 pesan terakhir untuk efisiensi context window
+      const recentHistory = history.slice(-6);
+      recentHistory.forEach((h: any) => {
+        if (h.role === "user" || h.role === "assistant") {
+          conversationMessages.push({ role: h.role, content: h.content });
+        }
+      });
+    }
+
+    // Pesan terbaru siswa
+    let studentMessageText = message;
+    if (highlightedText && !message.includes(highlightedText)) {
+      studentMessageText = `[Menyorot teks: "${highlightedText}"]\n${message}`;
+    }
+    conversationMessages.push({ role: "user", content: studentMessageText });
+
+    // 5. Panggil LLM via 9Router
+    const aiResponse = await call9Router({
+      model: ROUTER_MODELS.GEMINI_3_FLASH,
+      messages: conversationMessages,
+      temperature: 0.4,
+    });
+
+    const rawReply = aiResponse.content || "";
+
+    // 6. Deteksi Checkpoint
+    let checkpointPassed = false;
+    let noteDraft = "";
+    let cleanReply = rawReply;
+
+    const checkpointMatch = rawReply.match(/\[CHECKPOINT_PASSED:\s*([^\]]+)\]/i);
+    if (checkpointMatch) {
+      checkpointPassed = true;
+      noteDraft = checkpointMatch[1].trim();
+      cleanReply = rawReply.replace(/\[CHECKPOINT_PASSED:\s*[^\]]+\]/i, "").trim();
+
+      // Simpan memori kognitif siswa di background jika checkpoint berhasil dicapai
+      if (studentId) {
+        await admin.from("student_cognitive_memories").insert({
+          student_id: studentId,
+          source: "notebook_session",
+          key_insight: `Berhasil menguasai konsep: ${noteDraft}`,
+          emotional_state: "confident",
+          topic_reference: topicTitle,
+          importance_weight: 7,
+          is_resolved: true,
+        });
+
+        if (studentProfile?.id) {
+          await admin
+            .from("student_ai_profiles")
+            .update({
+              total_socratic_sessions: (studentProfile.total_socratic_sessions || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", studentProfile.id);
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      reply: cleanReply,
+      checkpointPassed,
+      noteDraft,
+      topicTitle,
+      pageReference: pageRef,
+    });
+  } catch (err: any) {
+    console.error("[SOCRATIC_TUTOR_API_ERROR]", err);
+    return NextResponse.json(
+      { success: false, error: err.message || "Failed to process tutor session" },
+      { status: 500 }
+    );
+  }
+}

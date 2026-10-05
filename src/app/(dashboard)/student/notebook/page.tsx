@@ -77,7 +77,7 @@ export default function StudentNotebookPage() {
           options={[
             {
               value: "reader",
-              label: "Materi & Socratic Reader",
+              label: "Materi & Smart AI",
               icon: <BookOpen className="h-3.5 w-3.5" />,
             },
             {
@@ -105,6 +105,7 @@ export default function StudentNotebookPage() {
           <SocraticDocumentViewer
             chapters={notebookData?.chapters}
             materialTitle={notebookData?.material?.title}
+            materialId={notebookData?.material?.id}
             initialPage={selectedPageFromGraph}
           />
         </div>

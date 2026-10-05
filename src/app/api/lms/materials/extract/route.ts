@@ -144,19 +144,66 @@ Hasilkan HANYA JSON tanpa teks pembuka atau markdown formatting backtick.`;
 
     // 3. Simpan Topics ke database
     if (parsedResult.topics && parsedResult.topics.length > 0) {
-      const topicsToInsert = parsedResult.topics.map((t: any) => ({
+      const topicsToInsert = parsedResult.topics.map((t: any, index: number) => ({
         material_id: materialRecord.id,
-        topic_title: t.topic_title,
-        chapter_number: t.chapter_number || 1,
+        topic_order: t.chapter_number || index + 1,
+        title: t.topic_title || `Bab ${index + 1}`,
+        description: t.summary || "",
         page_start: t.page_start || 1,
         page_end: t.page_end || 5,
-        summary: t.summary || "",
-        key_takeaways: t.key_takeaways || [],
+        key_concepts: Array.isArray(t.key_takeaways) ? t.key_takeaways : [],
+        ai_socratic_prompt: `Bimbing siswa memahami materi ini secara bertahap tanpa memberikan jawaban langsung. Fokus nalar: ${t.topic_title}. Gunakan pertanyaan pemantik analitis.`,
       }));
       await admin.from("material_topics").insert(topicsToInsert);
     }
 
-    // 4. Update status materi menjadi ready
+    // 4. Simpan Concept Nodes & Edges ke database
+    if (parsedResult.concept_nodes && parsedResult.concept_nodes.length > 0) {
+      const nodesToInsert = parsedResult.concept_nodes.map((n: any) => ({
+        subject_id: materialRecord.subject_id,
+        material_id: materialRecord.id,
+        label: n.label || "Konsep",
+        category: n.category || "core",
+        summary: n.summary || "",
+        difficulty_level: n.importance === "high" ? 4 : (n.importance === "medium" ? 3 : 2),
+        reference_page: n.suggested_page || 1,
+      }));
+
+      const { data: insertedNodes, error: nodeError } = await admin
+        .from("concept_nodes")
+        .insert(nodesToInsert)
+        .select("id, label");
+
+      if (!nodeError && insertedNodes && insertedNodes.length > 0 && parsedResult.concept_edges && parsedResult.concept_edges.length > 0) {
+        const nodeMap: Record<string, string> = {};
+        parsedResult.concept_nodes.forEach((cn: any, idx: number) => {
+          if (insertedNodes[idx]) {
+            nodeMap[cn.node_id] = insertedNodes[idx].id;
+            nodeMap[cn.label] = insertedNodes[idx].id;
+          }
+        });
+
+        const edgesToInsert = (parsedResult.concept_edges
+          .map((e: any) => {
+            const sourceId = nodeMap[e.source_id];
+            const targetId = nodeMap[e.target_id];
+            if (!sourceId || !targetId || sourceId === targetId) return null;
+            return {
+              source_node_id: sourceId,
+              target_node_id: targetId,
+              relation_type: e.relationship || "relates_to",
+              strength: 1.0,
+            };
+          })
+          .filter(Boolean)) as any[];
+
+        if (edgesToInsert.length > 0) {
+          await admin.from("concept_edges").insert(edgesToInsert);
+        }
+      }
+    }
+
+    // 5. Update status materi menjadi ready
     await admin
       .from("course_materials")
       .update({ ai_status: "ready" })

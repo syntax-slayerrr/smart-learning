@@ -56,7 +56,7 @@ export function DashboardLayout({
       </div>
 
       <InstallPrompt />
-      <HermesCopilotWidget />
+      {role !== "student" && <HermesCopilotWidget />}
     </div>
   );
 }
