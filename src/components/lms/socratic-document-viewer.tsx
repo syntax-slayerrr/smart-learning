@@ -630,7 +630,7 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 4. DOCKED INPUT CAPSULE */}
-      <footer className="shrink-0 p-3 sm:p-4 bg-white/75 backdrop-blur-2xl border-t border-white/60 z-20">
+      <footer className="shrink-0 sticky bottom-0 p-2.5 sm:p-4 bg-white/85 backdrop-blur-2xl border-t border-white/70 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -643,6 +643,11 @@ export function SocraticDocumentViewer({
             type="text"
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
+            onFocus={() => {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 300);
+            }}
             placeholder={`Tanyakan konsep seputar ${activeChapter.title}...`}
             disabled={isAiThinking}
             className="flex-1 bg-transparent text-sm sm:text-base text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"

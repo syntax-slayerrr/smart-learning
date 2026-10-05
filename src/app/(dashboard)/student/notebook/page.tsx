@@ -224,138 +224,140 @@ export default function StudentNotebookPage() {
   // =========================================================================
   if (!selectedMaterial) {
     return (
-      <div className="min-h-full bg-transparent text-[#1D1D1F] flex flex-col pb-16">
-        {/* Top Minimalist Header */}
-        <header className="sticky top-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-4 sm:px-6 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+      <div className="h-full flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-contain bg-transparent text-[#1D1D1F] touch-pan-y">
+        {/* Sticky Header with Integrated Subject Selector Sub-Bar (OPSI A) */}
+        <header className="shrink-0 sticky top-0 z-30 bg-white/70 backdrop-blur-2xl border-b border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          {/* Main Top Bar */}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 border-b border-white/40">
+            <div className="flex items-center gap-2.5 min-w-0">
               <button
                 onClick={() => router.push("/student")}
-                className="h-10 w-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                className="h-9 w-9 rounded-full flex items-center justify-center bg-white/80 hover:bg-white backdrop-blur-xl border border-white/80 text-[#1D1D1F] active:scale-95 transition-all shadow-2xs shrink-0"
                 title="Kembali ke Dashboard Utama Siswa"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4.5 w-4.5" />
               </button>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-sm sm:text-base font-bold text-[#1D1D1F] tracking-tight">
+                  <h1 className="text-xs sm:text-sm font-bold text-[#1D1D1F] tracking-tight truncate">
                     Buku Pintar Siswa
                   </h1>
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full">
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.2 rounded-full shrink-0">
                     <Sparkles className="h-2.5 w-2.5" /> Smart Focus
                   </span>
                 </div>
-                <p className="text-[11px] text-[#6E6E73]">
+                <p className="text-[10px] text-[#6E6E73] truncate">
                   Pilih materi & tugas untuk belajar terarah bersama Smart AI
                 </p>
               </div>
             </div>
 
             {/* Offline / Online Status Indicator */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               {!isOnline ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-semibold">
                   <WifiOff className="h-3 w-3" />
-                  <span className="hidden sm:inline">Mode Offline</span>
+                  <span>Offline</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium">
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-semibold">
                   <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                  <span className="hidden sm:inline">Tersinkronisasi</span>
+                  <span>Sinkron</span>
                 </div>
               )}
             </div>
           </div>
-        </header>
 
-        {/* Content Container */}
-        <main className="max-w-5xl mx-auto w-full px-4 sm:px-6 pt-5 space-y-6">
-          {/* 1. Subject Selector Horizontal Pills (Apple HIG Style) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-[#6E6E73] font-medium px-1">
-              <span>PILIH MATA PELAJARAN</span>
-              <span>{notebookData?.subjects?.length || 4} Mapel Terdaftar</span>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {(notebookData?.subjects || [
-                { id: "tkj-1", name: "Jaringan Komputer & Subnetting", code: "TKJ" },
-                { id: "rpl-1", name: "Pemrograman Web (RPL)", code: "RPL" },
-                { id: "mat-1", name: "Matematika", code: "MAT" },
-                { id: "bin-1", name: "Bahasa Indonesia", code: "BIN" },
-              ]).map((sub: any) => {
-                const isActive = (activeSubject?.id || selectedSubjectId) === sub.id;
-                return (
-                  <button
-                    key={sub.id}
-                    onClick={() => setSelectedSubjectId(sub.id)}
-                    className={`px-4 py-2.5 rounded-2xl whitespace-nowrap text-xs font-semibold flex items-center gap-2 transition-all active:scale-95 ${
-                      isActive
-                        ? "bg-[#007AFF] text-white shadow-md shadow-blue-500/25 border border-blue-400/40"
-                        : "bg-white/50 hover:bg-white/75 text-[#1D1D1F] border border-white/60 backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+          {/* OPSI A: Integrated Subject Selector Track (Horizontal Scroll Snap) */}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E73] shrink-0 mr-1 hidden sm:inline">
+              Mata Pelajaran:
+            </span>
+            {(notebookData?.subjects || [
+              { id: "tkj-1", name: "Jaringan Komputer & Subnetting", code: "TKJ" },
+              { id: "rpl-1", name: "Pemrograman Web (RPL)", code: "RPL" },
+              { id: "mat-1", name: "Matematika", code: "MAT" },
+              { id: "bin-1", name: "Bahasa Indonesia", code: "BIN" },
+            ]).map((sub: any) => {
+              const isActive = (activeSubject?.id || selectedSubjectId) === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  onClick={() => setSelectedSubjectId(sub.id)}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shrink-0 ${
+                    isActive
+                      ? "bg-[#007AFF] text-white shadow-sm shadow-blue-500/20 border border-blue-400/40"
+                      : "bg-white/70 hover:bg-white text-[#1D1D1F] border border-white/70 shadow-2xs"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isActive ? "bg-white" : "bg-[#007AFF]"
+                    }`}
+                  />
+                  <span>{sub.name}</span>
+                  <span
+                    className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                      isActive ? "bg-white/20 text-white" : "bg-black/[0.05] text-[#6E6E73]"
                     }`}
                   >
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        isActive ? "bg-white" : "bg-[#007AFF]"
-                      }`}
-                    />
-                    <span>{sub.name}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                        isActive ? "bg-white/20 text-white" : "bg-black/[0.04] text-[#6E6E73]"
-                      }`}
-                    >
-                      {sub.code}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    {sub.code}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </header>
 
-          {/* 2. Active Subject Hero Card (Frosted Apple Glass) */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] transition-all space-y-4">
+        {/* Content Container with generous bottom clearance for mobile */}
+        <main className="max-w-5xl mx-auto w-full px-3.5 sm:px-6 pt-4 pb-28 sm:pb-32 space-y-5">
+          {/* 1. Active Subject Hero Card (Frosted Apple Glass) */}
+          <div className="p-4 sm:p-6 rounded-3xl bg-white/65 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.04)] transition-all space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-200/60">
-                  {activeSubject?.code || "MAPEL"} • Kurikulum Terpadu
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50/80 px-2.5 py-0.5 rounded-full border border-blue-200/60 inline-block">
+                  {activeSubject?.code || "TKJ"} • Kurikulum Terpadu
                 </span>
-                <h2 className="text-lg sm:text-xl font-bold text-[#1D1D1F] mt-2 tracking-tight">
+                <h2 className="text-base sm:text-xl font-bold text-[#1D1D1F] mt-1.5 tracking-tight truncate">
                   {activeSubject?.name || "Jaringan Komputer & Subnetting"}
                 </h2>
-                <p className="text-xs sm:text-sm text-[#6E6E73] mt-1 leading-relaxed">
+                <p className="text-xs text-[#6E6E73] mt-0.5 leading-relaxed">
                   Pelajari modul resmi, uji pemahaman melalui kuis adaptif, dan eksplorasi peta konsep interaktif.
                 </p>
               </div>
 
-              {/* Quick Metrics */}
+              {/* Quick Metrics KPI Strip */}
               <div className="flex items-center gap-2 shrink-0">
-                <div className="px-3.5 py-2 rounded-2xl bg-white/50 backdrop-blur-md border border-white/60 text-center min-w-[70px] shadow-2xs">
-                  <p className="text-xs font-bold text-[#1D1D1F]">
+                <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
+                  <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
                     {activeSubject?.materials?.length || 2}
                   </p>
-                  <p className="text-[10px] text-[#6E6E73]">Modul</p>
+                  <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Modul</p>
                 </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-emerald-50/70 backdrop-blur-md border border-emerald-200/60 text-center min-w-[70px] shadow-2xs">
-                  <p className="text-xs font-bold text-emerald-600">92%</p>
-                  <p className="text-[10px] text-emerald-700/80">Rerata</p>
+                <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
+                  <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
+                    92%
+                  </p>
+                  <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Rerata</p>
                 </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 text-center min-w-[70px] shadow-2xs">
-                  <p className="text-xs font-bold text-[#007AFF]">1</p>
-                  <p className="text-[10px] text-blue-700/80">Tugas</p>
+                <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
+                  <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
+                    1
+                  </p>
+                  <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Tugas</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 3. Section: Daftar Materi (Silabus Bab) */}
-          <div className="space-y-3">
+          {/* 2. Section: Daftar Materi (Silabus Bab) */}
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-[#007AFF]" />
-                Daftar Materi Pembelajaran
+                <span>Daftar Materi Pembelajaran</span>
               </h3>
-              <span className="text-xs text-[#6E6E73]">Pilih untuk mulai belajar</span>
+              <span className="text-[11px] text-[#6E6E73]">Pilih untuk mulai belajar</span>
             </div>
 
             <div className="space-y-2.5">
@@ -381,55 +383,54 @@ export default function StudentNotebookPage() {
                   },
                 ]
               ).map((mat: any, idx: number) => {
-                const isSelected = (selectedMaterial as any)?.id === mat.id;
                 return (
                   <div
                     key={mat.id}
-                    className="p-4 sm:p-5 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-2xl border border-white/65 hover:border-[#007AFF]/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,122,255,0.08)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                    className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/85 backdrop-blur-2xl border border-white/70 hover:border-[#007AFF]/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,122,255,0.08)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                   >
-                    <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div
-                        className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold ${
+                        className={`h-9 w-9 sm:h-10 sm:w-10 rounded-2xl flex items-center justify-center shrink-0 text-xs sm:text-sm font-bold ${
                           mat.status === "completed"
                             ? "bg-emerald-50 text-[#34C759] border border-emerald-200/60"
                             : "bg-blue-50 text-[#007AFF] border border-blue-200/60"
                         }`}
                       >
                         {mat.status === "completed" ? (
-                          <Check className="h-5 w-5" />
+                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
                         ) : (
                           <span>0{idx + 1}</span>
                         )}
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors line-clamp-1">
+                          <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors line-clamp-2">
                             {mat.title}
                           </h4>
                           {mat.status === "completed" && (
-                            <span className="text-[10px] font-semibold text-[#34C759] bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-semibold text-[#34C759] bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
                               Selesai
                             </span>
                           )}
                           {mat.status === "in_progress" && (
-                            <span className="text-[10px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
                               Aktif Dipelajari
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-[#6E6E73] line-clamp-1 leading-relaxed">
+                        <p className="text-[11px] sm:text-xs text-[#6E6E73] line-clamp-2 leading-relaxed">
                           {mat.description || "Ekstraksi AI komprehensif, visualisasi diagram, dan uji pemahaman."}
                         </p>
-                        <div className="flex items-center gap-3 text-[11px] text-[#6E6E73] pt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {mat.readingTime || "15 mnt"}
+                        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-[#6E6E73] pt-0.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                            <Clock className="h-3 w-3 text-slate-400" /> {mat.readingTime || "15 mnt"}
                           </span>
                           <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <FileText className="h-3 w-3" /> {mat.pageCount || 24} Halaman
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                            <FileText className="h-3 w-3 text-slate-400" /> {mat.pageCount || 24} Halaman
                           </span>
                           <span>•</span>
-                          <span className="text-[#007AFF] font-medium flex items-center gap-1">
+                          <span className="text-[#007AFF] font-medium inline-flex items-center gap-1 whitespace-nowrap">
                             <Sparkles className="h-3 w-3" /> Ekstrak AI Siap
                           </span>
                         </div>
@@ -442,7 +443,7 @@ export default function StudentNotebookPage() {
                           setSelectedMaterial(mat);
                           setStudyMode("reader");
                         }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-[0_4px_12px_rgba(0,122,255,0.3)] active:scale-95 transition-all"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-[0_4px_12px_rgba(0,122,255,0.25)] active:scale-95 transition-all"
                       >
                         <Play className="h-3.5 w-3.5 fill-current" />
                         <span>Pelajari Materi</span>
@@ -454,31 +455,31 @@ export default function StudentNotebookPage() {
             </div>
           </div>
 
-          {/* 4. Section: Daftar Tugas & Oral Defense Terkait */}
-          <div className="space-y-3 pt-2">
+          {/* 3. Section: Daftar Tugas & Oral Defense Terkait */}
+          <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-1.5">
                 <FileCheck className="h-4 w-4 text-[#007AFF]" />
-                Tugas Mata Pelajaran Ini
+                <span>Tugas Mata Pelajaran Ini</span>
               </h3>
-              <span className="text-xs text-[#6E6E73]">Verifikasi pemahaman mandiri</span>
+              <span className="text-[11px] text-[#6E6E73]">Verifikasi mandiri</span>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/65 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5 min-w-0">
-                <div className="h-10 w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] border border-blue-200/60 flex items-center justify-center shrink-0">
-                  <FileCheck className="h-5 w-5" />
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/80 backdrop-blur-2xl border border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] border border-blue-200/60 flex items-center justify-center shrink-0">
+                  <FileCheck className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-bold text-[#1D1D1F]">
+                    <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] line-clamp-2">
                       Tugas 02: Desain Subnetting & Simulasi Topologi Hybrid
                     </h4>
-                    <span className="text-[10px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2.5 py-0.5 rounded-full">
+                    <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
                       Perlu Oral Defense
                     </span>
                   </div>
-                  <p className="text-xs text-[#6E6E73]">
+                  <p className="text-[11px] sm:text-xs text-[#6E6E73]">
                     Batas waktu: <span className="font-semibold text-[#1D1D1F]">Jumat, 23:59 WIB</span> • Bobot: 25% Nilai Akhir
                   </p>
                 </div>
@@ -489,7 +490,7 @@ export default function StudentNotebookPage() {
                   setDefenseTopic("Desain Subnetting & Simulasi Topologi Hybrid");
                   setIsDefenseModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/80 hover:bg-white border border-white/80 text-[#1D1D1F] text-xs font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-all self-end sm:self-center"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/85 hover:bg-white border border-white/90 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center shrink-0"
               >
                 <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
                 <span>Ikuti Micro-Defense</span>
