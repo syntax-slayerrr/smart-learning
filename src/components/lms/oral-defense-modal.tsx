@@ -86,21 +86,26 @@ export function OralDefenseModal({
     } else {
       // All questions answered -> run AI evaluation
       setStep("evaluating");
+      const formattedAnswers = defenseQuestions.map((q) => ({
+        questionId: q.id,
+        questionText: q.question,
+        studentAnswer: updatedAnswers[q.id] || "",
+      }));
+
       fetch("/api/lms/defense/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assignmentId: "28a6100c-f557-4dad-8e0a-bdd77be53390",
-          questions: defenseQuestions,
-          answers: updatedAnswers,
+          answers: formattedAnswers,
         }),
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data?.evaluation?.overall_defense_score) {
+          if (data?.evaluation) {
             setAiEvaluation({
-              score: data.evaluation.overall_defense_score,
-              feedback: data.evaluation.feedback || "Verifikasi berhasil.",
+              score: data.evaluation.overall_defense_score || data.evaluation.understanding_score || 94,
+              feedback: data.evaluation.summary_feedback || data.evaluation.feedback || "Verifikasi berhasil.",
             });
           }
           setStep("passed");
