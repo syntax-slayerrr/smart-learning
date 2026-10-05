@@ -74,18 +74,18 @@ export function QuickAccessGrid({
   className = "",
 }: QuickAccessGridProps) {
   return (
-    <div className={`grid grid-cols-4 gap-2.5 sm:gap-3.5 ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 ${className}`}>
       {items.map((item) => {
         const Icon = item.icon;
         return (
           <Link
             key={item.id}
             href={item.href}
-            className="card-3d-chip group flex flex-col items-center justify-between p-2.5 sm:p-3 text-center"
+            className="card-3d-chip group flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 transition-all duration-200"
           >
             {/* Squircle Icon Pod (3D Floating Tint) */}
             <div
-              className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl ${item.podBg} shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06)] group-hover:scale-105 transition-transform duration-200`}
+              className={`flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl ${item.podBg} shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06)] group-hover:scale-105 transition-transform duration-200`}
             >
               {item.asset ? (
                 <img
@@ -98,17 +98,19 @@ export function QuickAccessGrid({
               )}
             </div>
 
-            {/* Label */}
-            <span className="mt-2 text-[11px] sm:text-xs font-semibold text-slate-800 tracking-tight line-clamp-1">
-              {item.label}
-            </span>
-
-            {/* Micro Badge */}
-            {item.badge && (
-              <span className="mt-1 inline-flex items-center rounded-full bg-slate-100/90 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-slate-600 border border-slate-200/50">
-                {item.badge}
+            {/* Content Container: Horizontal on mobile, vertical stacked on desktop */}
+            <div className="flex-1 min-w-0 flex flex-col sm:items-center">
+              <span className="text-xs sm:text-xs font-bold text-slate-800 tracking-tight truncate sm:line-clamp-1">
+                {item.label}
               </span>
-            )}
+
+              {/* Micro Badge */}
+              {item.badge && (
+                <span className="mt-0.5 sm:mt-1.5 inline-flex w-fit items-center rounded-full bg-slate-100/90 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold text-slate-600 border border-slate-200/50">
+                  {item.badge}
+                </span>
+              )}
+            </div>
           </Link>
         );
       })}
