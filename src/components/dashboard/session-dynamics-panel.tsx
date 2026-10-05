@@ -164,30 +164,30 @@ export function SessionDynamicsPanel({
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  {/* Solar Orange Gradient for Active Participation */}
+                  {/* Royal Blue Gradient for Active Participation */}
                   <linearGradient id="colorHandRaise" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#EA580C" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#EA580C" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#0B6BCB" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#0B6BCB" stopOpacity={0.0} />
                   </linearGradient>
-                  {/* Neutral Stone for Sitting */}
+                  {/* Sky Cyan for Sitting */}
                   <linearGradient id="colorSitting" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#78716C" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#78716C" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#00B4D8" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#00B4D8" stopOpacity={0.0} />
                   </linearGradient>
                   {/* Red for Sleep */}
                   <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E2DA" opacity={0.8} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(15,23,42,0.06)" />
                 <XAxis
                   dataKey="time"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: "#78716C" }}
+                  tick={{ fontSize: 10, fill: "#64748B" }}
                 />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#78716C" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#64748B" }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   iconType="circle"
@@ -198,8 +198,8 @@ export function SessionDynamicsPanel({
                   type="monotone"
                   dataKey="sitting"
                   name="Siswa Duduk"
-                  stroke="#78716C"
-                  strokeWidth={1.5}
+                  stroke="#00B4D8"
+                  strokeWidth={1.75}
                   fillOpacity={1}
                   fill="url(#colorSitting)"
                 />
@@ -207,8 +207,8 @@ export function SessionDynamicsPanel({
                   type="monotone"
                   dataKey="hand_raises"
                   name="Interaksi / Angkat Tangan"
-                  stroke="#EA580C"
-                  strokeWidth={2}
+                  stroke="#0B6BCB"
+                  strokeWidth={2.25}
                   fillOpacity={1}
                   fill="url(#colorHandRaise)"
                 />
@@ -216,11 +216,11 @@ export function SessionDynamicsPanel({
                   type="monotone"
                   dataKey="sleep_detected"
                   name="Siswa Tertidur"
-                  stroke="#DC2626"
+                  stroke="#EF4444"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorSleep)"
-                  activeDot={{ r: 5, className: "fill-red-600 stroke-white stroke-2" }}
+                  activeDot={{ r: 5, className: "fill-rose-600 stroke-white stroke-2" }}
                 />
               </AreaChart>
             </ResponsiveContainer>

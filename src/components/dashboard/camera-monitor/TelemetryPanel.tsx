@@ -242,12 +242,12 @@ export function TelemetryPanel({
                   <AreaChart data={history} margin={{ top: 5, right: 5, left: -22, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorFokus" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="#0B6BCB" stopOpacity={0.28} />
+                        <stop offset="95%" stopColor="#0B6BCB" stopOpacity={0.0} />
                       </linearGradient>
                       <linearGradient id="colorWriting" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="#00B4D8" stopOpacity={0.28} />
+                        <stop offset="95%" stopColor="#00B4D8" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <XAxis
