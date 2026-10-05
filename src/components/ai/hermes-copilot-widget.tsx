@@ -69,7 +69,7 @@ export function HermesCopilotWidget() {
       id: "welcome",
       role: "assistant",
       content:
-        "Halo! Saya **Hermes AI Copilot & Workspace**. Anda dapat meminta saya memproses data siswa langsung. Coba klik atau ketik: **'Cek siswa yang paling hadir dan paling aktif'** atau **'Rekap kelas hari ini'**.",
+        "Halo! Saya **Smart AI Copilot**. Anda dapat meminta saya memproses data siswa langsung. Coba klik atau ketik: **'Cek siswa yang paling hadir dan paling aktif'** atau **'Rekap kelas hari ini'**.",
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -222,56 +222,65 @@ export function HermesCopilotWidget() {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button - Smart AI */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2 rounded-full bg-stone-900/95 backdrop-blur-md pl-1.5 pr-3 py-1.5 text-stone-100 shadow-xl border border-stone-800/80 hover:bg-stone-800 hover:border-stone-700 transition-all duration-200 active:scale-[0.98] group"
-          title="Buka Hermes AI Workspace"
+          className="fixed bottom-24 right-4 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-1.5 pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_16px_42px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-300 group"
+          title="Buka Smart AI"
         >
-          <div className="relative flex h-8 w-8 items-center justify-center shrink-0">
-            {/* Animated Transparent 3D Robot Avatar */}
+          {/* Wrapped Character Icon ("sedikit dibungkus" & larger size) */}
+          <div className="relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-inner group-hover:scale-105 transition-transform duration-300">
             <picture className="h-full w-full flex items-center justify-center">
               <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
               <img
                 src="/assets/hermes-robot.webp"
-                alt="Hermes AI Robot"
-                className="h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] pointer-events-none select-none transition-transform duration-300 group-hover:scale-110"
+                alt="Smart AI"
+                className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.28)] pointer-events-none select-none"
                 loading="eager"
               />
             </picture>
-            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-stone-900 animate-pulse" />
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
             </span>
           </div>
-          <span className="text-xs font-semibold tracking-tight text-white/95">
-            Hermes AI Workspace
-          </span>
-          <span className="rounded-full bg-stone-800/90 px-1.5 py-0.5 text-[9px] font-mono font-medium text-stone-300 border border-stone-700/60">
-            9Router
-          </span>
+
+          <div className="flex flex-col items-start pr-0.5 text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+                Smart AI
+              </span>
+              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-blue-600 border border-blue-200/60">
+                Copilot
+              </span>
+            </div>
+            <span className="text-[10.5px] font-medium text-slate-500 -mt-0.5">
+              Asisten Cerdas
+            </span>
+          </div>
         </button>
       )}
 
       {/* Floating Workspace Modal */}
       {isOpen && (
         <div
-          className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col rounded-2xl border border-stone-200/80 bg-[#FAF9F5] shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+          className={`fixed bottom-24 right-4 sm:right-6 lg:bottom-6 lg:right-6 z-50 flex flex-col rounded-2xl border border-stone-200/80 bg-[#FAF9F5] shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
             isExpanded
-              ? "h-[650px] w-[560px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
-              : "h-[540px] w-[410px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
+              ? "h-[650px] w-[560px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-7rem)]"
+              : "h-[540px] w-[410px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-7rem)]"
           }`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-stone-200/70 bg-white/90 backdrop-blur-md px-4 py-3">
+          <div className="flex items-center justify-between border-b border-stone-200/70 bg-white/95 backdrop-blur-md px-4 py-3">
             <div className="flex items-center gap-2.5">
-              <div className="relative flex h-9 w-9 items-center justify-center shrink-0">
+              <div className="relative flex h-10 w-10 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-inner">
                 <picture className="h-full w-full flex items-center justify-center">
                   <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
                   <img
                     src="/assets/hermes-robot.webp"
-                    alt="Hermes AI Robot"
-                    className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] pointer-events-none select-none"
+                    alt="Smart AI"
+                    className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.25)] pointer-events-none select-none"
                     loading="eager"
                   />
                 </picture>
@@ -282,9 +291,9 @@ export function HermesCopilotWidget() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs font-bold tracking-tight text-stone-900">
-                    Hermes AI Workspace
+                    Smart AI Workspace
                   </h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[9px] font-medium text-stone-600 border border-stone-200/70">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-medium text-blue-700 border border-blue-200/70">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Interactive Agent
                   </span>
@@ -342,12 +351,12 @@ export function HermesCopilotWidget() {
                 <div key={m.id} className="space-y-2">
                   <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isUser && (
-                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center mt-0.5">
+                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center mt-0.5 rounded-lg bg-blue-500/10 p-0.5 border border-blue-200/50">
                         <picture className="h-full w-full flex items-center justify-center">
                           <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
                           <img
                             src="/assets/hermes-robot.webp"
-                            alt="Hermes AI Robot"
+                            alt="Smart AI"
                             className="h-full w-full object-contain drop-shadow-xs pointer-events-none select-none"
                             loading="eager"
                           />
@@ -554,20 +563,20 @@ export function HermesCopilotWidget() {
 
             {isLoading && (
               <div className="flex gap-2.5 items-center text-xs text-stone-500">
-                <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+                <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 p-0.5 border border-blue-200/50">
                   <picture className="h-full w-full flex items-center justify-center">
                     <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
                     <img
                       src="/assets/hermes-robot.webp"
-                      alt="Hermes Loading"
+                      alt="Smart AI Loading"
                       className="h-full w-full object-contain pointer-events-none select-none animate-pulse"
                       loading="eager"
                     />
                   </picture>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-xl bg-white border border-stone-200/80 px-3.5 py-2 text-stone-600 shadow-2xs font-mono text-[10.5px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#EA580C] animate-ping" />
-                  <span>Hermes membaca basis data & menyiapkan workspace...</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-ping" />
+                  <span>Smart AI membaca basis data & menyiapkan workspace...</span>
                 </div>
               </div>
             )}
