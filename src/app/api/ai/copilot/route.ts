@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
         )
         .join("\n");
 
-      const systemPrompt = `Anda adalah Hermes AI Copilot di platform Smart Learning (SYNTAX SLAYER).
+      const systemPrompt = `Anda adalah Smart AI di platform Smart Learning (SYNTAX SLAYER).
 Anda adalah asisten cerdas guru dan admin sekolah dengan kemampuan analisis pedagogis, pembuatan materi, dan evaluasi siswa.
 
 DATA SISWA RIIL SAAT INI DARI SUPABASE DATABASE:
@@ -312,7 +312,7 @@ PANDUAN MENJAWAB:
       textReply =
         aiRes.success && aiRes.content
           ? aiRes.content
-          : `Halo! Saya **Hermes AI Copilot**. Saya dapat membantu Anda memeriksa siswa teraktif, mendiagnosis siswa yang sering alpa, atau menganalisis fokus belajar kelas. Coba ketik: *"cek siswa yang paling hadir dan paling aktif"*.`;
+          : `Halo! Saya **Smart AI**. Saya dapat membantu Anda memeriksa siswa teraktif, mendiagnosis siswa yang sering alpa, atau menganalisis fokus belajar kelas. Coba ketik: *"cek siswa yang paling hadir dan paling aktif"*.`;
     }
 
     return NextResponse.json({

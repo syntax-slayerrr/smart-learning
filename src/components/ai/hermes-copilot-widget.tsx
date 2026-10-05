@@ -71,7 +71,7 @@ export function HermesCopilotWidget() {
       id: "welcome",
       role: "assistant",
       content:
-        "Halo! Saya **Smart AI Copilot**. Anda dapat meminta saya memproses data siswa langsung. Coba klik atau ketik: **'Cek siswa yang paling hadir dan paling aktif'** atau **'Rekap kelas hari ini'**.",
+        "Halo! Saya **Smart AI**. Anda dapat meminta saya memproses data siswa langsung. Coba klik atau ketik: **'Cek siswa yang paling hadir dan paling aktif'** atau **'Rekap kelas hari ini'**.",
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -181,7 +181,7 @@ export function HermesCopilotWidget() {
         ``,
         ...workspace.items.map((it) => `• ${it.name} (${it.className}) - ${it.badge || ""}`),
         ``,
-        `Dicatat & Diverifikasi oleh Smart Learning AI Copilot.`,
+        `Dicatat & Diverifikasi oleh Smart AI.`,
       ].join("\n");
       navigator.clipboard.writeText(reportLines);
       alert("Laporan berhasil disalin ke clipboard!");
@@ -249,15 +249,10 @@ export function HermesCopilotWidget() {
           </div>
 
           <div className="flex flex-col items-start pr-0.5 text-left">
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-                Smart AI
-              </span>
-              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] sm:text-[9.5px] font-semibold text-blue-600 border border-blue-200/60">
-                Copilot
-              </span>
-            </div>
-            <span className="text-[10px] sm:text-[10.5px] font-medium text-slate-500 -mt-0.5">
+            <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+              Smart AI
+            </span>
+            <span className="text-[10px] sm:text-[10.5px] font-medium text-slate-500">
               Asisten Cerdas
             </span>
           </div>
@@ -307,7 +302,7 @@ export function HermesCopilotWidget() {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-sm font-bold tracking-tight text-slate-900 truncate">
-                    Smart AI Copilot
+                    Smart AI
                   </h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700 border border-emerald-200/70 shrink-0">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
