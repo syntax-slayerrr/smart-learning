@@ -37,6 +37,8 @@ class KameraUtasTerpisah:
         self.apakah_terhubung: bool = False
         self.apakah_berhenti: bool = False
         self.kunci_utas = threading.Lock()
+        self.waktu_frame_terakhir: float = time.time()
+        self.utas_watchdog: Optional[threading.Thread] = None
 
         # Alias kompatibilitas bahasa Inggris
         self.src = self.sumber
@@ -46,6 +48,7 @@ class KameraUtasTerpisah:
         self.is_connected = self.apakah_terhubung
         self.stopped = self.apakah_berhenti
         self.lock = self.kunci_utas
+        self.last_frame_time = self.waktu_frame_terakhir
 
         self.hubungkan()
 
@@ -74,6 +77,8 @@ class KameraUtasTerpisah:
             self.apakah_terhubung = self.penangkap.isOpened()
             self.is_connected = self.apakah_terhubung
             if self.apakah_terhubung:
+                self.waktu_frame_terakhir = time.time()
+                self.last_frame_time = self.waktu_frame_terakhir
                 print(f"[+] Berhasil terhubung ke sumber video: {self.sumber}")
         except Exception as e:
             print(f"[!] Gagal menghubungkan ke kamera {self.sumber}: {e}")
@@ -81,13 +86,28 @@ class KameraUtasTerpisah:
             self.is_connected = False
 
     def mulai(self) -> "KameraUtasTerpisah":
-        """Memulai utas penangkapan bingkai video (background worker)."""
+        """Memulai utas penangkapan bingkai video dan watchdog di latar belakang."""
         utas = threading.Thread(target=self._perbarui_aliran, daemon=True)
         utas.start()
+        self.utas_watchdog = threading.Thread(target=self._lingkaran_watchdog, daemon=True)
+        self.utas_watchdog.start()
         return self
 
+    def _lingkaran_watchdog(self) -> None:
+        """Pondasi 1: Watchdog Heartbeat — mendeteksi kamera macet/freeze & memicu soft reconnect."""
+        while not self.apakah_berhenti:
+            time.sleep(1.0)
+            if self.apakah_berhenti:
+                break
+            if self.apakah_terhubung and (time.time() - self.waktu_frame_terakhir > 2.8):
+                print(f"[!] Watchdog: Aliran kamera '{self.sumber}' macet (>2.8s). Memicu soft-reconnect...")
+                with self.kunci_utas:
+                    self.apakah_terhubung = False
+                    self.is_connected = False
+                    self.hubungkan()
+
     def _perbarui_aliran(self) -> None:
-        jeda_reconnect = 2.0
+        jeda_reconnect = 1.5
         waktu_reconnect_terakhir = time.time()
 
         while not self.apakah_berhenti:
@@ -106,13 +126,26 @@ class KameraUtasTerpisah:
                 time.sleep(0.1)
                 continue
 
+            sekarang_ts = time.time()
             with self.kunci_utas:
                 self.apakah_terambil = berhasil
                 self.grabbed = berhasil
                 self.bingkai = frame
                 self.frame = frame
+                self.waktu_frame_terakhir = sekarang_ts
+                self.last_frame_time = sekarang_ts
 
             time.sleep(1.0 / (self.fps_target * 1.5))
+
+    def berhenti(self) -> None:
+        """Menghentikan penangkap kamera dan melepaskan resource fisik."""
+        self.apakah_berhenti = True
+        self.stopped = True
+        if self.penangkap is not None:
+            try:
+                self.penangkap.release()
+            except Exception:
+                pass
 
     def baca_bingkai(self) -> Tuple[bool, Optional[np.ndarray]]:
         """Membaca salinan bingkai terkini secara aman."""

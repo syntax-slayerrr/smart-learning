@@ -32,6 +32,8 @@ from cv_engine.config import (
     AMBANG_IOU_PELACAKAN,
     AMBANG_BIAYA_ASOSIASI_MAKSIMAL,
     TOLERANSI_TRACK_HILANG_DETIK,
+    SEAT_ANCHOR_MAX_RADIUS_PX,
+    SEAT_ANCHOR_TTL_SEC,
     MINIMAL_VOTING_IDENTITAS
 )
 from cv_engine.core.kinematics import (
@@ -128,6 +130,7 @@ class PelacakSubjekKelas:
         self.riwayat_postur: Dict[int, deque] = {}  # Filter temporal voting postur (anti-chatter)
         self.penahan_waktu_menulis: Dict[int, float] = {}  # Latch aktivitas menulis agar halus alami
         self.lost_tracks: Dict[int, Dict[str, Any]] = {}
+        self.jangkar_kursi: Dict[int, Dict[str, Any]] = {}  # Pondasi 2: Seat-Grid Spatial Anchoring (Anti-Swap ID)
 
         # Alias kompatibilitas internal
         self.next_id = self.id_berikutnya
@@ -294,7 +297,7 @@ class PelacakSubjekKelas:
                     skor_biaya_terbaik = biaya
                     id_terbaik = id_track
 
-            # Guardrail 5: Seat-Anchored Re-ID Matching pada Lost Tracks (Toleransi Oklusi 4.0s)
+            # Guardrail 5 & Pondasi 2: Seat-Anchored Re-ID Matching pada Lost Tracks & Kursi (Toleransi 15.0s)
             if id_terbaik is None and len(self.lost_tracks) > 0:
                 for id_hilang, data_hilang in list(self.lost_tracks.items()):
                     if waktu_sekarang - data_hilang["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK:
@@ -306,6 +309,52 @@ class PelacakSubjekKelas:
                             id_terbaik = id_hilang
                             self.tracks[id_hilang] = data_hilang
                             del self.lost_tracks[id_hilang]
+                            break
+
+            # Pondasi 2: Pulihkan identitas dari Jangkar Kursi Siswa jika terhalang oklusi (Anti-Swap ID)
+            if id_terbaik is None and len(self.jangkar_kursi) > 0:
+                for id_kursi, data_kursi in list(self.jangkar_kursi.items()):
+                    if id_kursi in self.tracks or id_kursi in id_tercocokkan:
+                        continue
+                    if waktu_sekarang - data_kursi["waktu_terakhir_aktif"] <= SEAT_ANCHOR_TTL_SEC:
+                        kcx, kcy = data_kursi["center"]
+                        jarak_ke_kursi = math.hypot(pusat_subjek_x - kcx, pusat_subjek_y - kcy)
+                        iou_kursi = hitung_iou(kotak_kandidat, data_kursi["box"])
+                        if jarak_ke_kursi < SEAT_ANCHOR_MAX_RADIUS_PX or iou_kursi >= 0.20:
+                            id_terbaik = id_kursi
+                            self.tracks[id_kursi] = {
+                                "id": id_kursi,
+                                "student_name": data_kursi.get("student_name", f"Siswa #{id_kursi}"),
+                                "is_recognized": data_kursi.get("is_recognized", False),
+                                "seat_latched": True,
+                                "seat_id": data_kursi.get("seat_id", f"SEAT_{id_kursi}"),
+                                "identity_votes": data_kursi.get("identity_votes", {}),
+                                "box": (px, py, pw, ph),
+                                "smooth_box": (float(px), float(py), float(pw), float(ph)),
+                                "center": (pusat_subjek_x, pusat_subjek_y),
+                                "landmarks": landmarks,
+                                "posture": "sitting",
+                                "activity": "attentive",
+                                "action_text": "Fokus Belajar",
+                                "sub_label": "Kursi Terkunci",
+                                "attention_score": 95,
+                                "conf": round(skor_keyakinan, 2),
+                                "last_seen": waktu_sekarang,
+                                "is_hand_raised": False,
+                                "hand_box": None,
+                                "is_sleep": False,
+                                "head_tilt": 0.0,
+                                "gaze_dir": "Tatap Depan",
+                                "state": "confirmed",
+                                "is_confirmed": True,
+                                "hits": MINIMAL_HIT_STREAK_KONFIRMASI,
+                                "hit_streak": MINIMAL_HIT_STREAK_KONFIRMASI,
+                                "unseen_frames": 0,
+                                "filter_x": OneEuroFilter(waktu_sekarang, float(px), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF),
+                                "filter_y": OneEuroFilter(waktu_sekarang, float(py), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF),
+                                "filter_w": OneEuroFilter(waktu_sekarang, float(pw), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF),
+                                "filter_h": OneEuroFilter(waktu_sekarang, float(ph), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF),
+                            }
                             break
 
             id_pemeriksaan = id_terbaik or self.id_berikutnya
@@ -524,6 +573,22 @@ class PelacakSubjekKelas:
                 track_lama["is_sleep"] = is_tidur
                 track_lama["head_tilt"] = round(kemiringan_kepala, 1)
                 track_lama["gaze_dir"] = arah_tatapan
+
+                # Pondasi 2: Latch Jangkar Kursi Spasial jika subjek terkonfirmasi duduk stabil
+                if track_lama.get("is_confirmed", False) and track_lama.get("hits", 0) >= 5 and postur == "sitting":
+                    self.jangkar_kursi[id_terbaik] = {
+                        "id": id_terbaik,
+                        "center": (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0),
+                        "box": (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h))),
+                        "student_name": track_lama.get("student_name", f"Siswa #{id_terbaik}"),
+                        "is_recognized": track_lama.get("is_recognized", False),
+                        "identity_votes": track_lama.get("identity_votes", {}),
+                        "seat_id": f"SEAT_{id_terbaik}",
+                        "waktu_terakhir_aktif": waktu_sekarang
+                    }
+                    track_lama["seat_latched"] = True
+                    track_lama["seat_id"] = f"SEAT_{id_terbaik}"
+
                 id_tercocokkan.add(id_terbaik)
             else:
                 # Spawning Candidate Track Baru (Status TENTATIVE untuk mencegah Ghost Box)
@@ -597,6 +662,12 @@ class PelacakSubjekKelas:
         self.lost_tracks = {
             id_t: data_t for id_t, data_t in self.lost_tracks.items()
             if waktu_sekarang - data_t["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK
+        }
+
+        # Pondasi 2: Bersihkan jangkar kursi yang telah kedaluwarsa (> SEAT_ANCHOR_TTL_SEC)
+        self.jangkar_kursi = {
+            id_k: d_k for id_k, d_k in self.jangkar_kursi.items()
+            if waktu_sekarang - d_k["waktu_terakhir_aktif"] <= SEAT_ANCHOR_TTL_SEC
         }
 
         # Guardrail Ekstra: Eliminasi Ghost Tracks yang saling tumpang tindih pada active tracks

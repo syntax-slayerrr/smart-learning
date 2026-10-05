@@ -110,9 +110,11 @@ ONE_EURO_D_CUTOFF                   = 1.0    # Cutoff derivatif kecepatan
 # Guardrail 5: Toleransi Retensi & Eliminasi Ghost Box
 MINIMAL_HIT_STREAK_KONFIRMASI       = 3      # Wajib terdeteksi >= 3 frame berturut-turut sebelum di-render ke HUD
 MAKSIMAL_FRAME_TENTATIVE_HILANG     = 1      # Track tentatif langsung dihapus jika hilang 1 frame (zero ghost retention)
-TOLERANSI_TRACK_HILANG_DETIK        = 3.0    # Jeda toleransi waktu saat siswa terkonfirmasi tertutup sementara
+TOLERANSI_TRACK_HILANG_DETIK        = 5.0    # Jeda toleransi waktu saat siswa terkonfirmasi tertutup sementara
 AMBANG_IOU_PELACAKAN                = 0.30   # Ambang batas tumpang tindih spasial (IoU)
 AMBANG_BIAYA_ASOSIASI_MAKSIMAL      = 0.80   # Ambang batas gabungan IoU + Jarak Centroid Ternormalisasi
+SEAT_ANCHOR_MAX_RADIUS_PX           = 140.0  # Radius jangkar spasial kursi meja siswa (anti swap ID)
+SEAT_ANCHOR_TTL_SEC                 = 15.0   # Toleransi retensi kursi saat siswa tertutup guru atau teman sekelas
 
 # Alias kompatibilitas
 GUARDRAIL_ELBOW_ANGLE_THRESH        = AMBANG_SUDUT_SIKU_DERAJAT

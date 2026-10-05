@@ -17,6 +17,25 @@ import numpy as np
 from cv_engine.config import ARCFACE_MBF_PATH, YUNET_ONNX_PATH, SFACE_ONNX_PATH
 
 
+def normalisasi_cahaya_clahe(citra_bgr: np.ndarray, clip_limit: float = 2.0, tile_grid_size: Tuple[int, int] = (8, 8)) -> np.ndarray:
+    """
+    Pondasi 4: Contrast Limited Adaptive Histogram Equalization (CLAHE).
+    Menyeimbangkan kontras pada ruang warna LAB (kanal Luminance L) secara lokal.
+    Menyelamatkan wajah siswa dari bayangan gelap atau silau proyektor tanpa merusak rona warna alami.
+    """
+    if citra_bgr is None or citra_bgr.size == 0:
+        return citra_bgr
+    try:
+        lab = cv2.cvtColor(citra_bgr, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+    except Exception:
+        return citra_bgr
+
+
 class MesinBiometrikArcFace:
     """
     Ekstraktor Fitur Wajah 512-Dimensi ArcFace berbasis MobileFaceNet ONNX.
@@ -81,11 +100,14 @@ class MesinBiometrikArcFace:
     def ekstraksi_fitur_vektor(self, citra_wajah_112x112: Optional[np.ndarray]) -> Optional[np.ndarray]:
         """
         Mengekstrak representasi vektor biometrik 512-dimensi yang telah ternormalisasi L2.
+        Dilengkapi normalisasi kontras adaptif CLAHE untuk ketahanan terhadap bayangan/silau.
         """
         if self.session is None or citra_wajah_112x112 is None:
             return None
         try:
-            citra_rgb = cv2.cvtColor(citra_wajah_112x112, cv2.COLOR_BGR2RGB).astype(np.float32)
+            # Pondasi 4: Normalisasi pencahayaan dinamis CLAHE
+            wajah_terkoreksi = normalisasi_cahaya_clahe(citra_wajah_112x112)
+            citra_rgb = cv2.cvtColor(wajah_terkoreksi, cv2.COLOR_BGR2RGB).astype(np.float32)
             ternormalisasi = (citra_rgb - 127.5) / 128.0
             tensor_chw = np.transpose(ternormalisasi, (2, 0, 1))[np.newaxis, ...]
 
