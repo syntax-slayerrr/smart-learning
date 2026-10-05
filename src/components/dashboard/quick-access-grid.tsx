@@ -15,6 +15,7 @@ export interface QuickAccessItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  asset?: string;
   badge?: string | number;
   podBg: string;
   iconColor: string;
@@ -31,6 +32,7 @@ const DEFAULT_ITEMS: QuickAccessItem[] = [
     label: "Presensi",
     href: "/admin/scanner",
     icon: QrCode,
+    asset: "/icons/absensi-siswa.png",
     badge: "Scanner",
     podBg: "bg-blue-50/80 border border-blue-100/60",
     iconColor: "text-blue-600",
@@ -40,6 +42,7 @@ const DEFAULT_ITEMS: QuickAccessItem[] = [
     label: "Kelas",
     href: "/admin/classes",
     icon: GraduationCap,
+    asset: "/icons/kelas.png",
     badge: "Aktif",
     podBg: "bg-indigo-50/80 border border-indigo-100/60",
     iconColor: "text-indigo-600",
@@ -49,6 +52,7 @@ const DEFAULT_ITEMS: QuickAccessItem[] = [
     label: "AI Vision",
     href: "/admin/camera-monitor",
     icon: Video,
+    asset: "/icons/ai-classroom.png",
     badge: "Live",
     podBg: "bg-emerald-50/80 border border-emerald-100/60",
     iconColor: "text-emerald-600",
@@ -58,6 +62,7 @@ const DEFAULT_ITEMS: QuickAccessItem[] = [
     label: "Evaluasi",
     href: "/admin/attendance",
     icon: AlertTriangle,
+    asset: "/icons/laporan-rekap.png",
     badge: "Atensi",
     podBg: "bg-amber-50/80 border border-amber-100/60",
     iconColor: "text-amber-600",
@@ -82,7 +87,15 @@ export function QuickAccessGrid({
             <div
               className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl ${item.podBg} shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06)] group-hover:scale-105 transition-transform duration-200`}
             >
-              <Icon className={`h-5 w-5 ${item.iconColor} stroke-[1.8]`} />
+              {item.asset ? (
+                <img
+                  src={item.asset}
+                  alt={item.label}
+                  className="h-7 w-7 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-transform duration-200 group-hover:scale-110 select-none"
+                />
+              ) : (
+                <Icon className={`h-5 w-5 ${item.iconColor} stroke-[1.8]`} />
+              )}
             </div>
 
             {/* Label */}

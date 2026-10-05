@@ -28,6 +28,7 @@ interface BottomTab {
   label: string;
   href?: string;
   icon: React.ElementType;
+  asset?: string;
   action?: "open-menu";
   isCenter?: boolean;
 }
@@ -42,34 +43,34 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
     switch (role) {
       case "admin":
         return [
-          { label: "Beranda", href: "/admin", icon: LayoutDashboard },
-          { label: "Siswa", href: "/admin/students", icon: Users },
-          { label: "Presensi", href: "/admin/attendance", icon: ClipboardCheck, isCenter: true },
-          { label: "AI Vision", href: "/admin/camera-monitor", icon: Video },
+          { label: "Beranda", href: "/admin", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
+          { label: "Siswa", href: "/admin/students", icon: Users, asset: "/icons/direktori-siswa.png" },
+          { label: "Presensi", href: "/admin/attendance", icon: ClipboardCheck, asset: "/icons/absensi-siswa.png", isCenter: true },
+          { label: "AI Vision", href: "/admin/camera-monitor", icon: Video, asset: "/icons/ai-classroom.png" },
           { label: "Menu", icon: Menu, action: "open-menu" },
         ];
       case "teacher":
         return [
-          { label: "Beranda", href: "/teacher", icon: LayoutDashboard },
+          { label: "Beranda", href: "/teacher", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
           { label: "Riwayat", href: "/teacher/history", icon: History },
           { label: "Scan QR", href: "/teacher/scan", icon: QrCode, isCenter: true },
-          { label: "Rekap", href: "/teacher/recap", icon: BarChart3 },
-          { label: "Profil", href: "/teacher/profile", icon: UserCircle },
+          { label: "Rekap", href: "/teacher/recap", icon: BarChart3, asset: "/icons/laporan-rekap.png" },
+          { label: "Profil", href: "/teacher/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
         ];
       case "student":
         return [
-          { label: "Beranda", href: "/student", icon: LayoutDashboard },
-          { label: "Jadwal", href: "/student/schedule", icon: Calendar },
+          { label: "Beranda", href: "/student", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
+          { label: "Jadwal", href: "/student/schedule", icon: Calendar, asset: "/icons/jadwal-pelajaran.png" },
           { label: "Scan QR", href: "/student/scan", icon: QrCode, isCenter: true },
           { label: "Riwayat", href: "/student/history", icon: History },
-          { label: "Profil", href: "/student/profile", icon: UserCircle },
+          { label: "Profil", href: "/student/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
         ];
       case "parent":
         return [
-          { label: "Beranda", href: "/parent", icon: LayoutDashboard },
+          { label: "Beranda", href: "/parent", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
           { label: "Riwayat", href: "/parent/history", icon: History },
-          { label: "Presensi", href: "/parent/attendance", icon: ClipboardCheck, isCenter: true },
-          { label: "Notifikasi", href: "/parent/notifications", icon: Bell },
+          { label: "Presensi", href: "/parent/attendance", icon: ClipboardCheck, asset: "/icons/absensi-siswa.png", isCenter: true },
+          { label: "Notifikasi", href: "/parent/notifications", icon: Bell, asset: "/icons/log-notifikasi.png" },
           { label: "Menu", icon: Menu, action: "open-menu" },
         ];
       default:
@@ -220,12 +221,23 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                   >
                     {/* Specular Rim Light on Center FAB */}
                     <div className="absolute inset-0 rounded-full border border-blue-300/40 pointer-events-none" />
-                    <Icon
-                      className={cn(
-                        "w-6 h-6 stroke-[2.2] transition-transform duration-300 relative z-10",
-                        isActive ? "scale-110" : "scale-100"
-                      )}
-                    />
+                    {tab.asset ? (
+                      <img
+                        src={tab.asset}
+                        alt=""
+                        className={cn(
+                          "w-8 h-8 object-contain transition-transform duration-300 relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]",
+                          isActive ? "scale-115" : "scale-100"
+                        )}
+                      />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "w-6 h-6 stroke-[2.2] transition-transform duration-300 relative z-10",
+                          isActive ? "scale-110" : "scale-100"
+                        )}
+                      />
+                    )}
                   </CenterComponent>
 
                   {/* Center Tab Label */}
@@ -285,12 +297,25 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                       : "scale-100 bg-transparent text-slate-500"
                   )}
                 >
-                  <Icon
-                    className={cn(
-                      "w-5 h-5 transition-all duration-200",
-                      isActive ? "stroke-[2.2]" : "stroke-[1.8]"
-                    )}
-                  />
+                  {tab.asset ? (
+                    <img
+                      src={tab.asset}
+                      alt=""
+                      className={cn(
+                        "w-5 h-5 object-contain transition-all duration-200 select-none",
+                        isActive
+                          ? "scale-115 drop-shadow-[0_2px_4px_rgba(37,99,235,0.3)]"
+                          : "opacity-75 group-hover:opacity-100 group-hover:scale-105"
+                      )}
+                    />
+                  ) : (
+                    <Icon
+                      className={cn(
+                        "w-5 h-5 transition-all duration-200",
+                        isActive ? "stroke-[2.2]" : "stroke-[1.8]"
+                      )}
+                    />
+                  )}
                 </div>
                 <span
                   className={cn(

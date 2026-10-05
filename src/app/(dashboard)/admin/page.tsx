@@ -241,8 +241,8 @@ export default async function AdminDashboardPage() {
           <div className="card-3d-ceramic p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between flex-1">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
-                  <Video className="h-5 w-5 stroke-[1.8]" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100/60 shadow-[0_2px_8px_-2px_rgba(37,99,235,0.2)]">
+                  <img src="/icons/ai-classroom.png" alt="" className="h-7 w-7 object-contain drop-shadow-xs" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -303,8 +303,8 @@ export default async function AdminDashboardPage() {
           className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60">
-              <Users className="h-5 w-5 stroke-[1.8]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100/60 shadow-[0_2px_8px_-2px_rgba(37,99,235,0.15)] group-hover:scale-105 transition-transform duration-200">
+              <img src="/icons/direktori-siswa.png" alt="" className="h-6 w-6 object-contain" />
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900">Kelola Siswa</p>
@@ -321,8 +321,8 @@ export default async function AdminDashboardPage() {
           className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60">
-              <GraduationCap className="h-5 w-5 stroke-[1.8]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100/60 shadow-[0_2px_8px_-2px_rgba(79,70,229,0.15)] group-hover:scale-105 transition-transform duration-200">
+              <img src="/icons/direktori-guru.png" alt="" className="h-6 w-6 object-contain" />
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900">Kelola Guru</p>
@@ -339,8 +339,8 @@ export default async function AdminDashboardPage() {
           className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60">
-              <School className="h-5 w-5 stroke-[1.8]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-100/60 shadow-[0_2px_8px_-2px_rgba(16,185,129,0.15)] group-hover:scale-105 transition-transform duration-200">
+              <img src="/icons/kelas.png" alt="" className="h-6 w-6 object-contain" />
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900">
