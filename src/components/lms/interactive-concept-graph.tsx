@@ -112,40 +112,54 @@ const DEFAULT_EDGES: ConceptEdgeData[] = [
   { id: "e6", source: "node-gateway", target: "node-routing", relationType: "prerequisite_of", strength: 0.7 },
 ];
 
-interface InteractiveConceptGraphProps {
+export interface InteractiveConceptGraphProps {
+  nodes?: ConceptNodeData[];
+  edges?: ConceptEdgeData[];
   onSelectConceptPage?: (page: number) => void;
   className?: string;
 }
 
 export function InteractiveConceptGraph({
+  nodes,
+  edges,
   onSelectConceptPage,
   className,
 }: InteractiveConceptGraphProps) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("node-vlsm");
+  const activeNodes = useMemo(() => (nodes && nodes.length > 0 ? nodes : DEFAULT_NODES), [nodes]);
+  const activeEdges = useMemo(() => (edges && edges.length > 0 ? edges : DEFAULT_EDGES), [edges]);
+
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(() => activeNodes[0]?.id || "node-vlsm");
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
+  // Sync selectedNodeId if activeNodes updates
+  useEffect(() => {
+    if (!activeNodes.some((n) => n.id === selectedNodeId)) {
+      setSelectedNodeId(activeNodes[0]?.id || "");
+    }
+  }, [activeNodes, selectedNodeId]);
+
   const selectedNode = useMemo(
-    () => DEFAULT_NODES.find((n) => n.id === selectedNodeId) || DEFAULT_NODES[0],
-    [selectedNodeId]
+    () => activeNodes.find((n) => n.id === selectedNodeId) || activeNodes[0],
+    [activeNodes, selectedNodeId]
   );
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, ConceptNodeData>();
-    DEFAULT_NODES.forEach((n) => map.set(n.id, n));
+    activeNodes.forEach((n) => map.set(n.id, n));
     return map;
-  }, []);
+  }, [activeNodes]);
 
   // Determine active connections
   const connectedNodeIds = useMemo(() => {
     const targetId = hoveredNodeId || selectedNodeId;
     const connected = new Set<string>();
     connected.add(targetId);
-    DEFAULT_EDGES.forEach((edge) => {
+    activeEdges.forEach((edge) => {
       if (edge.source === targetId) connected.add(edge.target);
       if (edge.target === targetId) connected.add(edge.source);
     });
     return connected;
-  }, [selectedNodeId, hoveredNodeId]);
+  }, [selectedNodeId, hoveredNodeId, activeEdges]);
 
   const getCategoryColor = (cat: ConceptNodeData["category"]) => {
     switch (cat) {

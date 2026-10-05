@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,16 +67,21 @@ const DEFAULT_AXES: CompetencyAxis[] = [
   },
 ];
 
-interface ExamReadinessRadarProps {
+export interface ExamReadinessRadarProps {
+  axes?: CompetencyAxis[];
   onStartFlashcardDrill?: (category: string) => void;
   className?: string;
 }
 
 export function ExamReadinessRadar({
+  axes: externalAxes,
   onStartFlashcardDrill,
   className,
 }: ExamReadinessRadarProps) {
-  const [axes] = useState<CompetencyAxis[]>(DEFAULT_AXES);
+  const axes = useMemo(
+    () => (externalAxes && externalAxes.length > 0 ? externalAxes : DEFAULT_AXES),
+    [externalAxes]
+  );
   const [activeDrillModal, setActiveDrillModal] = useState<boolean>(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState<number>(0);
   const [revealedAnswer, setRevealedAnswer] = useState<boolean>(false);

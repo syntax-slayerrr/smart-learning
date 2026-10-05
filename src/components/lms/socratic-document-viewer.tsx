@@ -65,16 +65,24 @@ Open Shortest Path First (OSPF) berbasis Link-State Protocol yang menggunakan al
   },
 ];
 
-interface SocraticDocumentViewerProps {
+export interface SocraticDocumentViewerProps {
+  chapters?: DocumentChapter[];
+  materialTitle?: string;
   initialPage?: number;
   className?: string;
 }
 
 export function SocraticDocumentViewer({
+  chapters: externalChapters,
+  materialTitle,
   initialPage = 13,
   className,
 }: SocraticDocumentViewerProps) {
-  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(1); // Default to Chapter 2 (Critical zone)
+  const chapters = externalChapters && externalChapters.length > 0 ? externalChapters : SAMPLE_CHAPTERS;
+  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(() => {
+    const critIdx = chapters.findIndex((c) => c.isCriticalZone);
+    return critIdx >= 0 ? critIdx : 0;
+  });
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
   const [socraticQuery, setSocraticQuery] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<
@@ -87,7 +95,7 @@ export function SocraticDocumentViewer({
     },
   ]);
 
-  const activeChapter = SAMPLE_CHAPTERS[activeChapterIndex];
+  const activeChapter = chapters[activeChapterIndex] || chapters[0];
 
   const handleSendPrompt = (promptText?: string) => {
     const textToSend = promptText || socraticQuery;

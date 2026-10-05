@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -29,15 +29,38 @@ export default function StudentNotebookPage() {
   const [selectedPageFromGraph, setSelectedPageFromGraph] = useState<number>(13);
   const [isDefenseModalOpen, setIsDefenseModalOpen] = useState<boolean>(false);
   const [submissionCompleted, setSubmissionCompleted] = useState<boolean>(false);
+  const [notebookData, setNotebookData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchNotebookData() {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/lms/student/notebook-data");
+        const json = await res.json();
+        if (json.success && json.data) {
+          setNotebookData(json.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat data notebook live:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchNotebookData();
+  }, []);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Top Header */}
       <PageHeader
-        title="Smart Notebook & AI Studio"
-        description="Workspace pembelajaran mandiri bertenaga AI dengan korelasi telemetri kelas fisik dan verifikasi oral defense."
+        title={notebookData?.material?.title ? `Smart Notebook: ${notebookData.material.title}` : "Smart Notebook & AI Studio"}
+        description={notebookData?.material?.description || "Workspace pembelajaran mandiri bertenaga AI dengan korelasi telemetri kelas fisik dan verifikasi oral defense."}
         action={
           <div className="flex items-center gap-2">
+            {isLoading && (
+              <span className="text-xs text-slate-500 animate-pulse">Menyinkronkan AI Live...</span>
+            )}
             <Badge variant="default" className="bg-purple-100 text-purple-700 border-purple-200">
               <Sparkles className="h-3 w-3 mr-1" />
               NotebookLM Engine Active
@@ -79,7 +102,11 @@ export default function StudentNotebookPage() {
       {/* Tab 1: Socratic Reader & Closed-Loop Telemetry */}
       {activeTab === "reader" && (
         <div className="space-y-4 animate-fade-in">
-          <SocraticDocumentViewer initialPage={selectedPageFromGraph} />
+          <SocraticDocumentViewer
+            chapters={notebookData?.chapters}
+            materialTitle={notebookData?.material?.title}
+            initialPage={selectedPageFromGraph}
+          />
         </div>
       )}
 
@@ -87,6 +114,8 @@ export default function StudentNotebookPage() {
       {activeTab === "concept_graph" && (
         <div className="space-y-4 animate-fade-in">
           <InteractiveConceptGraph
+            nodes={notebookData?.conceptGraph?.nodes}
+            edges={notebookData?.conceptGraph?.edges}
             onSelectConceptPage={(page) => {
               setSelectedPageFromGraph(page);
               setActiveTab("reader");
@@ -172,7 +201,7 @@ export default function StudentNotebookPage() {
       {/* Tab 4: Exam Readiness Radar */}
       {activeTab === "readiness_radar" && (
         <div className="space-y-4 animate-fade-in">
-          <ExamReadinessRadar />
+          <ExamReadinessRadar axes={notebookData?.examReadiness?.axes} />
         </div>
       )}
 
