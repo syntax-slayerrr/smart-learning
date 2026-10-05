@@ -162,6 +162,27 @@ ${
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, isAiLoading]);
 
+  // Update proactive Socratic greeting when chapter changes
+  useEffect(() => {
+    const isCrit = activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop);
+    const dropScore = activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42;
+
+    const chapterGreeting: ChatMessage = {
+      id: `greeting-${activeChapter.id}-${Date.now()}`,
+      role: "assistant",
+      text: isCrit
+        ? `⚠️ **Zona Kritis Kelas Fisik:** Kamera AI mencatat ${dropScore}% siswa kebingungan di **${activeChapter.title}**.
+
+Mari kita bedah logikanya bersama. Perhatikan rumus krusial **2^n - 2**:
+Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang terjadi jika sebuah komputer diberi alamat IP yang semua bit host-nya bernilai 0 biner atau 1 biner?`
+        : `Halo! Kamu sedang menelaah **${activeChapter.title}**.
+
+Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
+    };
+
+    setChatMessages([chapterGreeting]);
+  }, [activeChapterIndex]);
+
   // Handle Text Selection inside Document View
   const handleTextSelection = () => {
     const selection = window.getSelection();

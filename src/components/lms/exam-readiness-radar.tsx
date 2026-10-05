@@ -85,20 +85,55 @@ export function ExamReadinessRadar({
   const [activeDrillModal, setActiveDrillModal] = useState<boolean>(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState<number>(0);
   const [revealedAnswer, setRevealedAnswer] = useState<boolean>(false);
+  const [studentNotes, setStudentNotes] = useState<any[]>([]);
 
-  // Flashcards for weak-spot remediation
-  const flashcards = [
-    {
-      q: "Berapa jumlah host valid yang dapat digunakan pada subnet dengan prefix /28?",
-      a: "Prefix /28 menyisakan 32 - 28 = 4 bit host. Rumus: 2^4 - 2 = 16 - 2 = 14 host yang dapat dipakai (1 untuk Network ID, 1 untuk Broadcast).",
-      topic: "Subnetting VLSM",
-    },
-    {
-      q: "Mengapa OSPF disebut algoritma Link-State dan lebih cepat konvergen dibanding RIP?",
-      a: "OSPF menggunakan algoritma Dijkstra (Shortest Path First) dan menyebarkan Link-State Advertisements (LSA) langsung saat ada perubahan, sedangkan RIP mengirim seluruh tabel per 30 detik (hop count max 15).",
-      topic: "Protokol Routing",
-    },
-  ];
+  // Fetch real pinned notes from student_study_notes
+  React.useEffect(() => {
+    async function loadNotes() {
+      try {
+        const res = await fetch("/api/lms/student/notes?studentId=std-001");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.notes && data.notes.length > 0) {
+            setStudentNotes(data.notes);
+          }
+        }
+      } catch (err) {
+        // Silent fallback
+      }
+    }
+    loadNotes();
+  }, []);
+
+  // Flashcards for weak-spot remediation + dynamically converted pinned notes
+  const flashcards = useMemo(() => {
+    const defaultDeck = [
+      {
+        q: "Berapa jumlah host valid yang dapat digunakan pada subnet dengan prefix /28?",
+        a: "Prefix /28 menyisakan 32 - 28 = 4 bit host. Rumus: 2^4 - 2 = 16 - 2 = 14 host yang dapat dipakai (1 untuk Network ID, 1 untuk Broadcast).",
+        topic: "Subnetting VLSM",
+        source: "Remediasi Zona Kritis",
+      },
+      {
+        q: "Mengapa OSPF disebut algoritma Link-State dan lebih cepat konvergen dibanding RIP?",
+        a: "OSPF menggunakan algoritma Dijkstra (Shortest Path First) dan menyebarkan Link-State Advertisements (LSA) langsung saat ada perubahan, sedangkan RIP mengirim seluruh tabel per 30 detik (hop count max 15).",
+        topic: "Protokol Routing",
+        source: "Konfigurasi Jaringan",
+      },
+    ];
+
+    if (studentNotes.length > 0) {
+      const generatedFromNotes = studentNotes.map((note) => ({
+        q: `Berdasarkan intisari catatan yang kamu simpan: "${note.note_content}" — Mengapa pemahaman konsep ini penting dalam desain sistem?`,
+        a: `Catatan ini menandai checkpoint pemahaman mandiri yang kamu capai saat berdiskusi dengan Smart AI. Ingat kembali logika dasarnya saat ujian.`,
+        topic: note.socratic_context?.topicTitle || "Catatan Bab",
+        source: "📌 Pinned Smart AI Note",
+      }));
+      return [...generatedFromNotes, ...defaultDeck];
+    }
+
+    return defaultDeck;
+  }, [studentNotes]);
 
   // Calculate Overall Readiness
   const averageScore = Math.round(
@@ -396,8 +431,13 @@ export function ExamReadinessRadar({
                   <h4 className="text-sm font-bold text-slate-900">
                     Latihan Kilat Titik Lemah AI
                   </h4>
-                  <p className="text-xs text-slate-500">
-                    Kartu {currentFlashcardIndex + 1} dari {flashcards.length} • {flashcards[currentFlashcardIndex].topic}
+                  <p className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                    <span>Kartu {currentFlashcardIndex + 1} dari {flashcards.length} • {flashcards[currentFlashcardIndex].topic}</span>
+                    {flashcards[currentFlashcardIndex].source && (
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full border border-indigo-100">
+                        {flashcards[currentFlashcardIndex].source}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

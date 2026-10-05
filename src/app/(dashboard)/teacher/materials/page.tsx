@@ -18,6 +18,9 @@ import {
   Plus,
   X,
   Loader2,
+  BrainCircuit,
+  BarChart3,
+  Lightbulb,
 } from "lucide-react";
 
 export default function TeacherMaterialsPage() {
@@ -160,6 +163,82 @@ Bab 3: Arsitektur Variable Length Subnet Mask (VLSM) dan Alokasi IP Adaptif.`,
           >
             Lihat Rekaman Zona Atensi
           </Button>
+        </div>
+      </GlassCard>
+
+      {/* Teacher Cognitive Heatmap & AI Dialectic Feedback */}
+      <GlassCard className="p-5 border-slate-200/80 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <BrainCircuit className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                Teacher Cognitive Heatmap & Dialog Smart AI
+                <span className="text-[10px] font-normal bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                  Agregat Kelas Terkini
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Peta titik kesulitan konsep berdasarkan interaksi dialektis siswa dengan Smart AI saat menelaah materi.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">Total 182 Dialog Sokratik Minggu Ini</span>
+        </div>
+
+        {/* Heatmap Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-800">Rumus 2^n - 2 (Host VLSM)</span>
+              <Badge variant="destructive" className="text-[9px]">Tinggi (84 Tanya)</Badge>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Rata-rata 4.2 giliran dialog sebelum siswa memahami alasan angka 2 dikurangkan.
+            </p>
+            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-red-500 h-full w-[88%]" />
+            </div>
+            <span className="text-[10px] text-slate-400 block text-right font-mono">88% Capai Checkpoint</span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-800">OSPF Link-State vs RIP</span>
+              <Badge variant="warning" className="text-[9px]">Sedang (52 Tanya)</Badge>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Rata-rata 3.1 giliran dialog. Kebanyakan butuh analogi peta GPS vs rambu manual.
+            </p>
+            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-amber-500 h-full w-[92%]" />
+            </div>
+            <span className="text-[10px] text-slate-400 block text-right font-mono">92% Capai Checkpoint</span>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-800">Hierarki Prefix /28 vs /29</span>
+              <Badge variant="success" className="text-[9px]">Ringan (46 Tanya)</Badge>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Rata-rata 2.4 giliran dialog. Cepat dipahami setelah panduan visual graf konsep.
+            </p>
+            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-emerald-500 h-full w-[95%]" />
+            </div>
+            <span className="text-[10px] text-slate-400 block text-right font-mono">95% Capai Checkpoint</span>
+          </div>
+        </div>
+
+        {/* Actionable Classroom Prescription */}
+        <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-950">
+          <Lightbulb className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong>Rekomendasi Ulasan Kelas Tatap Muka:</strong> Alokasikan 5-10 menit di awal perkuliahan tatap muka berikutnya untuk mendrill perhitungan rumus <code>2^n - 2</code> pada notasi biner di papan tulis. Sebanyak 14 siswa sempat salah mengira rumus tersebut berpangkat <code>2^(n-2)</code> sebelum diluruskan oleh Smart AI.
+          </p>
         </div>
       </GlassCard>
 
