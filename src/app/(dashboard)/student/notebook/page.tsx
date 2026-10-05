@@ -224,14 +224,14 @@ export default function StudentNotebookPage() {
   // =========================================================================
   if (!selectedMaterial) {
     return (
-      <div className="min-h-screen bg-[#F7F7F5] text-[#1D1D1F] flex flex-col pb-12">
+      <div className="min-h-full bg-transparent text-[#1D1D1F] flex flex-col pb-16">
         {/* Top Minimalist Header */}
-        <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-black/[0.06] px-4 sm:px-6 py-3">
+        <header className="sticky top-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-4 sm:px-6 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push("/student")}
-                className="h-10 w-10 rounded-full flex items-center justify-center bg-white/80 backdrop-blur-md border border-black/[0.08] text-[#1D1D1F] hover:bg-white active:scale-95 transition-all shadow-2xs"
+                className="h-10 w-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                 title="Kembali ke Dashboard Utama Siswa"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -290,8 +290,8 @@ export default function StudentNotebookPage() {
                     onClick={() => setSelectedSubjectId(sub.id)}
                     className={`px-4 py-2.5 rounded-2xl whitespace-nowrap text-xs font-semibold flex items-center gap-2 transition-all active:scale-95 ${
                       isActive
-                        ? "bg-[#007AFF] text-white shadow-sm ring-2 ring-[#007AFF]/20"
-                        : "bg-white/80 hover:bg-white text-[#1D1D1F] border border-black/[0.06] shadow-2xs"
+                        ? "bg-[#007AFF] text-white shadow-md shadow-blue-500/25 border border-blue-400/40"
+                        : "bg-white/50 hover:bg-white/75 text-[#1D1D1F] border border-white/60 backdrop-blur-xl shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
                     }`}
                   >
                     <span
@@ -313,11 +313,11 @@ export default function StudentNotebookPage() {
             </div>
           </div>
 
-          {/* 2. Active Subject Hero Card (Porcelain Apple Glass) */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm space-y-4">
+          {/* 2. Active Subject Hero Card (Frosted Apple Glass) */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] transition-all space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200/50">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-200/60">
                   {activeSubject?.code || "MAPEL"} • Kurikulum Terpadu
                 </span>
                 <h2 className="text-lg sm:text-xl font-bold text-[#1D1D1F] mt-2 tracking-tight">
@@ -330,19 +330,19 @@ export default function StudentNotebookPage() {
 
               {/* Quick Metrics */}
               <div className="flex items-center gap-2 shrink-0">
-                <div className="px-3.5 py-2 rounded-2xl bg-black/[0.03] border border-black/[0.05] text-center min-w-[70px]">
+                <div className="px-3.5 py-2 rounded-2xl bg-white/50 backdrop-blur-md border border-white/60 text-center min-w-[70px] shadow-2xs">
                   <p className="text-xs font-bold text-[#1D1D1F]">
                     {activeSubject?.materials?.length || 2}
                   </p>
                   <p className="text-[10px] text-[#6E6E73]">Modul</p>
                 </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-black/[0.03] border border-black/[0.05] text-center min-w-[70px]">
-                  <p className="text-xs font-bold text-[#34C759]">92%</p>
-                  <p className="text-[10px] text-[#6E6E73]">Rerata</p>
+                <div className="px-3.5 py-2 rounded-2xl bg-emerald-50/70 backdrop-blur-md border border-emerald-200/60 text-center min-w-[70px] shadow-2xs">
+                  <p className="text-xs font-bold text-emerald-600">92%</p>
+                  <p className="text-[10px] text-emerald-700/80">Rerata</p>
                 </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-black/[0.03] border border-black/[0.05] text-center min-w-[70px]">
-                  <p className="text-xs font-bold text-[#FF9F0A]">1</p>
-                  <p className="text-[10px] text-[#6E6E73]">Tugas</p>
+                <div className="px-3.5 py-2 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 text-center min-w-[70px] shadow-2xs">
+                  <p className="text-xs font-bold text-[#007AFF]">1</p>
+                  <p className="text-[10px] text-blue-700/80">Tugas</p>
                 </div>
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function StudentNotebookPage() {
                 return (
                   <div
                     key={mat.id}
-                    className="p-4 sm:p-5 rounded-2xl bg-white/80 hover:bg-white backdrop-blur-xl border border-white/60 hover:border-[#007AFF]/40 shadow-2xs hover:shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                    className="p-4 sm:p-5 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-2xl border border-white/65 hover:border-[#007AFF]/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,122,255,0.08)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
                   >
                     <div className="flex items-start gap-3.5 min-w-0">
                       <div
@@ -442,7 +442,7 @@ export default function StudentNotebookPage() {
                           setSelectedMaterial(mat);
                           setStudyMode("reader");
                         }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-2xs active:scale-95 transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-[0_4px_12px_rgba(0,122,255,0.3)] active:scale-95 transition-all"
                       >
                         <Play className="h-3.5 w-3.5 fill-current" />
                         <span>Pelajari Materi</span>
@@ -458,23 +458,23 @@ export default function StudentNotebookPage() {
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-[#FF9F0A]" />
+                <FileCheck className="h-4 w-4 text-[#007AFF]" />
                 Tugas Mata Pelajaran Ini
               </h3>
               <span className="text-xs text-[#6E6E73]">Verifikasi pemahaman mandiri</span>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/65 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5 min-w-0">
-                <div className="h-10 w-10 rounded-2xl bg-amber-50 text-[#FF9F0A] border border-amber-200/60 flex items-center justify-center shrink-0">
-                  <Award className="h-5 w-5" />
+                <div className="h-10 w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] border border-blue-200/60 flex items-center justify-center shrink-0">
+                  <FileCheck className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-bold text-[#1D1D1F]">
                       Tugas 02: Desain Subnetting & Simulasi Topologi Hybrid
                     </h4>
-                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2.5 py-0.5 rounded-full">
                       Perlu Oral Defense
                     </span>
                   </div>
@@ -489,7 +489,7 @@ export default function StudentNotebookPage() {
                   setDefenseTopic("Desain Subnetting & Simulasi Topologi Hybrid");
                   setIsDefenseModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-black/10 hover:border-black/20 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/80 hover:bg-white border border-white/80 text-[#1D1D1F] text-xs font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-95 transition-all self-end sm:self-center"
               >
                 <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
                 <span>Ikuti Micro-Defense</span>
@@ -517,15 +517,15 @@ export default function StudentNotebookPage() {
   // VIEW B: LEVEL 2 — RUANG BELAJAR MATERI (FOCUS WORKSPACE)
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#F7F7F5] text-[#1D1D1F] flex flex-col">
+    <div className="min-h-full bg-transparent text-[#1D1D1F] flex flex-col">
       {/* 1. TOP BAR MINIMALIS DENGAN TOMBOL BACK PANAH */}
-      <header className="sticky top-0 z-30 bg-white/75 backdrop-blur-xl border-b border-black/[0.06] px-3.5 sm:px-6 py-2.5">
+      <header className="sticky top-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-3.5 sm:px-6 py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Tombol Back Panah Minimalist */}
             <button
               onClick={() => setSelectedMaterial(null)}
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-white/90 backdrop-blur-md border border-black/[0.08] text-[#1D1D1F] hover:bg-white active:scale-95 transition-all shadow-2xs shrink-0"
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)] shrink-0"
               title="Kembali ke Daftar Materi & Tugas"
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -536,7 +536,7 @@ export default function StudentNotebookPage() {
                 <h1 className="text-xs sm:text-sm font-bold text-[#1D1D1F] truncate max-w-[200px] sm:max-w-md">
                   {selectedMaterial.title}
                 </h1>
-                <span className="hidden sm:inline-flex items-center text-[10px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/50 px-2 py-0.2 rounded-full shrink-0">
+                <span className="hidden sm:inline-flex items-center text-[10px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2 py-0.2 rounded-full shrink-0">
                   Bab 2 • 15 Mnt
                 </span>
               </div>
@@ -550,7 +550,7 @@ export default function StudentNotebookPage() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setIsAnalogyModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#007AFF] text-xs font-semibold border border-blue-200/60 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-xl text-[#007AFF] text-xs font-semibold border border-white/70 active:scale-95 transition-all shadow-2xs"
             >
               <Lightbulb className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Pop-up Analogi</span>
@@ -560,12 +560,12 @@ export default function StudentNotebookPage() {
 
         {/* 2. SEGMENTED SWITCHER (APPLE GLASS CAPSULE) */}
         <div className="max-w-5xl mx-auto mt-2.5 flex items-center justify-start sm:justify-center overflow-x-auto pb-1 scrollbar-none">
-          <div className="inline-flex items-center p-1 rounded-2xl bg-black/[0.04] border border-black/[0.05] gap-1">
+          <div className="inline-flex items-center p-1 rounded-2xl bg-white/50 backdrop-blur-2xl border border-white/60 gap-1 shadow-sm">
             <button
               onClick={() => setStudyMode("reader")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "reader"
-                  ? "bg-white text-[#1D1D1F] shadow-2xs font-bold"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
@@ -577,7 +577,7 @@ export default function StudentNotebookPage() {
               onClick={() => setStudyMode("mindmap")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "mindmap"
-                  ? "bg-white text-[#1D1D1F] shadow-2xs font-bold"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
@@ -589,11 +589,11 @@ export default function StudentNotebookPage() {
               onClick={() => setStudyMode("quiz")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "quiz"
-                  ? "bg-white text-[#1D1D1F] shadow-2xs font-bold"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
-              <HelpCircle className="h-3.5 w-3.5 text-[#FF9F0A]" />
+              <HelpCircle className="h-3.5 w-3.5 text-[#007AFF]" />
               <span>Kuis Interaktif</span>
             </button>
 
@@ -601,7 +601,7 @@ export default function StudentNotebookPage() {
               onClick={() => setStudyMode("chat")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "chat"
-                  ? "bg-white text-[#1D1D1F] shadow-2xs font-bold"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
@@ -613,7 +613,7 @@ export default function StudentNotebookPage() {
               onClick={() => setStudyMode("pdf")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "pdf"
-                  ? "bg-white text-[#1D1D1F] shadow-2xs font-bold"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
@@ -632,7 +632,7 @@ export default function StudentNotebookPage() {
         {studyMode === "reader" && (
           <div className="space-y-5 animate-fade-in">
             {/* Reading Canvas Card */}
-            <div className="p-5 sm:p-8 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm space-y-6">
+            <div className="p-5 sm:p-8 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] space-y-6">
               {/* Header Bab */}
               <div className="space-y-1.5 border-b border-black/[0.06] pb-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF]">
@@ -653,7 +653,7 @@ export default function StudentNotebookPage() {
                 </p>
 
                 {/* Box Formula Matematika Elegan & Ramah Mata */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#F2F2F0] border border-black/[0.06] space-y-2">
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
@@ -679,7 +679,7 @@ export default function StudentNotebookPage() {
                 </p>
 
                 {/* Poin Kunci Belajar */}
-                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/50 space-y-2">
+                <div className="p-4 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 space-y-2">
                   <h4 className="text-xs font-bold text-[#007AFF] uppercase tracking-wide">
                     Poin Penting untuk Ujian & Defense:
                   </h4>
@@ -699,7 +699,7 @@ export default function StudentNotebookPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <button
                     onClick={() => setStudyMode("mindmap")}
-                    className="p-3 rounded-2xl bg-white border border-black/[0.06] shadow-2xs hover:border-[#5E5CE6]/50 active:scale-95 transition-all text-left group"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#5E5CE6]/50 active:scale-95 transition-all text-left group"
                   >
                     <div className="h-8 w-8 rounded-xl bg-purple-50 text-[#5E5CE6] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Network className="h-4 w-4" />
@@ -710,9 +710,9 @@ export default function StudentNotebookPage() {
 
                   <button
                     onClick={() => setStudyMode("quiz")}
-                    className="p-3 rounded-2xl bg-white border border-black/[0.06] shadow-2xs hover:border-[#FF9F0A]/50 active:scale-95 transition-all text-left group"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-blue-400/50 active:scale-95 transition-all text-left group"
                   >
-                    <div className="h-8 w-8 rounded-xl bg-amber-50 text-[#FF9F0A] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="h-8 w-8 rounded-xl bg-blue-50/80 text-[#007AFF] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <HelpCircle className="h-4 w-4" />
                     </div>
                     <p className="text-xs font-bold text-[#1D1D1F]">Kuis Interaktif</p>
@@ -721,7 +721,7 @@ export default function StudentNotebookPage() {
 
                   <button
                     onClick={() => setStudyMode("chat")}
-                    className="p-3 rounded-2xl bg-white border border-black/[0.06] shadow-2xs hover:border-[#007AFF]/50 active:scale-95 transition-all text-left group"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#007AFF]/50 active:scale-95 transition-all text-left group"
                   >
                     <div className="h-8 w-8 rounded-xl bg-blue-50 text-[#007AFF] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Sparkles className="h-4 w-4" />
@@ -732,7 +732,7 @@ export default function StudentNotebookPage() {
 
                   <button
                     onClick={() => setIsAnalogyModalOpen(true)}
-                    className="p-3 rounded-2xl bg-white border border-black/[0.06] shadow-2xs hover:border-emerald-300 active:scale-95 transition-all text-left group"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-emerald-300 active:scale-95 transition-all text-left group"
                   >
                     <div className="h-8 w-8 rounded-xl bg-emerald-50 text-[#34C759] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Lightbulb className="h-4 w-4" />
@@ -750,8 +750,8 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 2: MIND MAP VIEW (PETA KONSEP INTERAKTIF)                 */}
         {/* =================================================================== */}
         {studyMode === "mindmap" && (
-          <div className="flex-1 flex flex-col min-h-[600px] h-full rounded-3xl overflow-hidden bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm animate-fade-in relative">
-            <div className="p-3.5 border-b border-black/[0.06] bg-white/60 backdrop-blur-md flex items-center justify-between">
+          <div className="flex-1 flex flex-col min-h-[600px] h-full rounded-3xl overflow-hidden bg-white/60 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] animate-fade-in relative">
+            <div className="p-3.5 border-b border-black/[0.06] bg-white/40 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Network className="h-4 w-4 text-[#5E5CE6]" />
                 <span className="text-xs font-bold text-[#1D1D1F]">
@@ -783,9 +783,9 @@ export default function StudentNotebookPage() {
         {studyMode === "quiz" && (
           <div className="space-y-4 max-w-3xl mx-auto w-full animate-fade-in">
             {/* Quiz Header Card */}
-            <div className="p-5 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-5 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF9F0A] bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50/80 px-2.5 py-0.5 rounded-full border border-blue-200/60">
                   Uji Pemahaman Mandiri
                 </span>
                 <h3 className="text-base font-bold text-[#1D1D1F] mt-1">
@@ -797,7 +797,7 @@ export default function StudentNotebookPage() {
               </div>
 
               {quizSubmitted && (
-                <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-2xl">
+                <div className="flex items-center gap-3 bg-emerald-50/80 backdrop-blur-md border border-emerald-200 px-4 py-2 rounded-2xl">
                   <Award className="h-6 w-6 text-[#34C759]" />
                   <div>
                     <p className="text-xs font-bold text-emerald-900">Skor Kamu: {quizScore}%</p>
@@ -819,10 +819,10 @@ export default function StudentNotebookPage() {
                 return (
                   <div
                     key={q.id}
-                    className="p-5 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xs space-y-3"
+                    className="p-5 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.04)] space-y-3"
                   >
                     <div className="flex items-start gap-2.5">
-                      <span className="h-6 w-6 rounded-full bg-black/[0.04] text-xs font-bold text-[#1D1D1F] flex items-center justify-center shrink-0">
+                      <span className="h-6 w-6 rounded-full bg-[#007AFF]/10 text-xs font-bold text-[#007AFF] flex items-center justify-center shrink-0">
                         {qIdx + 1}
                       </span>
                       <p className="text-sm font-bold text-[#1D1D1F] leading-snug">{q.question}</p>
@@ -833,16 +833,16 @@ export default function StudentNotebookPage() {
                       {q.options.map((opt, optIdx) => {
                         const isChosen = selectedOpt === optIdx;
                         let optionStyle =
-                          "bg-white hover:bg-slate-50 text-[#1D1D1F] border-black/[0.06]";
+                          "bg-white/70 hover:bg-white/90 backdrop-blur-md text-[#1D1D1F] border-white/60";
 
                         if (quizSubmitted) {
                           if (optIdx === q.correctIndex) {
-                            optionStyle = "bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold";
+                            optionStyle = "bg-emerald-50/90 border-emerald-300 text-emerald-900 font-semibold";
                           } else if (isChosen && !isCorrect) {
-                            optionStyle = "bg-rose-50 border-rose-300 text-rose-900 line-through";
+                            optionStyle = "bg-rose-50/90 border-rose-300 text-rose-900 line-through";
                           }
                         } else if (isChosen) {
-                          optionStyle = "bg-blue-50 border-[#007AFF] text-[#007AFF] font-semibold";
+                          optionStyle = "bg-blue-50/90 border-[#007AFF] text-[#007AFF] font-semibold shadow-2xs";
                         }
 
                         return (
@@ -863,9 +863,9 @@ export default function StudentNotebookPage() {
 
                     {/* Socratic Explanation */}
                     {quizSubmitted && (
-                      <div className="ml-8 p-3 rounded-2xl bg-black/[0.03] text-xs text-[#6E6E73] space-y-1 border border-black/[0.04]">
+                      <div className="ml-8 p-3 rounded-2xl bg-white/50 backdrop-blur-md text-xs text-[#6E6E73] space-y-1 border border-white/60">
                         <p className="font-semibold text-[#1D1D1F] flex items-center gap-1">
-                          <Lightbulb className="h-3 w-3 text-[#FF9F0A]" />
+                          <Lightbulb className="h-3 w-3 text-[#007AFF]" />
                           Pembahasan Konseptual:
                         </p>
                         <p>{q.explanation}</p>
@@ -881,7 +881,7 @@ export default function StudentNotebookPage() {
               {quizSubmitted ? (
                 <button
                   onClick={handleResetQuiz}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-black/10 hover:bg-slate-50 text-xs font-semibold text-[#1D1D1F] shadow-2xs active:scale-95 transition-all"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 hover:bg-white/90 backdrop-blur-md border border-white/70 text-xs font-semibold text-[#1D1D1F] shadow-2xs active:scale-95 transition-all"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   <span>Ulangi Kuis</span>
@@ -919,7 +919,7 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 5: MODUL ASLI (PDF ORIGINAL READER)                       */}
         {/* =================================================================== */}
         {studyMode === "pdf" && (
-          <div className="flex-1 flex flex-col min-h-[600px] h-full rounded-3xl overflow-hidden bg-white/80 backdrop-blur-xl border border-white/60 shadow-sm animate-fade-in p-6 text-center justify-center items-center">
+          <div className="flex-1 flex flex-col min-h-[600px] h-full rounded-3xl overflow-hidden bg-white/60 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] animate-fade-in p-6 text-center justify-center items-center">
             <div className="h-14 w-14 rounded-3xl bg-blue-50 text-[#007AFF] flex items-center justify-center mb-3 border border-blue-200/50 shadow-2xs">
               <FileText className="h-7 w-7" />
             </div>
@@ -939,7 +939,7 @@ export default function StudentNotebookPage() {
               </button>
               <button
                 onClick={() => setStudyMode("chat")}
-                className="px-4 py-2 rounded-xl bg-white border border-black/10 text-[#1D1D1F] text-xs font-semibold shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
+                className="px-4 py-2 rounded-xl bg-white/80 border border-white/70 backdrop-blur-md text-[#1D1D1F] text-xs font-semibold shadow-2xs hover:bg-white active:scale-95 transition-all"
               >
                 Bahas via Chat AI
               </button>
@@ -956,14 +956,14 @@ export default function StudentNotebookPage() {
           {/* Dimmed backdrop with blur */}
           <div
             onClick={() => setIsAnalogyModalOpen(false)}
-            className="absolute inset-0 bg-black/30 backdrop-blur-md transition-opacity"
+            className="absolute inset-0 bg-black/25 backdrop-blur-md transition-opacity"
           />
 
           {/* Modal Container (Porcelain Apple Glass) */}
-          <div className="relative w-full max-w-md bg-white/95 backdrop-blur-2xl border border-white/70 shadow-2xl rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-[#1D1D1F]">
+          <div className="relative w-full max-w-md bg-white/80 backdrop-blur-2xl border border-white/80 shadow-[0_20px_60px_rgba(0,0,0,0.12)] rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-[#1D1D1F]">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-10 w-10 rounded-2xl bg-blue-50 text-[#007AFF] flex items-center justify-center border border-blue-200/50">
+                <div className="h-10 w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] flex items-center justify-center border border-blue-200/50">
                   <Lightbulb className="h-5 w-5" />
                 </div>
                 <div>
@@ -985,7 +985,7 @@ export default function StudentNotebookPage() {
               <p>
                 Bayangkan sebuah <strong>kompleks perumahan baru</strong> yang memiliki total 16 kapling tanah:
               </p>
-              <div className="p-3.5 rounded-2xl bg-[#F2F2F0] border border-black/[0.05] space-y-2">
+              <div className="p-3.5 rounded-2xl bg-white/50 backdrop-blur-md border border-white/60 space-y-2">
                 <div className="flex items-center gap-2 text-[#007AFF] font-bold">
                   <Check className="h-4 w-4" />
                   <span>1 Alamat Pertama (Network ID)</span>
@@ -994,7 +994,7 @@ export default function StudentNotebookPage() {
                   Ibarat <strong>Papan Plang Gerbang Masuk</strong> perumahan. Bukan rumah tinggal siapapun, tetapi tanda pengenal kompleks bagi tukang pos dari luar.
                 </p>
 
-                <div className="flex items-center gap-2 text-[#FF9F0A] font-bold">
+                <div className="flex items-center gap-2 text-[#007AFF] font-bold">
                   <Check className="h-4 w-4" />
                   <span>1 Alamat Terakhir (Broadcast ID)</span>
                 </div>

@@ -398,11 +398,32 @@ Mengapa angka 2 wajib selalu dikurangkan dari total kombinasi bit host, dan apa 
     window.speechSynthesis.speak(utterance);
   };
 
-  // Keyboard stability: smooth scroll into view on mobile focus
+  // Keyboard offset tracking for mobile virtual keyboard stability
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // Calculate delta between window innerHeight and visual viewport height
+      const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+      setKeyboardOffset(offset > 60 ? offset : 0);
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
+  // Keyboard stability: prevent window/screen jumping when focused
   const handleInputFocus = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 200);
+    // Only scroll within chat messages if needed, without triggering window-level layout shift
   };
 
   // Kirim pertanyaan ke Smart AI backend
@@ -981,8 +1002,14 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           </div>
 
           {/* Docked Sticky Bottom Input Bar (Ella Assistant Floating Dock Style) */}
-          <div className="shrink-0 z-20 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#1C1C1E] dark:via-[#1C1C1E]/95 p-2.5 sm:p-3.5">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#2C2C2E] rounded-full px-4 py-1 border border-slate-200/90 dark:border-white/10 shadow-lg focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500 transition-all">
+          <div
+            style={{
+              transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+              transition: "transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+            className="shrink-0 z-20 bg-white/65 dark:bg-[#1C1C1E]/65 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 p-2.5 sm:p-3.5"
+          >
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl rounded-full px-4 py-1 border border-white/80 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.04)] focus-within:ring-2 focus-within:ring-[#007AFF]/30 focus-within:border-[#007AFF] transition-all">
               <input
                 ref={inputRef}
                 type="text"

@@ -2,8 +2,8 @@
 
 @theme {
   /* Apple HIG Semantic Palette */
-  --color-background: #F7F7F5;
-  --color-foreground: #1D1D1F;
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
   --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
 
@@ -16,13 +16,13 @@
 
   /* Surfaces & Materials */
   --color-card: #FFFFFF;
-  --color-card-foreground: #1D1D1F;
-  --color-surface-secondary: #F2F2F0;
-  --color-surface-tertiary: #EDEDEB;
+  --color-card-foreground: #0F172A;
+  --color-surface-secondary: #F1F5F9;
+  --color-surface-tertiary: #E2E8F0;
 
   /* Neutrals & Text Tokens */
-  --color-muted: #F2F2F0;
-  --color-muted-foreground: #6E6E73;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
   --color-border: rgba(60, 60, 67, 0.16);
   --color-border-strong: rgba(60, 60, 67, 0.28);
   --color-ring: #007AFF;
@@ -67,15 +67,15 @@
 
 @layer base {
   :root {
-    --background: #F7F7F5;
+    --background: #F8FAFC;
     --surface: #FFFFFF;
-    --surface-secondary: #F2F2F0;
-    --surface-tertiary: #EDEDEB;
+    --surface-secondary: #F1F5F9;
+    --surface-tertiary: #E2E8F0;
 
-    --text-primary: #1D1D1F;
-    --text-secondary: #6E6E73;
-    --text-tertiary: #8E8E93;
-    --text-disabled: #AEAEB2;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-tertiary: #94A3B8;
+    --text-disabled: #CBD5E1;
 
     --separator: rgba(60, 60, 67, 0.16);
     --separator-strong: rgba(60, 60, 67, 0.28);
@@ -192,10 +192,10 @@
 
   /* Apple HIG Glass Material (Section 4.1 & 4.2) */
   .apple-glass {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
   }
 
   @supports not (backdrop-filter: blur(24px)) {
