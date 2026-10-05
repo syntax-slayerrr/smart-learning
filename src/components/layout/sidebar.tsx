@@ -44,6 +44,32 @@ const iconMap: Record<string, React.ElementType> = {
   Video,
 };
 
+const customIconMap: Record<string, string> = {
+  "/admin": "/icons/dashboard.png",
+  "/teacher": "/icons/dashboard.png",
+  "/student": "/icons/dashboard.png",
+  "/parent": "/icons/dashboard.png",
+  "/admin/camera-monitor": "/icons/ai-classroom.png",
+  "/admin/attendance": "/icons/absensi-siswa.png",
+  "/admin/attendance/teachers": "/icons/absensi-guru.png",
+  "/admin/reports": "/icons/laporan-rekap.png",
+  "/teacher/recap": "/icons/laporan-rekap.png",
+  "/admin/classes": "/icons/kelas.png",
+  "/admin/subjects": "/icons/mata-pelajaran.png",
+  "/admin/schedules": "/icons/jadwal-pelajaran.png",
+  "/student/schedule": "/icons/jadwal-pelajaran.png",
+  "/admin/students": "/icons/direktori-siswa.png",
+  "/admin/teachers": "/icons/direktori-guru.png",
+  "/admin/parents": "/icons/orang-tua-wali.png",
+  "/admin/notifications": "/icons/log-notifikasi.png",
+  "/parent/notifications": "/icons/log-notifikasi.png",
+  "/admin/settings": "/icons/pengaturan.png",
+  "/admin/profile": "/icons/profil-akun.png",
+  "/teacher/profile": "/icons/profil-akun.png",
+  "/student/profile": "/icons/profil-akun.png",
+  "/parent/attendance": "/icons/absensi-siswa.png",
+};
+
 interface SidebarProps {
   role: UserRole;
   userName: string;
@@ -143,6 +169,7 @@ export function Sidebar({
               <ul className="space-y-1">
                 {items.map((item) => {
                   const Icon = iconMap[item.icon] || LayoutDashboard;
+                  const customIcon = customIconMap[item.href];
                   const isActive =
                     pathname === item.href ||
                     (item.href !== `/${role}` && pathname.startsWith(item.href));
@@ -153,18 +180,35 @@ export function Sidebar({
                         href={item.href}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium min-h-[44px] transition-all duration-150 apple-press",
+                          "flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium min-h-[44px] transition-all duration-150 apple-press group",
                           isActive
                             ? "bg-[#007AFF]/10 text-[#007AFF] font-semibold shadow-[0_1px_2px_rgba(0,122,255,0.06)]"
                             : "text-[#6E6E73] hover:bg-[#F2F2F0] hover:text-[#1D1D1F]"
                         )}
                       >
-                        <Icon
-                          className={cn(
-                            "h-4 w-4 shrink-0 transition-colors",
-                            isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
-                          )}
-                        />
+                        {customIcon ? (
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <img
+                              src={customIcon}
+                              alt=""
+                              aria-hidden="true"
+                              className={cn(
+                                "h-5 w-5 object-contain transition-all duration-200 select-none",
+                                isActive
+                                  ? "scale-110 drop-shadow-[0_2px_4px_rgba(0,122,255,0.3)]"
+                                  : "opacity-85 group-hover:opacity-100 group-hover:scale-105"
+                              )}
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : (
+                          <Icon
+                            className={cn(
+                              "h-4 w-4 shrink-0 transition-colors",
+                              isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
+                            )}
+                          />
+                        )}
                         <span className="truncate">{item.label}</span>
                       </Link>
                     </li>

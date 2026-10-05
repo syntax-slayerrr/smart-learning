@@ -199,31 +199,55 @@ export function HermesCopilotWidget() {
     }
   };
 
+  const renderMessageContent = (text: string) => {
+    const lines = text.split("\n");
+    return lines.map((line, lIdx) => {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      return (
+        <p key={lIdx} className="leading-relaxed">
+          {parts.map((part, pIdx) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return (
+                <strong key={pIdx} className="font-semibold text-stone-900">
+                  {part.slice(2, -2)}
+                </strong>
+              );
+            }
+            return part;
+          })}
+        </p>
+      );
+    });
+  };
+
   return (
     <>
       {/* Floating Action Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-full bg-stone-900/95 backdrop-blur-md px-3 py-2 sm:px-3.5 sm:py-2.5 text-stone-100 shadow-xl border border-stone-800 hover:bg-stone-800 transition-all duration-200 active:scale-[0.98] group"
+          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2 rounded-full bg-stone-900/95 backdrop-blur-md pl-1.5 pr-3 py-1.5 text-stone-100 shadow-xl border border-stone-800/80 hover:bg-stone-800 hover:border-stone-700 transition-all duration-200 active:scale-[0.98] group"
           title="Buka Hermes AI Workspace"
         >
-          <div className="relative flex h-6 w-6 items-center justify-center rounded-full overflow-hidden bg-stone-950 ring-1 ring-stone-700/60 shrink-0">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-              className="h-full w-full object-cover scale-110 pointer-events-none"
-            >
-              <source src="/assets/hermes-robot.webm" type="video/webm" />
-              <source src="/assets/hermes-robot.mp4" type="video/mp4" />
-            </video>
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-stone-900 animate-pulse" />
+          <div className="relative flex h-8 w-8 items-center justify-center shrink-0">
+            {/* Animated Transparent 3D Robot Avatar */}
+            <picture className="h-full w-full flex items-center justify-center">
+              <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
+              <img
+                src="/assets/hermes-robot.webp"
+                alt="Hermes AI Robot"
+                className="h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] pointer-events-none select-none transition-transform duration-300 group-hover:scale-110"
+                loading="eager"
+              />
+            </picture>
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-stone-900 animate-pulse" />
+            </span>
           </div>
-          <span className="text-xs font-semibold tracking-tight">Hermes AI Workspace</span>
-          <span className="rounded bg-stone-800 px-1.5 py-0.5 text-[9px] font-mono font-medium text-stone-400">
+          <span className="text-xs font-semibold tracking-tight text-white/95">
+            Hermes AI Workspace
+          </span>
+          <span className="rounded-full bg-stone-800/90 px-1.5 py-0.5 text-[9px] font-mono font-medium text-stone-300 border border-stone-700/60">
             9Router
           </span>
         </button>
@@ -232,41 +256,41 @@ export function HermesCopilotWidget() {
       {/* Floating Workspace Modal */}
       {isOpen && (
         <div
-          className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col rounded-2xl border border-[#E7E2DA] bg-white shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+          className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col rounded-2xl border border-stone-200/80 bg-[#FAF9F5] shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
             isExpanded
               ? "h-[650px] w-[560px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
               : "h-[540px] w-[410px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
           }`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#E7E2DA] bg-[#FBF9F5] px-4 py-3">
+          <div className="flex items-center justify-between border-b border-stone-200/70 bg-white/90 backdrop-blur-md px-4 py-3">
             <div className="flex items-center gap-2.5">
-              <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-stone-950 border border-stone-800 overflow-hidden shrink-0 shadow-xs">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  className="h-full w-full object-cover scale-110 pointer-events-none"
-                >
-                  <source src="/assets/hermes-robot.webm" type="video/webm" />
-                  <source src="/assets/hermes-robot.mp4" type="video/mp4" />
-                </video>
-                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+              <div className="relative flex h-9 w-9 items-center justify-center shrink-0">
+                <picture className="h-full w-full flex items-center justify-center">
+                  <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
+                  <img
+                    src="/assets/hermes-robot.webp"
+                    alt="Hermes AI Robot"
+                    className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)] pointer-events-none select-none"
+                    loading="eager"
+                  />
+                </picture>
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                </span>
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs font-bold tracking-tight text-stone-900">
                     Hermes AI Workspace
                   </h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.2 text-[9px] font-mono font-semibold text-emerald-700 border border-emerald-500/20">
-                    <span className="h-1 w-1 rounded-full bg-emerald-600 animate-pulse" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[9px] font-medium text-stone-600 border border-stone-200/70">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Interactive Agent
                   </span>
                 </div>
-                <p className="text-[10px] text-stone-500">
-                  Powered by 9Router Gateway (:20128)
+                <p className="text-[10px] text-stone-500 font-medium">
+                  Asisten Cerdas & Analisis Data Kampus
                 </p>
               </div>
             </div>
@@ -275,21 +299,21 @@ export function HermesCopilotWidget() {
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 title={isExpanded ? "Perkecil" : "Perluas Workspace"}
-                className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200/50 hover:text-stone-700 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition-colors"
               >
                 {isExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </button>
               <button
                 onClick={() => setMessages([messages[0]])}
                 title="Bersihkan Percakapan"
-                className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200/50 hover:text-stone-700 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 title="Tutup"
-                className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200/50 hover:text-stone-700 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -297,13 +321,13 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Quick Suggestion Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-[#E7E2DA]/60 bg-[#FAF9F5] px-3 py-2 text-[10.5px]">
+          <div className="flex items-center gap-1.5 overflow-x-auto border-b border-stone-200/60 bg-[#FAF9F5] px-3 py-2 text-[10.5px]">
             {QUICK_PROMPTS.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => handleSendMessage(prompt)}
                 disabled={isLoading}
-                className="shrink-0 rounded-full border border-[#E7E2DA] bg-white px-2.5 py-1 font-medium text-stone-600 hover:border-orange-300 hover:text-stone-900 hover:bg-orange-50/40 transition-colors disabled:opacity-50"
+                className="shrink-0 rounded-full border border-stone-200/80 bg-white/90 px-3 py-1 font-medium text-stone-700 hover:border-orange-300 hover:text-[#EA580C] hover:bg-orange-50/50 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs"
               >
                 {prompt}
               </button>
@@ -311,25 +335,23 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Chat Messages Stream with Generative UI Workspaces */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF9F5]/40 text-xs">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF9F5] text-xs">
             {messages.map((m) => {
               const isUser = m.role === "user";
               return (
                 <div key={m.id} className="space-y-2">
                   <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isUser && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-stone-950 border border-stone-800 overflow-hidden shadow-2xs mt-0.5">
-                        <video
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          preload="auto"
-                          className="h-full w-full object-cover scale-110 pointer-events-none"
-                        >
-                          <source src="/assets/hermes-robot.webm" type="video/webm" />
-                          <source src="/assets/hermes-robot.mp4" type="video/mp4" />
-                        </video>
+                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center mt-0.5">
+                        <picture className="h-full w-full flex items-center justify-center">
+                          <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
+                          <img
+                            src="/assets/hermes-robot.webp"
+                            alt="Hermes AI Robot"
+                            className="h-full w-full object-contain drop-shadow-xs pointer-events-none select-none"
+                            loading="eager"
+                          />
+                        </picture>
                       </div>
                     )}
 
@@ -337,11 +359,11 @@ export function HermesCopilotWidget() {
                       className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-2xs leading-relaxed ${
                         isUser
                           ? "bg-stone-900 text-white rounded-br-xs"
-                          : "bg-white text-stone-800 border border-[#E7E2DA] rounded-bl-xs"
+                          : "bg-white text-stone-800 border border-stone-200/80 rounded-bl-xs shadow-xs"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap space-y-1 font-sans">
-                        {m.content}
+                      <div className="space-y-1 font-sans">
+                        {renderMessageContent(m.content)}
                       </div>
                       <div
                         className={`text-[9px] font-mono mt-1 ${
@@ -353,7 +375,7 @@ export function HermesCopilotWidget() {
                     </div>
 
                     {isUser && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/20 text-[#EA580C] shadow-2xs mt-0.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500/10 border border-orange-500/20 text-[#EA580C] shadow-2xs mt-0.5">
                         <User className="h-3.5 w-3.5" />
                       </div>
                     )}
@@ -532,10 +554,18 @@ export function HermesCopilotWidget() {
 
             {isLoading && (
               <div className="flex gap-2.5 items-center text-xs text-stone-500">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-stone-900 text-white shadow-2xs">
-                  <Bot className="h-3.5 w-3.5 animate-spin" />
+                <div className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+                  <picture className="h-full w-full flex items-center justify-center">
+                    <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
+                    <img
+                      src="/assets/hermes-robot.webp"
+                      alt="Hermes Loading"
+                      className="h-full w-full object-contain pointer-events-none select-none animate-pulse"
+                      loading="eager"
+                    />
+                  </picture>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-xl bg-white border border-[#E7E2DA] px-3.5 py-2 text-stone-600 shadow-2xs font-mono text-[10.5px]">
+                <div className="flex items-center gap-1.5 rounded-xl bg-white border border-stone-200/80 px-3.5 py-2 text-stone-600 shadow-2xs font-mono text-[10.5px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#EA580C] animate-ping" />
                   <span>Hermes membaca basis data & menyiapkan workspace...</span>
                 </div>
@@ -546,22 +576,27 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Input Bar */}
-          <div className="border-t border-[#E7E2DA] bg-white p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] px-3 py-1.5 focus-within:border-stone-400 focus-within:bg-white transition-all">
+          <div className="border-t border-stone-200/80 bg-white/95 backdrop-blur-md p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50/70 px-3 py-1.5 focus-within:border-stone-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-stone-200/50 transition-all">
               <input
                 ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ketik: 'cek siswa yang paling hadir dan paling aktif'..."
+                placeholder="Tanyakan kehadiran, ringkasan kelas, atau siswa..."
                 disabled={isLoading}
                 className="flex-1 bg-transparent text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none disabled:opacity-50"
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputValue.trim() || isLoading}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-30 disabled:pointer-events-none transition-all active:scale-[0.95]"
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all active:scale-[0.95] ${
+                  inputValue.trim() && !isLoading
+                    ? "bg-[#EA580C] text-white shadow-xs hover:bg-[#c2410c]"
+                    : "bg-stone-200/80 text-stone-400 disabled:opacity-40 disabled:pointer-events-none"
+                }`}
+                title="Kirim Pesan"
               >
                 <Send className="h-3.5 w-3.5" />
               </button>
