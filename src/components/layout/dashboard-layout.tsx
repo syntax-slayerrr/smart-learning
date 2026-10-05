@@ -55,7 +55,7 @@ export function DashboardLayout({
         <main
           className={
             isNotebook
-              ? "flex-1 overflow-hidden p-0 focus:outline-none relative z-10 h-full w-full"
+              ? "flex-1 overflow-y-auto overscroll-contain p-0 focus:outline-none relative z-10 h-full w-full"
               : "flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10"
           }
         >

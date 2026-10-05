@@ -398,29 +398,6 @@ Mengapa angka 2 wajib selalu dikurangkan dari total kombinasi bit host, dan apa 
     window.speechSynthesis.speak(utterance);
   };
 
-  // Keyboard offset tracking for mobile virtual keyboard stability
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-
-    const handleViewportChange = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      // Calculate delta between window innerHeight and visual viewport height
-      const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
-      setKeyboardOffset(offset > 60 ? offset : 0);
-    };
-
-    window.visualViewport.addEventListener("resize", handleViewportChange);
-    window.visualViewport.addEventListener("scroll", handleViewportChange);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    };
-  }, []);
-
   // Keyboard stability: prevent window/screen jumping when focused
   const handleInputFocus = () => {
     // Only scroll within chat messages if needed, without triggering window-level layout shift
@@ -745,101 +722,6 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
         /* --- MODE 1: SMART AI SOCRATIC STUDIO (NOTEBOOKLM PARADIGM)   */
         /* ============================================================ */
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {/* Featured Spotlight Card (Ella Assistant Reference Style) */}
-          {(activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop)) && (
-            <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-50/90 via-white to-indigo-50/70 dark:from-blue-950/20 dark:via-[#242426] dark:to-indigo-950/20 border border-blue-200/80 dark:border-blue-800/40 shadow-2xs space-y-2.5 animate-fade-in">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
-                  <Sparkles className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                  Fokus Belajar Hari Ini
-                </span>
-                <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400">
-                  Bab {activeChapter.chapterNumber || activeChapterIndex + 1} • {activeChapter.confusionScore || 42}% Siswa Butuh Reviu
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                  Misteri Rumus 2ⁿ - 2 & Efisiensi Alokasi VLSM
-                </h3>
-                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                  Monitoring AI mendeteksi banyak siswa bingung menentukan Network ID & Broadcast Address dalam alokasi subnet jaringan.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 pt-0.5">
-                <button
-                  onClick={() =>
-                    handleSendPrompt("Bantu aku memahami kenapa rumus host 2^n - 2 lewat analogi dunia nyata sederhana!")
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs active:scale-95 transition-all"
-                >
-                  <Lightbulb className="h-3 w-3" />
-                  Bongkar Analogi
-                </button>
-                <button
-                  onClick={() => handleSendPrompt("Berikan 1 studi kasus teknis alokasi subnet /28 vs /27!")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 text-xs font-medium hover:bg-slate-50 active:scale-95 transition-all"
-                >
-                  Studi Kasus Lab
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Quick Learning Tools Grid (Ella Assistant "Alat Produktivitas" Style) */}
-          <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              onClick={handleToggleAudioOverview}
-              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 active:scale-95 transition-all text-left group"
-            >
-              <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Headphones className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Audio Bab</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Intisari suara</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleSendPrompt("Tampilkan intisari poin kunci dan peta konsep bab ini!")}
-              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-purple-300 dark:hover:border-purple-700 active:scale-95 transition-all text-left group"
-            >
-              <div className="h-8 w-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Network className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Peta Konsep</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Bagan relasi</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setViewMode("reader")}
-              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 active:scale-95 transition-all text-left group"
-            >
-              <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <FileText className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Modul Asli</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Baca PDF hal 13</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleSendPrompt("Uji pemahamanku dengan 1 kuis logika Sokrates tentang bab ini!")}
-              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-amber-300 dark:hover:border-amber-700 active:scale-95 transition-all text-left group"
-            >
-              <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Target className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Uji Reflektif</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Kuis logika AI</p>
-              </div>
-            </button>
-          </div>
-
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3.5 scrollbar-none">
             {chatMessages.map((msg) => (
@@ -1002,13 +884,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           </div>
 
           {/* Docked Sticky Bottom Input Bar (Ella Assistant Floating Dock Style) */}
-          <div
-            style={{
-              transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
-              transition: "transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
-            }}
-            className="shrink-0 z-20 bg-white/65 dark:bg-[#1C1C1E]/65 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 p-2.5 sm:p-3.5"
-          >
+          <div className="shrink-0 z-20 bg-white/65 dark:bg-[#1C1C1E]/65 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 p-2.5 sm:p-3.5">
             <div className="flex items-center gap-2 bg-white/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl rounded-full px-4 py-1 border border-white/80 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.04)] focus-within:ring-2 focus-within:ring-[#007AFF]/30 focus-within:border-[#007AFF] transition-all">
               <input
                 ref={inputRef}
@@ -1061,19 +937,6 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 title="Kirim pesan"
               >
                 <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Mobile Native Gesture Hint & Quick Nav */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 px-3">
-              <span className="hidden sm:inline">Socratic Mentor: Membimbing nalar mandiri</span>
-              <span className="sm:hidden text-slate-400 font-medium">← Geser jari untuk Modul Asli</span>
-              <button
-                onClick={() => setViewMode("reader")}
-                className="hover:text-blue-600 transition-colors flex items-center gap-1 font-medium"
-              >
-                <span>Buka teks modul</span>
-                <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           </div>

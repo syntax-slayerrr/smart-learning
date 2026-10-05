@@ -904,7 +904,7 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 4: TANYA SMART AI (SOCRATIC CHAT & DOCK)                  */}
         {/* =================================================================== */}
         {studyMode === "chat" && (
-          <div className="flex-1 flex flex-col min-h-0 h-full rounded-3xl overflow-hidden shadow-sm animate-fade-in">
+          <div className="flex-1 flex flex-col min-h-[520px] h-[calc(100dvh-185px)] rounded-3xl overflow-hidden shadow-sm animate-fade-in">
             <SocraticDocumentViewer
               materialId={selectedMaterial.id}
               materialTitle={selectedMaterial.title}

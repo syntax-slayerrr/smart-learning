@@ -254,28 +254,6 @@ export function OralDefenseModal({
     return `${mins.toString().padStart(2, "0")}:${remaining.toString().padStart(2, "0")}`;
   };
 
-  // Keyboard stability: track mobile virtual viewport
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-
-    const handleViewportChange = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
-      setKeyboardOffset(offset > 60 ? offset : 0);
-    };
-
-    window.visualViewport.addEventListener("resize", handleViewportChange);
-    window.visualViewport.addEventListener("scroll", handleViewportChange);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", handleViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    };
-  }, []);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-0 sm:p-4 animate-fade-in">
       <div className="w-full max-w-xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[92dvh] bg-[#F8FAFC]/90 backdrop-blur-2xl text-slate-900 border-0 sm:border border-white/60 sm:rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden overscroll-contain">
@@ -477,13 +455,7 @@ export function OralDefenseModal({
         )}
 
         {/* Bottom Floating Prompt Dock (Ella Reference Style: Sleek Pill Bar) */}
-        <div 
-          style={{
-            transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
-            transition: "transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
-          }}
-          className="shrink-0 p-3.5 sm:p-4 border-t border-white/60 bg-white/75 backdrop-blur-2xl"
-        >
+        <div className="shrink-0 p-3.5 sm:p-4 border-t border-white/60 bg-white/75 backdrop-blur-2xl">
           {step === "questioning" && (
             <div className="flex items-center gap-2">
               
