@@ -7,7 +7,7 @@ export interface TriMetricItem {
   value: string | number;
   sublabel: string;
   icon?: LucideIcon | "check" | "warning" | "video" | "sparkles";
-  variant: "success" | "warning" | "primary";
+  variant: "success" | "warning" | "primary" | "info";
 }
 
 interface TriMetricMatrixProps {
@@ -49,43 +49,38 @@ export function TriMetricMatrix({
   return (
     <div className={`grid grid-cols-3 gap-2.5 sm:gap-3.5 ${className}`}>
       {metrics.map((m) => {
-        let IconComponent = CheckCircle2;
-        if (typeof m.icon === "function" || (typeof m.icon === "object" && m.icon !== null)) {
-          IconComponent = m.icon as LucideIcon;
-        } else if (m.icon === "warning" || m.variant === "warning") {
-          IconComponent = AlertTriangle;
-        } else if (m.icon === "video") {
-          IconComponent = Video;
-        } else if (m.icon === "sparkles") {
-          IconComponent = Sparkles;
+        let iconSrc = "/icons/status-success.png";
+        if (m.variant === "warning" || m.icon === "warning") {
+          iconSrc = "/icons/status-warning.png";
+        } else if (m.icon === "video" || m.variant === "info" || m.variant === "primary") {
+          iconSrc = "/icons/status-camera.png";
         }
 
         const colorStyles =
           m.variant === "success"
             ? {
-                podBg: "bg-emerald-50 border border-emerald-200/60 text-emerald-600",
                 valColor: "text-emerald-700",
               }
             : m.variant === "warning"
             ? {
-                podBg: "bg-amber-50 border border-amber-200/60 text-amber-600",
                 valColor: "text-amber-700",
               }
             : {
-                podBg: "bg-blue-50 border border-blue-200/60 text-blue-600",
                 valColor: "text-blue-700",
               };
 
         return (
           <div
             key={m.id}
-            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center"
+            className="card-3d-chip group flex flex-col items-center justify-between p-2.5 sm:p-3 text-center transition-all duration-200 hover:shadow-md"
           >
-            {/* Top Micro Icon */}
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-xl ${colorStyles.podBg} mb-1.5`}
-            >
-              <IconComponent className="h-4 w-4 stroke-[2]" />
+            {/* Top 3D Metric Icon */}
+            <div className="flex h-9 w-9 items-center justify-center mb-1.5 transition-transform duration-200 group-hover:scale-105">
+              <img
+                src={iconSrc}
+                alt=""
+                className="h-8 w-8 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.08)]"
+              />
             </div>
 
             {/* Value */}

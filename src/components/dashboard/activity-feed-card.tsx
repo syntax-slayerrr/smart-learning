@@ -72,12 +72,14 @@ export function ActivityFeedCard({
                 key={item.id}
                 className="group flex items-center justify-between p-3 rounded-2xl bg-white/70 hover:bg-slate-50/80 border border-slate-100/90 transition-all duration-200"
               >
-                {/* Left: 42x42 Squircle Pod */}
+                {/* Left: 44x44 Apple HIG Pod with 3D Mata Pelajaran Icon */}
                 <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl ${podBg} transition-transform group-hover:scale-105`}
-                  >
-                    <BookOpen className="h-5 w-5 stroke-[1.8]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-blue-50/80 to-slate-50 border border-blue-100/60 shadow-[0_2px_8px_-2px_rgba(37,99,235,0.15)] transition-transform group-hover:scale-105">
+                    <img
+                      src="/icons/mata-pelajaran.png"
+                      alt={item.subject}
+                      className="h-7 w-7 object-contain drop-shadow-xs"
+                    />
                   </div>
 
                   {/* Middle: Title & Meta Stack */}
