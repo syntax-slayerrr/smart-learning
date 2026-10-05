@@ -45,6 +45,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const customIconMap: Record<string, string> = {
+  // Operasional
   "/admin": "/icons/dashboard.png",
   "/teacher": "/icons/dashboard.png",
   "/student": "/icons/dashboard.png",
@@ -54,13 +55,24 @@ const customIconMap: Record<string, string> = {
   "/admin/attendance/teachers": "/icons/absensi-guru.png",
   "/admin/reports": "/icons/laporan-rekap.png",
   "/teacher/recap": "/icons/laporan-rekap.png",
+
+  // Akademik & Jadwal
   "/admin/classes": "/icons/kelas.png",
   "/admin/subjects": "/icons/mata-pelajaran.png",
   "/admin/schedules": "/icons/jadwal-pelajaran.png",
   "/student/schedule": "/icons/jadwal-pelajaran.png",
+  "/teacher/history": "/icons/jadwal-pelajaran.png",
+  "/student/history": "/icons/jadwal-pelajaran.png",
+  "/parent/history": "/icons/jadwal-pelajaran.png",
+  "/teacher/scan": "/icons/absensi-siswa.png",
+  "/student/scan": "/icons/absensi-siswa.png",
+
+  // Data Master
   "/admin/students": "/icons/direktori-siswa.png",
   "/admin/teachers": "/icons/direktori-guru.png",
   "/admin/parents": "/icons/orang-tua-wali.png",
+
+  // Sistem & Akun
   "/admin/notifications": "/icons/log-notifikasi.png",
   "/parent/notifications": "/icons/log-notifikasi.png",
   "/admin/settings": "/icons/pengaturan.png",
@@ -187,27 +199,31 @@ export function Sidebar({
                         )}
                       >
                         {customIcon ? (
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <div className={cn(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200",
+                            isActive ? "bg-white/80 shadow-xs" : "group-hover:scale-105"
+                          )}>
                             <img
                               src={customIcon}
                               alt=""
                               aria-hidden="true"
                               className={cn(
-                                "h-5 w-5 object-contain transition-all duration-200 select-none",
+                                "h-7 w-7 object-contain transition-all duration-200 select-none",
                                 isActive
-                                  ? "scale-110 drop-shadow-[0_2px_4px_rgba(0,122,255,0.3)]"
-                                  : "opacity-85 group-hover:opacity-100 group-hover:scale-105"
+                                  ? "scale-110 drop-shadow-[0_2px_6px_rgba(0,122,255,0.35)]"
+                                  : "opacity-90 group-hover:opacity-100 group-hover:scale-110"
                               )}
-                              loading="lazy"
                             />
                           </div>
                         ) : (
-                          <Icon
-                            className={cn(
-                              "h-4 w-4 shrink-0 transition-colors",
-                              isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
-                            )}
-                          />
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+                            <Icon
+                              className={cn(
+                                "h-5 w-5 shrink-0 transition-colors",
+                                isActive ? "text-[#007AFF]" : "text-[#8E8E93]"
+                              )}
+                            />
+                          </div>
                         )}
                         <span className="truncate">{item.label}</span>
                       </Link>

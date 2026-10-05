@@ -302,10 +302,10 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                       src={tab.asset}
                       alt=""
                       className={cn(
-                        "w-5 h-5 object-contain transition-all duration-200 select-none",
+                        "w-6 h-6 object-contain transition-all duration-200 select-none",
                         isActive
                           ? "scale-115 drop-shadow-[0_2px_4px_rgba(37,99,235,0.3)]"
-                          : "opacity-75 group-hover:opacity-100 group-hover:scale-105"
+                          : "opacity-85 group-hover:opacity-100 group-hover:scale-105"
                       )}
                     />
                   ) : (
