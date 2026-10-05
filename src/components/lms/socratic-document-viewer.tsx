@@ -18,6 +18,15 @@ import {
   BookOpen,
   ArrowRight,
   HelpCircle,
+  Download,
+  ExternalLink,
+  MessageSquare,
+  Compass,
+  CheckCircle2,
+  FileDown,
+  Layers,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +52,8 @@ export interface SocraticDocumentViewerProps {
   chapters?: DocumentChapter[];
   materialTitle?: string;
   materialId?: string;
+  fileUrl?: string;
+  fileName?: string;
   studentId?: string;
   initialPage?: number;
   initialPrompt?: string;
@@ -102,12 +113,19 @@ interface ChatMessage {
   noteDraft?: string;
   noteSaved?: boolean;
   highlightContext?: string;
+  citation?: {
+    chapterNumber?: number;
+    page?: number;
+    label?: string;
+  };
 }
 
 export function SocraticDocumentViewer({
   chapters: externalChapters,
-  materialTitle = "Modul Jaringan Komputer & Topologi Lanjut",
+  materialTitle = "Modul Praktis Subnetting IPv4 & VLSM Jaringan Komputer",
   materialId,
+  fileUrl,
+  fileName,
   studentId = "std-001",
   initialPage = 13,
   initialPrompt,
@@ -117,6 +135,11 @@ export function SocraticDocumentViewer({
     externalChapters && externalChapters.length > 0
       ? externalChapters
       : DEFAULT_CHAPTERS;
+
+  // View Mode: 'studio' (Smart AI Chat) or 'reader' (Full Document Reader)
+  const [viewMode, setViewMode] = useState<"studio" | "reader">(() => {
+    return initialPrompt ? "studio" : "studio";
+  });
 
   const [activeChapterIndex, setActiveChapterIndex] = useState<number>(() => {
     const critIdx = chapters.findIndex(
@@ -128,11 +151,7 @@ export function SocraticDocumentViewer({
   const activeChapter = chapters[activeChapterIndex] || chapters[0] || DEFAULT_CHAPTERS[0];
 
   const [currentPage, setCurrentPage] = useState<number>(() => {
-    return (
-      initialPage ||
-      activeChapter?.pageStart ||
-      1
-    );
+    return initialPage || activeChapter?.pageStart || 1;
   });
 
   const [socraticQuery, setSocraticQuery] = useState<string>("");
@@ -143,29 +162,37 @@ export function SocraticDocumentViewer({
 
   const documentRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "msg-welcome",
       role: "assistant",
-      text: `Halo Zaldy! Aku **Smart AI**, mentor belajarmu untuk materi **${materialTitle}**. 
+      text: `Halo Zaldy! Aku **Smart AI**, mentor belajarmu yang terhubung langsung dengan modul resmi dari dosen/guru.
 
-Di sini aku tidak akan memberi contekan jawaban langsung, tapi membantumu membedah logika materi bab demi bab secara bertahap. 
+Di sini aku membimbing nalar mandirimu secara bertahap lewat metode Sokrates. Kamu bisa bertanya konsep, menganalisis studi kasus, atau meminta analogi sederhana.
 
 ${
   activeChapter.isCriticalZone || activeChapter.criticalZoneDrop
-    ? `⚠️ **Catatan Kelas Fisik:** Kamera AI mencatat materi **${activeChapter.title}** ini sempat memicu kebingungan (${activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42}% atensi drop). Ada bagian yang ingin kita bedah bersama?`
-    : "Ada konsep di bab ini yang ingin kamu diskusikan atau tanyakan?"
+    ? `⚠️ **Catatan Kelas Fisik:** Kamera AI mencatat materi **${activeChapter.title}** ini sempat memicu kebingungan (${activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42}% atensi drop). Mau kita bedah logikanya bersama?`
+    : `Materi aktif saat ini: **${activeChapter.title}**. Apa yang ingin kamu diskusikan?`
 }`,
+      citation: {
+        chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
+        page: activeChapter.pageStart || 13,
+        label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}, Hal ${activeChapter.pageStart || 13}`,
+      },
     },
   ]);
 
-  // Scroll to bottom when new chat message arrives
+  // Auto-scroll inside message feed when new message arrives
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, isAiLoading]);
+    if (viewMode === "studio") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isAiLoading, viewMode]);
 
-  // Update proactive Socratic greeting when chapter changes
+  // When chapter changes, update chapter greeting
   useEffect(() => {
     const isCrit = activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop);
     const dropScore = activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42;
@@ -174,13 +201,16 @@ ${
       id: `greeting-${activeChapter.id}-${Date.now()}`,
       role: "assistant",
       text: isCrit
-        ? `⚠️ **Zona Kritis Kelas Fisik:** Kamera AI mencatat ${dropScore}% siswa kebingungan di **${activeChapter.title}**.
+        ? `⚠️ **Zona Kritis Kelas Fisik Terdeteksi:** Kamera AI mencatat ${dropScore}% siswa kebingungan di **${activeChapter.title}**.
 
 Mari kita bedah logikanya bersama. Perhatikan rumus krusial **2^n - 2**:
 Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang terjadi jika sebuah komputer diberi alamat IP yang semua bit host-nya bernilai 0 biner atau 1 biner?`
-        : `Halo! Kamu sedang menelaah **${activeChapter.title}**.
-
-Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
+        : `Kamu sedang menelaah **${activeChapter.title}**. Konsep apa yang ingin kamu bedah bersama Smart AI?`,
+      citation: {
+        chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
+        page: activeChapter.pageStart || 1,
+        label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
+      },
     };
 
     setChatMessages([chapterGreeting]);
@@ -194,6 +224,20 @@ Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
     } else {
       setSelectedText("");
     }
+  };
+
+  // Switch to reader at specific chapter & page
+  const handleJumpToSource = (chapNumber?: number, page?: number) => {
+    if (chapNumber) {
+      const idx = chapters.findIndex(
+        (c, i) => (c.chapterNumber || i + 1) === chapNumber
+      );
+      if (idx >= 0) setActiveChapterIndex(idx);
+    }
+    if (page) {
+      setCurrentPage(page);
+    }
+    setViewMode("reader");
   };
 
   // Text-to-Speech function for AI responses
@@ -217,12 +261,26 @@ Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
     window.speechSynthesis.speak(utterance);
   };
 
+  // Keyboard stability: smooth scroll into view on mobile focus
+  const handleInputFocus = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  };
+
   // Kirim pertanyaan ke Smart AI backend
-  const handleSendPrompt = async (promptOverride?: string, highlightOverride?: string) => {
+  const handleSendPrompt = async (
+    promptOverride?: string,
+    highlightOverride?: string
+  ) => {
     const textToSend = promptOverride || socraticQuery;
-    const highlight = highlightOverride !== undefined ? highlightOverride : selectedText;
+    const highlight =
+      highlightOverride !== undefined ? highlightOverride : selectedText;
 
     if (!textToSend.trim() || isAiLoading) return;
+
+    // Ensure we are in studio view mode
+    setViewMode("studio");
 
     const userMessageId = `usr-${Date.now()}`;
     const userMsg: ChatMessage = {
@@ -265,6 +323,11 @@ Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
           text: data.reply,
           checkpointPassed: data.checkpointPassed,
           noteDraft: data.noteDraft,
+          citation: {
+            chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
+            page: currentPage,
+            label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}, Hal ${currentPage}`,
+          },
         };
         setChatMessages((prev) => [...prev, aiMsg]);
       } else {
@@ -273,14 +336,14 @@ Ada konsep dari bab ini yang ingin kita bedah logikanya bersama?`,
     } catch (err: any) {
       // Fallback socratic response jika offline / dev mode
       const fallbackReply = textToSend.toLowerCase().includes("analogi")
-        ? `Bayangkan kamu punya sebidang tanah luas (Network ID: 192.168.1.0/24, total 256 m²). 
-        
-Kalau dipotong rata (/26), tiap ruang dapat 64 m². Tapi lab komputer butuh 50 m², sedangkan pos satpam cuma butuh 4 m²! 
+        ? `Bayangkan kamu punya sebidang tanah luas (**Network ID**: 192.168.1.0/24, total 256 m²). 
+
+Jika dipotong rata (/26), tiap ruang dapat 64 m². Tapi lab komputer butuh 50 m², sedangkan pos satpam cuma butuh 4 m²! 
 Tanah di pos satpam jadi mubazir 60 m².
 
 Dengan **VLSM**, kamu potong fleksibel: kasih kavling /26 (64 m²) untuk Lab, dan cukup potong kavling /29 (8 m²) untuk pos satpam. Menurutmu, apa manfaat terbesar dari teknik ini?`
         : `Mari kita bedah logikanya bersama. Perhatikan rumus **2^n - 2**. 
-        
+
 Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istimewa' di setiap blok jaringan yang berhak atas dua alamat tersebut?`;
 
       setChatMessages((prev) => [
@@ -290,6 +353,11 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           role: "assistant",
           text: fallbackReply,
           checkpointPassed: false,
+          citation: {
+            chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
+            page: currentPage,
+            label: `Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
+          },
         },
       ]);
     } finally {
@@ -304,7 +372,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
     }
   }, [initialPrompt]);
 
-  // Simpan checkpoint pemahaman ke catatan siswa (student_study_notes)
+  // Simpan checkpoint pemahaman ke catatan siswa
   const handlePinNote = async (msgId: string, noteContent: string) => {
     setSavingNoteId(msgId);
     try {
@@ -359,245 +427,180 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
     }
   };
 
-  return (
-    <div className={`space-y-4 ${className}`}>
-      {/* 1. Closed-Loop Telemetry Notification Banner if on Critical Zone */}
-      {(activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop)) && (
-        <div className="relative overflow-hidden rounded-3xl border border-amber-300/70 bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 p-4 sm:p-5 shadow-sm backdrop-blur-md transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-sm mt-0.5">
-                <Video className="h-5 w-5" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-amber-950 tracking-tight">
-                    Closed-Loop Telemetry: Zona Kritis Kelas Fisik Terdeteksi
-                  </span>
-                  <Badge variant="warning" className="text-[10px] py-0 px-2 font-mono">
-                    {activeChapter.confusionScore || activeChapter.criticalZoneDrop || 42}% Kebingungan
-                  </Badge>
-                </div>
-                <p className="text-xs text-amber-900/90 leading-relaxed max-w-2xl">
-                  Pada sesi kelas tatap muka <strong>{activeChapter.detectedTimestamp || "Pagi Ini"}</strong>, sensor kamera AI mencatat 42% siswa mengalami lonjakan kebingungan & atensi drop saat guru menerangkan topik ini.
-                </p>
-              </div>
-            </div>
+  // Helper formatter for markdown text (bold, code, bullet points)
+  const renderFormattedText = (rawText: string) => {
+    const lines = rawText.split("\n");
+    return (
+      <div className="space-y-2">
+        {lines.map((line, idx) => {
+          if (!line.trim()) {
+            return <div key={idx} className="h-1" />;
+          }
 
-            <Button
-              variant="primary"
-              size="sm"
-              className="text-xs h-9 bg-amber-600 hover:bg-amber-700 text-white shrink-0 self-start sm:self-auto gap-2 rounded-2xl shadow-sm active:scale-95 transition-all"
-              onClick={() =>
-                handleSendPrompt("Bantu aku memahami bab ini lewat analogi sederhana dunia nyata!")
-              }
-            >
-              <Lightbulb className="h-4 w-4" />
-              Bongkar dengan Analogi
-            </Button>
-          </div>
-        </div>
-      )}
+          // Render bold and inline code cleanly
+          const parts = line.split(/(\*\*.*?\*\*|`.*?`)/g);
 
-      {/* 2. Apple HIG Split-View Workspace (Document Reader & Smart AI Mentor) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* === Left Viewport: Document Reader (7 Cols) === */}
-        <div className="lg:col-span-7 flex flex-col bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-3xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden min-h-[580px]">
-          {/* Top Bar Navigation */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-7 w-7 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#007AFF] flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4" />
-              </div>
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[260px]">
-                {materialTitle}
-              </span>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
-              <span>Hal {currentPage}</span>
-              <div className="flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.04] p-0.5 rounded-xl border border-black/5 dark:border-white/5">
-                <button
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                  title="Halaman sebelumnya"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                  title="Halaman berikutnya"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Chapter Selector Tabs (Apple Segmented Style) */}
-          <div className="flex border-b border-black/5 dark:border-white/10 bg-white dark:bg-[#1C1C1E] overflow-x-auto text-xs scrollbar-none px-2 py-1 gap-1">
-            {chapters.map((chap, idx) => {
-              const isActive = activeChapterIndex === idx;
-              return (
-                <button
-                  key={chap.id}
-                  onClick={() => {
-                    setActiveChapterIndex(idx);
-                    if (chap.pageStart) setCurrentPage(chap.pageStart);
-                  }}
-                  className={`px-3.5 py-2 rounded-2xl whitespace-nowrap font-medium transition-all flex items-center gap-2 text-xs ${
-                    isActive
-                      ? "bg-[#007AFF]/10 text-[#007AFF] font-semibold"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-black/[0.03]"
-                  }`}
-                >
-                  {(chap.isCriticalZone || Boolean(chap.criticalZoneDrop)) && (
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                  )}
-                  <span>Bab {chap.chapterNumber || idx + 1}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Document Content Viewport */}
-          <div
-            ref={documentRef}
-            onMouseUp={handleTextSelection}
-            className="p-6 flex-1 overflow-y-auto space-y-5 text-slate-700 dark:text-slate-300 leading-relaxed text-sm select-text relative"
-          >
-            {/* Chapter Header */}
-            <div className="border-b border-black/5 dark:border-white/10 pb-4">
-              <div className="flex items-center gap-2 text-[11px] text-slate-600 font-medium uppercase tracking-wider mb-1">
-                <span>Bab {activeChapter.chapterNumber || activeChapterIndex + 1}</span>
-                <span>•</span>
-                <span>
-                  {activeChapter.pages ||
-                    `Halaman ${activeChapter.pageStart || 1} - ${activeChapter.pageEnd || 10}`}
-                </span>
-              </div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                {activeChapter.title}
-              </h3>
-            </div>
-
-            {/* Document Text Body */}
-            <div className="whitespace-pre-line text-slate-700 dark:text-slate-300 bg-black/[0.015] dark:bg-white/[0.015] p-5 rounded-3xl border border-black/5 dark:border-white/5 font-sans leading-relaxed text-[13.5px]">
-              {activeChapter.contentSnippet || activeChapter.summary || "Memuat materi pembelajaran..."}
-            </div>
-
-            {/* Key Takeaways Pill Container */}
-            {activeChapter.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                  Intisari Konsep Bab Ini:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {activeChapter.keyTakeaways.map((item, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 rounded-xl bg-black/[0.03] dark:bg-white/[0.05] border border-black/5 dark:border-white/5 text-xs text-slate-700 dark:text-slate-300 font-medium"
+          return (
+            <p key={idx} className="leading-relaxed">
+              {parts.map((part, pIdx) => {
+                if (part.startsWith("**") && part.endsWith("**")) {
+                  return (
+                    <strong
+                      key={pIdx}
+                      className="font-semibold text-slate-900 dark:text-white"
                     >
-                      ✓ {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+                      {part.slice(2, -2)}
+                    </strong>
+                  );
+                }
+                if (part.startsWith("`") && part.endsWith("`")) {
+                  return (
+                    <code
+                      key={pIdx}
+                      className="font-mono text-[11px] bg-black/[0.05] dark:bg-white/[0.1] px-1.5 py-0.5 rounded text-[#007AFF] dark:text-blue-400 font-medium"
+                    >
+                      {part.slice(1, -1)}
+                    </code>
+                  );
+                }
+                return part;
+              })}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
 
-            {/* Quick Prompt Chips */}
-            <div className="pt-2">
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                Pantik Diskusi dengan Smart AI:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() =>
-                    handleSendPrompt("Bantu aku memahami bagian yang paling krusial di bab ini!")
-                  }
-                  className="px-3 py-1.5 rounded-2xl bg-black/[0.03] hover:bg-[#007AFF]/10 hover:text-[#007AFF] text-slate-700 dark:text-slate-300 text-xs transition-all border border-black/5 dark:border-white/5 active:scale-95"
-                >
-                  💡 Apa bagian paling krusial di bab ini?
-                </button>
-                <button
-                  onClick={() =>
-                    handleSendPrompt("Berikan 1 studi kasus nyata yang menerapkan konsep ini!")
-                  }
-                  className="px-3 py-1.5 rounded-2xl bg-black/[0.03] hover:bg-[#007AFF]/10 hover:text-[#007AFF] text-slate-700 dark:text-slate-300 text-xs transition-all border border-black/5 dark:border-white/5 active:scale-95"
-                >
-                  🌍 Berikan studi kasus dunia nyata
-                </button>
+  return (
+    <div
+      className={`flex flex-col h-[calc(100dvh-130px)] sm:h-[720px] max-h-[820px] bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-3xl border border-black/[0.06] dark:border-white/10 shadow-sm overflow-hidden overscroll-contain relative ${className}`}
+    >
+      {/* ============================================================== */}
+      {/* 1. TOP GROUND TRUTH SOURCE BAR (Always Anchored at Top)        */}
+      {/* ============================================================== */}
+      <div className="shrink-0 z-20 border-b border-black/[0.06] dark:border-white/10 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl px-3.5 sm:px-5 py-2.5 sm:py-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          {/* Left: Source File Info & Verified Status */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#007AFF] flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-800/40">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {materialTitle}
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Modul Guru
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="truncate max-w-[200px] sm:max-w-xs font-mono">
+                  {fileName || "Modul_Resmi.pdf"}
+                </span>
+                <span>•</span>
+                <span>{chapters.length} Bab Terintegrasi</span>
               </div>
             </div>
           </div>
 
-          {/* Floating Pill on Highlight */}
-          {selectedText && (
-            <div className="sticky bottom-4 mx-6 p-2 rounded-2xl bg-[#1D1D1F] text-white shadow-xl flex items-center justify-between gap-3 animate-fade-in z-20">
-              <div className="flex items-center gap-2 pl-2 text-xs truncate max-w-xs">
-                <Highlighter className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span className="truncate italic text-slate-300">"{selectedText}"</span>
-              </div>
+          {/* Right: Actions & Native Segmented Mode Switcher */}
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* Download Original File Button */}
+            {fileUrl ? (
+              <a
+                href={fileUrl}
+                download={fileName || `${materialTitle}.pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold border border-black/5 dark:border-white/5 transition-all active:scale-95 shrink-0"
+                title="Unduh berkas modul original yang diunggah guru"
+              >
+                <Download className="h-3.5 w-3.5 text-[#007AFF]" />
+                <span className="text-xs">Unduh Dokumen</span>
+              </a>
+            ) : (
               <button
                 onClick={() =>
-                  handleSendPrompt(
-                    `Bisa tolong jelaskan makna bagian ini secara bertahap?`,
-                    selectedText
-                  )
+                  alert("Dokumen original tersinkronisasi dalam cache offline PWA.")
                 }
-                className="px-3 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 text-xs font-semibold border border-black/5 transition-all shrink-0"
+              >
+                <Download className="h-3.5 w-3.5 text-[#007AFF]" />
+                <span className="text-xs">Unduh Dokumen</span>
+              </button>
+            )}
+
+            {/* Apple Segmented Switcher: Studio vs Reader */}
+            <div className="inline-flex p-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-2xl border border-black/5 dark:border-white/5">
+              <button
+                onClick={() => setViewMode("studio")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all ${
+                  viewMode === "studio"
+                    ? "bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-bold shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900"
+                }`}
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                Tanya Smart AI
+                <span>Smart AI</span>
+              </button>
+              <button
+                onClick={() => setViewMode("reader")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all ${
+                  viewMode === "reader"
+                    ? "bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-bold shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900"
+                }`}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span>Baca Modul</span>
               </button>
             </div>
-          )}
-        </div>
-
-        {/* === Right Viewport: Smart AI Dialectic Studio (5 Cols) === */}
-        <div className="lg:col-span-5 flex flex-col bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl rounded-3xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden min-h-[580px] h-[580px]">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-2xl bg-gradient-to-tr from-[#007AFF] to-[#5856D6] text-white flex items-center justify-center shadow-sm">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                  Smart AI
-                  <Badge variant="info" className="text-[10px] py-0 px-2 font-medium">
-                    Metode Sokrates
-                  </Badge>
-                </h4>
-                <p className="text-[10px] text-slate-600 dark:text-slate-400">
-                  Membimbing nalar mandiri • Anti-Jawaban Instan
-                </p>
-              </div>
-            </div>
-
-            {/* Clear conversation button */}
-            <button
-              onClick={() => {
-                setChatMessages([
-                  {
-                    id: `welcome-${Date.now()}`,
-                    role: "assistant",
-                    text: `Sesi baru dimulai. Apa bagian dari bab **${activeChapter.title}** yang ingin kamu perdalam?`,
-                  },
-                ]);
-              }}
-              title="Mulai percakapan baru"
-              className="p-1.5 rounded-xl hover:bg-black/[0.05] dark:hover:bg-white/[0.05] text-slate-400 hover:text-slate-600 transition-all"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
           </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 2. BODY CONTENT (FULL-SCREEN STUDIO OR FULL-SCREEN READER)     */}
+      {/* ============================================================== */}
+      {viewMode === "studio" ? (
+        /* ============================================================ */
+        /* --- MODE 1: SMART AI SOCRATIC STUDIO (NOTEBOOKLM PARADIGM)   */
+        /* ============================================================ */
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {/* Critical Zone Telemetry Notification Bar (Apple Slim Callout) */}
+          {(activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop)) && (
+            <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-7 w-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                  <Video className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-amber-950 dark:text-amber-200 truncate">
+                    Zona Kritis Terdeteksi ({activeChapter.confusionScore || 42}% Kebingungan)
+                  </p>
+                  <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80 truncate hidden sm:block">
+                    Siswa banyak terhambat di {activeChapter.title}.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2.5 text-xs bg-amber-500 hover:bg-amber-600 text-white border-none rounded-xl shrink-0 font-medium shadow-sm"
+                onClick={() =>
+                  handleSendPrompt("Bantu aku memahami bab ini lewat analogi sederhana dunia nyata!")
+                }
+              >
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Bongkar Analogi
+              </Button>
+            </div>
+          )}
 
           {/* Messages Feed */}
-          <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3.5 scrollbar-none">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3.5 scrollbar-none">
             {chatMessages.map((msg) => (
               <div
                 key={msg.id}
@@ -607,7 +610,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
               >
                 {/* Highlight Context Badge if any */}
                 {msg.highlightContext && (
-                  <div className="mb-1 text-[10px] text-slate-600 dark:text-slate-400 flex items-center gap-1 bg-black/[0.03] dark:bg-white/[0.03] px-2 py-0.5 rounded-lg max-w-[85%] truncate">
+                  <div className="mb-1 text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] px-2 py-0.5 rounded-lg max-w-[85%] truncate">
                     <Highlighter className="h-2.5 w-2.5 text-amber-500 shrink-0" />
                     <span className="truncate italic">"{msg.highlightContext}"</span>
                   </div>
@@ -615,20 +618,43 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
 
                 {/* Message Bubble */}
                 <div
-                  className={`max-w-[88%] rounded-3xl p-3.5 text-xs sm:text-[13px] leading-relaxed shadow-sm ${
+                  className={`max-w-[92%] sm:max-w-[85%] rounded-3xl p-3.5 sm:p-4 text-xs sm:text-[13.5px] leading-relaxed shadow-sm ${
                     msg.role === "user"
                       ? "bg-[#007AFF] text-white rounded-br-md font-medium"
                       : "bg-white dark:bg-[#2C2C2E] text-slate-800 dark:text-slate-200 rounded-bl-md border border-black/5 dark:border-white/5"
                   }`}
                 >
-                  <div className="whitespace-pre-line">{msg.text}</div>
+                  {msg.role === "assistant" ? (
+                    renderFormattedText(msg.text)
+                  ) : (
+                    <div className="whitespace-pre-line">{msg.text}</div>
+                  )}
 
-                  {/* Actions for Assistant Message */}
+                  {/* Grounded Citation & Actions for Assistant */}
                   {msg.role === "assistant" && (
-                    <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
+                    <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between gap-2 text-[11px]">
+                      {/* Clickable Citation Link (Jumps to exact module chapter & page) */}
+                      {msg.citation && (
+                        <button
+                          onClick={() =>
+                            handleJumpToSource(
+                              msg.citation?.chapterNumber,
+                              msg.citation?.page
+                            )
+                          }
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#007AFF] hover:underline"
+                          title="Buka dan baca halaman modul terkait"
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          <span>{msg.citation.label || "Lihat Sumber Modul"}</span>
+                          <ArrowRight className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+
+                      {/* Speech synthesis toggle */}
                       <button
                         onClick={() => handleToggleSpeech(msg.text)}
-                        className="flex items-center gap-1 text-slate-600 hover:text-[#007AFF] transition-colors"
+                        className="flex items-center gap-1 text-slate-500 hover:text-[#007AFF] transition-colors ml-auto"
                         title="Dengarkan penjelasan suara"
                       >
                         {isSpeaking ? (
@@ -643,24 +669,22 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                           </>
                         )}
                       </button>
-
-                      <span className="text-[10px] text-slate-600">Grounded di Modul Guru</span>
                     </div>
                   )}
                 </div>
 
-                {/* Checkpoint Note Pinning Card (Apple HIG Porcelain Style) */}
+                {/* Checkpoint Note Pinning Card */}
                 {msg.checkpointPassed && msg.noteDraft && (
-                  <div className="mt-2 w-[88%] rounded-2xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3 shadow-sm animate-fade-in">
+                  <div className="mt-2 w-[92%] sm:w-[85%] rounded-2xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 shadow-sm animate-fade-in">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300">
+                        <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300">
                           Checkpoint Pemahaman Tercapai!
                         </span>
                       </div>
                     </div>
-                    <p className="text-xs text-emerald-800 dark:text-emerald-200/90 italic mb-2 leading-relaxed">
+                    <p className="text-xs text-emerald-900 dark:text-emerald-200/90 italic mb-2 leading-relaxed">
                       "{msg.noteDraft}"
                     </p>
                     <Button
@@ -690,23 +714,61 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
               </div>
             ))}
 
-            {/* Typing Indicator */}
+            {/* AI Loading Indicator */}
             {isAiLoading && (
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] p-3 rounded-2xl rounded-bl-md border border-black/5 dark:border-white/5 w-fit shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] p-3 rounded-2xl rounded-bl-md border border-black/5 dark:border-white/5 w-fit shadow-sm">
                 <Sparkles className="h-3.5 w-3.5 text-[#007AFF] animate-spin" />
-                <span className="font-medium">Smart AI sedang menelaah modul...</span>
+                <span className="font-medium">Smart AI sedang menelaah modul guru...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Socratic Input Field */}
-          <div className="p-3.5 bg-black/[0.015] dark:bg-white/[0.015] border-t border-black/5 dark:border-white/10">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#2C2C2E] rounded-2xl px-3.5 py-1.5 border border-black/10 dark:border-white/10 focus-within:ring-2 focus-within:ring-[#007AFF]/40 focus-within:border-[#007AFF] transition-all shadow-inner">
+          {/* Quick Action Prompt Chips (NotebookLM Style) */}
+          <div className="shrink-0 px-3.5 sm:px-5 py-1.5 bg-black/[0.015] dark:bg-white/[0.015] border-t border-black/[0.04] dark:border-white/5 overflow-x-auto scrollbar-none flex items-center gap-1.5">
+            <button
+              onClick={() =>
+                handleSendPrompt("Bantu aku memahami bagian yang paling krusial di bab ini!")
+              }
+              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
+            >
+              💡 Konsep Krusial
+            </button>
+            <button
+              onClick={() =>
+                handleSendPrompt("Bantu jelaskan bab ini lewat analogi sederhana dunia nyata!")
+              }
+              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
+            >
+              🌱 Analogi Nyata
+            </button>
+            <button
+              onClick={() =>
+                handleSendPrompt("Berikan 1 studi kasus penerapan teknis dari materi ini!")
+              }
+              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
+            >
+              🌍 Studi Kasus
+            </button>
+            <button
+              onClick={() =>
+                handleSendPrompt("Uji pemahamanku dengan 1 pertanyaan logika Sokrates!")
+              }
+              className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-black/5 dark:border-white/10 hover:border-[#007AFF]/40 whitespace-nowrap transition-all active:scale-95 shadow-2xs"
+            >
+              🎯 Uji Pemahamanku
+            </button>
+          </div>
+
+          {/* Docked Sticky Bottom Input Bar (Anti-Keyboard Shake) */}
+          <div className="shrink-0 z-20 bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/10 p-2.5 sm:p-3.5">
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#2C2C2E] rounded-2xl px-3 py-1 border border-black/10 dark:border-white/10 focus-within:ring-2 focus-within:ring-[#007AFF]/30 focus-within:border-[#007AFF] transition-all">
               <input
+                ref={inputRef}
                 type="text"
                 value={socraticQuery}
                 disabled={isAiLoading}
+                onFocus={handleInputFocus}
                 onChange={(e) => setSocraticQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -716,26 +778,175 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 }}
                 placeholder={
                   selectedText
-                    ? "Tanyakan tentang teks yang kamu sorot..."
-                    : "Ajukan kebingunganmu tentang bab ini..."
+                    ? "Tanyakan teks terpilih..."
+                    : "Ajukan kebingunganmu seputar bab ini..."
                 }
-                className="w-full bg-transparent text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 focus:outline-none placeholder:text-slate-400 py-2"
+                className="w-full bg-transparent text-xs sm:text-[13px] text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 py-2 font-normal"
               />
               <button
                 disabled={isAiLoading || !socraticQuery.trim()}
                 onClick={() => handleSendPrompt()}
                 className="h-8 w-8 rounded-xl bg-[#007AFF] text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-40 disabled:hover:bg-[#007AFF] transition-all shrink-0 active:scale-95 shadow-sm"
+                title="Kirim pesan"
               >
                 <Send className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mt-2 px-1">
-              <span>Socratic Dialog: Scaffolding bertahap</span>
-              <span>100% Grounded di Modul Guru</span>
+            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 px-1">
+              <span>Socratic Mentor: Membimbing nalar</span>
+              <button
+                onClick={() => setViewMode("reader")}
+                className="hover:text-[#007AFF] transition-colors flex items-center gap-1 font-medium"
+              >
+                <span>Buka teks modul</span>
+                <ArrowRight className="h-2.5 w-2.5" />
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ============================================================ */
+        /* --- MODE 2: FULL-SCREEN ORIGINAL DOCUMENT READER (CLEAN)    */
+        /* ============================================================ */
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {/* Chapter Selector Tabs (Scrollable Apple Pills) */}
+          <div className="shrink-0 flex border-b border-black/[0.06] dark:border-white/10 bg-slate-50/70 dark:bg-[#1C1C1E] overflow-x-auto text-xs scrollbar-none px-3 sm:px-4 py-2 gap-1.5">
+            {chapters.map((chap, idx) => {
+              const isActive = activeChapterIndex === idx;
+              return (
+                <button
+                  key={chap.id}
+                  onClick={() => {
+                    setActiveChapterIndex(idx);
+                    if (chap.pageStart) setCurrentPage(chap.pageStart);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl whitespace-nowrap font-semibold transition-all flex items-center gap-1.5 text-xs ${
+                    isActive
+                      ? "bg-[#007AFF] text-white shadow-sm"
+                      : "bg-white dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300 hover:text-slate-900 border border-black/5 dark:border-white/5"
+                  }`}
+                >
+                  {(chap.isCriticalZone || Boolean(chap.criticalZoneDrop)) && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse shrink-0" />
+                  )}
+                  <span>Bab {chap.chapterNumber || idx + 1}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Document Content Viewport */}
+          <div
+            ref={documentRef}
+            onMouseUp={handleTextSelection}
+            className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 space-y-5 select-text relative"
+          >
+            {/* Chapter Header */}
+            <div className="border-b border-black/[0.06] dark:border-white/10 pb-4">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 font-medium uppercase tracking-wider mb-1.5">
+                <span className="flex items-center gap-1.5 font-bold text-[#007AFF]">
+                  Bab {activeChapter.chapterNumber || activeChapterIndex + 1}
+                </span>
+                <span className="font-mono text-slate-400">
+                  {activeChapter.pages ||
+                    `Halaman ${activeChapter.pageStart || 1} - ${activeChapter.pageEnd || 10}`}
+                </span>
+              </div>
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                {activeChapter.title}
+              </h2>
+            </div>
+
+            {/* Document Text Content Body */}
+            <div className="whitespace-pre-line text-slate-800 dark:text-slate-200 bg-black/[0.015] dark:bg-white/[0.02] p-5 sm:p-6 rounded-3xl border border-black/[0.05] dark:border-white/5 font-sans leading-relaxed text-sm sm:text-[14.5px]">
+              {activeChapter.contentSnippet ||
+                activeChapter.summary ||
+                "Memuat konten materi..."}
+            </div>
+
+            {/* Key Takeaways */}
+            {activeChapter.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Intisari Modul:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {activeChapter.keyTakeaways.map((item, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 rounded-xl bg-black/[0.03] dark:bg-white/[0.05] border border-black/5 dark:border-white/5 text-xs text-slate-700 dark:text-slate-300 font-medium"
+                    >
+                      ✓ {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Floating Pill on Highlight (Direct bridge to Smart AI) */}
+          {selectedText && (
+            <div className="absolute bottom-16 inset-x-4 sm:inset-x-8 p-2.5 rounded-2xl bg-[#1D1D1F] text-white shadow-xl flex items-center justify-between gap-3 animate-fade-in z-30">
+              <div className="flex items-center gap-2 pl-2 text-xs truncate max-w-xs">
+                <Highlighter className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="truncate italic text-slate-300">
+                  "{selectedText}"
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setViewMode("studio");
+                  handleSendPrompt(
+                    `Bisa tolong jelaskan bagian ini secara bertahap?`,
+                    selectedText
+                  );
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition-all"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Tanya Smart AI
+              </button>
+            </div>
+          )}
+
+          {/* Reader Footer Controls & Pagination */}
+          <div className="shrink-0 z-20 bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/10 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode("studio")}
+                className="text-xs h-8 gap-1.5 rounded-xl border-black/10 dark:border-white/10"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+                <span>Diskusi di AI Studio</span>
+              </Button>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-mono">
+              <span>Hal {currentPage}</span>
+              <div className="flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] p-0.5 rounded-xl border border-black/5">
+                <button
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                  title="Halaman sebelumnya"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                  title="Halaman berikutnya"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
