@@ -7,35 +7,65 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, subjectId, teacherId, classId, description, rawContent } = body;
+    const { materialId, title, subjectId, teacherId, classId, description, rawContent, fullText } = body;
+    const contentToExtract = rawContent || fullText;
 
-    if (!title || !rawContent) {
+    if (!title || !contentToExtract) {
       return NextResponse.json(
-        { success: false, error: "Title and rawContent are required" },
+        { success: false, error: "Title and rawContent/fullText are required" },
         { status: 400 }
       );
     }
 
     const admin = createAdminClient();
 
-    // 1. Simpan dokumen materi induk
-    const { data: material, error: matErr } = await admin
-      .from("course_materials")
-      .insert({
-        title,
-        subject_id: subjectId || null,
-        teacher_id: teacherId || null,
-        class_id: classId || null,
-        description: description || "Modul Pembelajaran Otomatis diekstrak oleh Smart AI",
-        file_url: "https://example.com/material.pdf",
-        status: "processing",
-        total_pages: 24,
-      })
-      .select()
-      .single();
+    // 1. Simpan atau dapatkan dokumen materi induk
+    let materialRecord: any = null;
+    if (materialId) {
+      const { data: existing } = await admin
+        .from("course_materials")
+        .select("*")
+        .eq("id", materialId)
+        .maybeSingle();
+      if (existing) {
+        materialRecord = existing;
+      }
+    }
 
-    if (matErr || !material) {
-      return NextResponse.json({ success: false, error: matErr?.message || "Failed to create material" }, { status: 500 });
+    if (!materialRecord) {
+      let finalTeacherId = teacherId;
+      let finalSubjectId = subjectId;
+
+      if (!finalTeacherId) {
+        const { data: t } = await admin.from("teachers").select("id").limit(1).maybeSingle();
+        finalTeacherId = t?.id || "00000000-0000-0000-0000-000000000002";
+      }
+      if (!finalSubjectId) {
+        const { data: s } = await admin.from("subjects").select("id").limit(1).maybeSingle();
+        finalSubjectId = s?.id || "00000000-0000-0000-0000-000000000001";
+      }
+
+      const { data: material, error: matErr } = await admin
+        .from("course_materials")
+        .insert({
+          title,
+          subject_id: finalSubjectId,
+          teacher_id: finalTeacherId,
+          class_id: classId || null,
+          description: description || "Modul Pembelajaran Otomatis diekstrak oleh Smart AI",
+          file_url: "https://example.com/material.pdf",
+          file_name: `${title.replace(/\s+/g, "_")}.pdf`,
+          file_type: "application/pdf",
+          page_count: 24,
+          ai_status: "processing",
+        })
+        .select()
+        .single();
+
+      if (matErr || !material) {
+        return NextResponse.json({ success: false, error: matErr?.message || "Failed to create material" }, { status: 500 });
+      }
+      materialRecord = material;
     }
 
     // 2. Gunakan LLM untuk mengekstrak Bab & Topik serta Simpul Peta Konsep
@@ -71,7 +101,7 @@ export async function POST(request: NextRequest) {
 }
 
 Teks materi:
-${rawContent.slice(0, 4000)}
+${contentToExtract.slice(0, 4000)}
 
 Hasilkan HANYA JSON tanpa teks pembuka atau markdown formatting backtick.`;
 
@@ -115,7 +145,7 @@ Hasilkan HANYA JSON tanpa teks pembuka atau markdown formatting backtick.`;
     // 3. Simpan Topics ke database
     if (parsedResult.topics && parsedResult.topics.length > 0) {
       const topicsToInsert = parsedResult.topics.map((t: any) => ({
-        material_id: material.id,
+        material_id: materialRecord.id,
         topic_title: t.topic_title,
         chapter_number: t.chapter_number || 1,
         page_start: t.page_start || 1,
@@ -129,14 +159,17 @@ Hasilkan HANYA JSON tanpa teks pembuka atau markdown formatting backtick.`;
     // 4. Update status materi menjadi ready
     await admin
       .from("course_materials")
-      .update({ status: "ready" })
-      .eq("id", material.id);
+      .update({ ai_status: "ready" })
+      .eq("id", materialRecord.id);
 
     return NextResponse.json({
       success: true,
       data: {
-        materialId: material.id,
-        title: material.title,
+        materialId: materialRecord.id,
+        title: materialRecord.title,
+        topics: parsedResult.topics,
+        concept_nodes: parsedResult.concept_nodes,
+        concept_edges: parsedResult.concept_edges,
         topicsExtracted: parsedResult.topics.length,
         conceptNodesExtracted: parsedResult.concept_nodes.length,
         conceptEdgesExtracted: parsedResult.concept_edges.length,
