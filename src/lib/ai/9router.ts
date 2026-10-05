@@ -44,14 +44,16 @@ export const ROUTER_MODELS = {
   QWEN_FREE: "qwen/qwen3.8-27b:free",
 } as const;
 
-const GROQ_DEFAULT_KEY =
+const GROQ_DEFAULT_KEY = (
   process.env.GROQ_API_KEY ||
   process.env.CUSTOM_API_KEY ||
-  "gsk_MBXfpeP7fBsqcI9w1y3uWGdyb3FYX43xP22e2W63vHXHY7pn";
+  ""
+).trim();
 
-const OPENROUTER_FALLBACK_KEY =
+const OPENROUTER_FALLBACK_KEY = (
   process.env.OPENROUTER_API_KEY ||
-  "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";
+  ""
+).trim();
 
 async function callGroqCloud(options: AIChatOptions) {
   const models = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"];
@@ -168,8 +170,9 @@ export async function call9Router(options: AIChatOptions) {
   const isLocalHost = baseUrl.includes("127.0.0.1") || baseUrl.includes("localhost");
   const isVercelCloud = Boolean(process.env.VERCEL);
 
-  // If running in cloud environment and baseUrl is pointing to localhost, switch to Cloud LLM directly
-  if (isVercelCloud && isLocalHost) {
+  // In Vercel cloud environment, immediately use Cloud LLM (Groq / OpenRouter)
+  // unless an explicit external HTTPS 9Router gateway is configured
+  if (isVercelCloud && (!baseUrl.startsWith("https://") || isLocalHost)) {
     return await callGroqCloud(options);
   }
 
@@ -204,8 +207,8 @@ export async function call9Router(options: AIChatOptions) {
     if (!response.ok) {
       const errorText = await response.text();
       console.warn(`[9Router Gateway HTTP ${response.status}]:`, errorText);
-      // Fallback to OpenRouter cloud
-      return await callOpenRouterCloud(options);
+      // Fallback to Cloud LLM
+      return await callGroqCloud(options);
     }
 
     const data = await response.json();
