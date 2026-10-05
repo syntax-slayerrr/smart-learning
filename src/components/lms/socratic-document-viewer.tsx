@@ -31,6 +31,9 @@ import {
   X,
   Bookmark,
   Share2,
+  Mic,
+  Network,
+  Target,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -222,11 +225,10 @@ ${
       id: `greeting-${activeChapter.id}-${Date.now()}`,
       role: "assistant",
       text: isCrit
-        ? `⚠️ **Zona Kritis Kelas Fisik Terdeteksi:** Kamera AI mencatat ${dropScore}% siswa kebingungan di **${activeChapter.title}**.
+        ? `Mari kita bedah logika penting di **${activeChapter.title}**, terutama rumus kapasitas host **2ⁿ - 2**.
 
-Mari kita bedah logikanya bersama. Perhatikan rumus krusial **2^n - 2**:
-Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang terjadi jika sebuah komputer diberi alamat IP yang semua bit host-nya bernilai 0 biner atau 1 biner?`
-        : `Kamu sedang menelaah **${activeChapter.title}**. Konsep apa yang ingin kamu bedah bersama Smart AI?`,
+Mengapa angka 2 wajib selalu dikurangkan dari total kombinasi bit host, dan apa konsekuensinya jika sebuah host komputer diberi alamat biner yang semuanya bernilai 0 atau 1?`
+        : `Halo Zaldy! Kamu sedang menelaah **${activeChapter.title}**. Konsep atau studi kasus apa yang ingin kamu bahas bersama Smart AI?`,
       citation: {
         chapterNumber: activeChapter.chapterNumber || activeChapterIndex + 1,
         page: activeChapter.pageStart || 1,
@@ -611,7 +613,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`flex flex-col h-[calc(100dvh-130px)] sm:h-[720px] max-h-[820px] bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-3xl border border-black/[0.06] dark:border-white/10 shadow-sm overflow-hidden overscroll-contain relative ${className}`}
+      className={`flex flex-col h-full sm:h-[720px] sm:max-h-[820px] bg-slate-50/40 sm:bg-white/95 dark:bg-[#1C1C1E] sm:backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 dark:border-white/10 shadow-none sm:shadow-sm overflow-hidden overscroll-contain relative ${className}`}
     >
       {/* ============================================================== */}
       {/* 1. TOP GROUND TRUTH SOURCE BAR (Always Anchored at Top)        */}
@@ -722,35 +724,100 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
         /* --- MODE 1: SMART AI SOCRATIC STUDIO (NOTEBOOKLM PARADIGM)   */
         /* ============================================================ */
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {/* Critical Zone Telemetry Notification Bar (Apple Slim Callout) */}
+          {/* Featured Spotlight Card (Ella Assistant Reference Style) */}
           {(activeChapter.isCriticalZone || Boolean(activeChapter.criticalZoneDrop)) && (
-            <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-3 animate-fade-in">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="h-7 w-7 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                  <Video className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-amber-950 dark:text-amber-200 truncate">
-                    Zona Kritis Terdeteksi ({activeChapter.confusionScore || 42}% Kebingungan)
-                  </p>
-                  <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80 truncate hidden sm:block">
-                    Siswa banyak terhambat di {activeChapter.title}.
-                  </p>
-                </div>
+            <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-blue-50/90 via-white to-indigo-50/70 dark:from-blue-950/20 dark:via-[#242426] dark:to-indigo-950/20 border border-blue-200/80 dark:border-blue-800/40 shadow-2xs space-y-2.5 animate-fade-in">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                  <Sparkles className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  Fokus Belajar Hari Ini
+                </span>
+                <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400">
+                  Bab {activeChapter.chapterNumber || activeChapterIndex + 1} • {activeChapter.confusionScore || 42}% Siswa Butuh Reviu
+                </span>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-2.5 text-xs bg-amber-500 hover:bg-amber-600 text-white border-none rounded-xl shrink-0 font-medium shadow-sm"
-                onClick={() =>
-                  handleSendPrompt("Bantu aku memahami bab ini lewat analogi sederhana dunia nyata!")
-                }
-              >
-                <Lightbulb className="h-3 w-3 mr-1" />
-                Bongkar Analogi
-              </Button>
+              <div className="space-y-0.5">
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                  Misteri Rumus 2ⁿ - 2 & Efisiensi Alokasi VLSM
+                </h3>
+                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                  Monitoring AI mendeteksi banyak siswa bingung menentukan Network ID & Broadcast Address dalam alokasi subnet jaringan.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  onClick={() =>
+                    handleSendPrompt("Bantu aku memahami kenapa rumus host 2^n - 2 lewat analogi dunia nyata sederhana!")
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs active:scale-95 transition-all"
+                >
+                  <Lightbulb className="h-3 w-3" />
+                  Bongkar Analogi
+                </button>
+                <button
+                  onClick={() => handleSendPrompt("Berikan 1 studi kasus teknis alokasi subnet /28 vs /27!")}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 text-xs font-medium hover:bg-slate-50 active:scale-95 transition-all"
+                >
+                  Studi Kasus Lab
+                </button>
+              </div>
             </div>
           )}
+
+          {/* Quick Learning Tools Grid (Ella Assistant "Alat Produktivitas" Style) */}
+          <div className="shrink-0 mx-3 sm:mx-5 mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              onClick={handleToggleAudioOverview}
+              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-blue-300 dark:hover:border-blue-700 active:scale-95 transition-all text-left group"
+            >
+              <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Headphones className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Audio Bab</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Intisari suara</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleSendPrompt("Tampilkan intisari poin kunci dan peta konsep bab ini!")}
+              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-purple-300 dark:hover:border-purple-700 active:scale-95 transition-all text-left group"
+            >
+              <div className="h-8 w-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Network className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Peta Konsep</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Bagan relasi</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setViewMode("reader")}
+              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 active:scale-95 transition-all text-left group"
+            >
+              <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Modul Asli</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Baca PDF hal 13</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleSendPrompt("Uji pemahamanku dengan 1 kuis logika Sokrates tentang bab ini!")}
+              className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-white dark:bg-[#2C2C2E] border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-amber-300 dark:hover:border-amber-700 active:scale-95 transition-all text-left group"
+            >
+              <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Target className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">Uji Reflektif</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Kuis logika AI</p>
+              </div>
+            </button>
+          </div>
 
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3.5 scrollbar-none">
@@ -913,9 +980,9 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
             </button>
           </div>
 
-          {/* Docked Sticky Bottom Input Bar (Anti-Keyboard Shake) */}
-          <div className="shrink-0 z-20 bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/10 p-2.5 sm:p-3.5">
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#2C2C2E] rounded-2xl px-3 py-1 border border-black/10 dark:border-white/10 focus-within:ring-2 focus-within:ring-[#007AFF]/30 focus-within:border-[#007AFF] transition-all">
+          {/* Docked Sticky Bottom Input Bar (Ella Assistant Floating Dock Style) */}
+          <div className="shrink-0 z-20 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#1C1C1E] dark:via-[#1C1C1E]/95 p-2.5 sm:p-3.5">
+            <div className="flex items-center gap-2 bg-white dark:bg-[#2C2C2E] rounded-full px-4 py-1 border border-slate-200/90 dark:border-white/10 shadow-lg focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500 transition-all">
               <input
                 ref={inputRef}
                 type="text"
@@ -932,14 +999,38 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 placeholder={
                   selectedText
                     ? "Tanyakan teks terpilih..."
-                    : "Ajukan kebingunganmu seputar bab ini..."
+                    : "Tanyakan apa saja seputar bab ini..."
                 }
                 className="w-full bg-transparent text-xs sm:text-[13px] text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 py-2 font-normal"
               />
               <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+                    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                    const recognition = new SpeechRec();
+                    recognition.lang = "id-ID";
+                    recognition.onresult = (event: any) => {
+                      const transcript = event.results[0][0].transcript;
+                      if (transcript) {
+                        setSocraticQuery(transcript);
+                        handleSendPrompt(transcript);
+                      }
+                    };
+                    recognition.start();
+                  } else {
+                    handleSendPrompt("Bantu jelaskan bab ini lewat analogi sederhana!");
+                  }
+                }}
+                className="h-8 w-8 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center justify-center transition-all shrink-0 active:scale-95"
+                title="Bicara (Suara)"
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+              <button
                 disabled={isAiLoading || !socraticQuery.trim()}
                 onClick={() => handleSendPrompt()}
-                className="h-8 w-8 rounded-xl bg-[#007AFF] text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-40 disabled:hover:bg-[#007AFF] transition-all shrink-0 active:scale-95 shadow-sm"
+                className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 transition-all shrink-0 active:scale-95 shadow-sm"
                 title="Kirim pesan"
               >
                 <Send className="h-3.5 w-3.5" />
@@ -947,15 +1038,15 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
             </div>
 
             {/* Mobile Native Gesture Hint & Quick Nav */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 px-1">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 px-3">
               <span className="hidden sm:inline">Socratic Mentor: Membimbing nalar mandiri</span>
               <span className="sm:hidden text-slate-400 font-medium">← Geser jari untuk Modul Asli</span>
               <button
                 onClick={() => setViewMode("reader")}
-                className="hover:text-[#007AFF] transition-colors flex items-center gap-1 font-medium"
+                className="hover:text-blue-600 transition-colors flex items-center gap-1 font-medium"
               >
                 <span>Buka teks modul</span>
-                <ArrowRight className="h-2.5 w-2.5" />
+                <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           </div>

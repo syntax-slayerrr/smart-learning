@@ -99,28 +99,42 @@ export default function StudentNotebookPage() {
   ];
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-24 sm:pb-16 px-1 sm:px-2">
-      {/* Top Header - Compact Apple HIG Studio Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Smart Notebook
-            </h1>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40">
-              <Sparkles className="h-3 w-3 text-purple-600 dark:text-purple-400" />
-              NotebookLM Grounded
-            </span>
+    <div className="-mx-4 -mt-3 -mb-28 sm:mx-auto sm:my-0 sm:pb-16 sm:max-w-7xl sm:px-2 flex flex-col h-[calc(100dvh-3.5rem)] sm:h-auto overflow-hidden sm:overflow-visible">
+      {/* Top Header - Compact Apple HIG Studio Banner (Ella inspired) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 px-3 sm:px-0 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Hai, Zaldy 👋
+              </h1>
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40">
+                <Sparkles className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                Smart AI Studio
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 max-w-xl truncate">
+              {notebookData?.material?.title
+                ? `Modul: ${notebookData.material.title}`
+                : "Modul Praktis Subnetting IPv4 & VLSM Jaringan"}
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl line-clamp-1">
-            {notebookData?.material?.title
-              ? `Modul: ${notebookData.material.title}`
-              : "Workspace pembelajaran mandiri bertenaga AI dengan korelasi telemetri kelas fisik."}
-          </p>
+
+          {/* Status Indicator (Mobile Compact) */}
+          <div className="flex items-center gap-1.5 sm:hidden">
+            {!isOnline ? (
+              <span className="h-2 w-2 rounded-full bg-amber-500" title="Offline" />
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Sync
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Status Indicators */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Desktop Status Indicators */}
+        <div className="hidden sm:flex items-center gap-2 flex-wrap">
           {!isOnline ? (
             <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[11px] py-1 px-2.5 flex items-center gap-1.5 shadow-sm">
               <WifiOff className="h-3 w-3 text-amber-600" />
@@ -151,7 +165,7 @@ export default function StudentNotebookPage() {
       </div>
 
       {/* Segmented Control Bar (Horizontal Scrollable Apple Pill Bar) */}
-      <div className="w-full overflow-x-auto scrollbar-none py-1">
+      <div className="w-full overflow-x-auto scrollbar-none py-1 px-3 sm:px-0 shrink-0">
         <div className="inline-flex p-1 bg-slate-200/60 dark:bg-[#2C2C2E]/80 backdrop-blur-xl rounded-2xl border border-black/[0.04] dark:border-white/10 gap-1 min-w-full sm:min-w-0">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.value;
@@ -159,9 +173,9 @@ export default function StudentNotebookPage() {
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex-1 sm:flex-initial min-h-[38px] ${
+                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex-1 sm:flex-initial min-h-[34px] sm:min-h-[38px] ${
                   isActive
-                    ? "bg-white dark:bg-[#1C1C1E] text-slate-900 dark:text-white shadow-sm"
+                    ? "bg-white dark:bg-[#1C1C1E] text-slate-900 dark:text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
@@ -175,7 +189,7 @@ export default function StudentNotebookPage() {
 
       {/* Tab 1: Socratic Reader & Closed-Loop Telemetry (Unified Full-Screen Studio) */}
       {activeTab === "reader" && (
-        <div className="animate-fade-in">
+        <div className="flex-1 min-h-0 flex flex-col animate-fade-in">
           <ErrorBoundary fallbackTitle="Gagal Menampilkan Reader & AI Tutor">
             <SocraticDocumentViewer
               chapters={notebookData?.chapters}
@@ -185,6 +199,7 @@ export default function StudentNotebookPage() {
               fileName={notebookData?.material?.fileName}
               initialPage={selectedPageFromGraph}
               initialPrompt={selectedPromptFromGraph}
+              className="flex-1 h-full"
             />
           </ErrorBoundary>
         </div>
