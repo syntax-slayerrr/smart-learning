@@ -40,7 +40,7 @@ export default function SettingsClient({ initialSettings, initialHolidays }: Set
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  const [schoolName, setSchoolName] = useState(initialSettings?.school_name || "SMK TI SYNTAX SLAYER");
+  const [schoolName, setSchoolName] = useState(initialSettings?.school_name || "Smart Learning AI Ecosystem");
   const [address, setAddress] = useState(initialSettings?.address || "");
   const [phone, setPhone] = useState(initialSettings?.phone || "");
   const [waToken, setWaToken] = useState(initialSettings?.wa_token || "");

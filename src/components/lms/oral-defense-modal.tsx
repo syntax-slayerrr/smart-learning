@@ -39,7 +39,7 @@ export function OralDefenseModal({
   isOpen,
   onClose,
   assignmentTitle,
-  submissionFilename = "Tugas_Subnetting_SMK.pdf",
+  submissionFilename = "Tugas_Subnetting_VLSM.pdf",
   onConfirmOfficialSubmit,
 }: OralDefenseModalProps) {
   const [step, setStep] = useState<"analyzing" | "questioning" | "evaluating" | "passed">("questioning");

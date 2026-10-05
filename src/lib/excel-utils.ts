@@ -32,7 +32,7 @@ function getColumnLetter(colIndex: number): string {
 
 export const exportProfessionalExcel = async ({
   title,
-  subtitle = "SMK TI SYNTAX SLAYER — AI Smart Learning Ecosystem",
+  subtitle = "SYNTAX SLAYER — AI Smart Learning Ecosystem",
   institution = "SYNTAX SLAYER ACADEMIC ECOSYSTEM",
   period,
   columns,
@@ -231,7 +231,7 @@ export const exportProfessionalExcel = async ({
     headRoleCell.alignment = { horizontal: 'center' };
 
     const schoolLabelCell = worksheet.getCell(`${rightColLetter}${sigStartRow + 2}`);
-    schoolLabelCell.value = "SMK TI SYNTAX SLAYER";
+    schoolLabelCell.value = "SYNTAX SLAYER";
     schoolLabelCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF52525B' } };
     schoolLabelCell.alignment = { horizontal: 'center' };
 

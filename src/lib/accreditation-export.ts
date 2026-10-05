@@ -69,7 +69,7 @@ export async function exportAccreditationExcel(report: AccreditationReportData) 
 
   // Info Dokumen
   const infoRows = [
-    ["Nomor Dokumen", ": 421.5/AKRED-AI/SMK/2026", "Standar Akreditasi", ": BAN-S/M Butir 3 (Iklim Pembelajaran)"],
+    ["Nomor Dokumen", ": 421.5/AKRED-AI/SL/2026", "Standar Akreditasi", ": BAN-S/M Butir 3 (Iklim Pembelajaran)"],
     ["NPSN", `: ${report.npsn || "20224151"}`, "Metode Evaluasi", ": AI Computer Vision & Telemetri Edge"],
     ["Tanggal Terbit", `: ${report.generatedDate}`, "Status Verifikasi", ": Terverifikasi Sistem Kriptografi"],
   ];

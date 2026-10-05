@@ -20,7 +20,14 @@ import {
   CheckCircle2,
   Clock,
   Upload,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
+import {
+  useOfflineStatus,
+  cacheActiveMaterial,
+  getCachedActiveMaterial,
+} from "@/lib/offline-lms-cache";
 
 type TabMode = "reader" | "concept_graph" | "assignments" | "readiness_radar";
 
@@ -32,24 +39,41 @@ export default function StudentNotebookPage() {
   const [submissionCompleted, setSubmissionCompleted] = useState<boolean>(false);
   const [notebookData, setNotebookData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { isOnline, offlineQueueCount, isSyncing, triggerSync } = useOfflineStatus();
 
   useEffect(() => {
     async function fetchNotebookData() {
       try {
         setIsLoading(true);
+        if (!navigator.onLine) {
+          const cached = await getCachedActiveMaterial();
+          if (cached) {
+            setNotebookData(cached);
+            setIsLoading(false);
+            return;
+          }
+        }
+
         const res = await fetch("/api/lms/student/notebook-data");
         const json = await res.json();
         if (json.success && json.data) {
           setNotebookData(json.data);
+          // Auto-cache into client IndexedDB for offline resilience
+          cacheActiveMaterial(json.data);
+        } else {
+          const cached = await getCachedActiveMaterial();
+          if (cached) setNotebookData(cached);
         }
       } catch (err) {
-        console.error("Gagal memuat data notebook live:", err);
+        console.warn("Jaringan offline atau lambat, memuat modul dari IndexedDB cache:", err);
+        const cached = await getCachedActiveMaterial();
+        if (cached) setNotebookData(cached);
       } finally {
         setIsLoading(false);
       }
     }
     fetchNotebookData();
-  }, []);
+  }, [isOnline]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -58,9 +82,32 @@ export default function StudentNotebookPage() {
         title={notebookData?.material?.title ? `Smart Notebook: ${notebookData.material.title}` : "Smart Notebook & AI Studio"}
         description={notebookData?.material?.description || "Workspace pembelajaran mandiri bertenaga AI dengan korelasi telemetri kelas fisik dan verifikasi oral defense."}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isOnline ? (
+              <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs py-1 px-2.5 flex items-center gap-1.5 shadow-sm">
+                <WifiOff className="h-3 w-3 text-amber-600" />
+                Mode Offline (Modul Tersimpan Lokal)
+              </Badge>
+            ) : offlineQueueCount > 0 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={triggerSync}
+                disabled={isSyncing}
+                className="text-xs h-7 gap-1.5 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+              >
+                <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
+                Sinkronisasi ({offlineQueueCount} Catatan)
+              </Button>
+            ) : (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs py-1 px-2.5 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                PWA Offline Sync Siap
+              </Badge>
+            )}
+
             {isLoading && (
-              <span className="text-xs text-slate-500 animate-pulse">Menyinkronkan AI Live...</span>
+              <span className="text-xs text-slate-500 animate-pulse">Menyinkronkan AI...</span>
             )}
             <Badge variant="default" className="bg-purple-100 text-purple-700 border-purple-200">
               <Sparkles className="h-3 w-3 mr-1" />
@@ -176,7 +223,7 @@ export default function StudentNotebookPage() {
                   Petunjuk Pengerjaan:
                 </span>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  1. Rancang skema pengalamatan IP menggunakan metode VLSM untuk sebuah SMK dengan 4 subnet: Lab Komputer (14 PC), Ruang Guru (6 PC), TU (4 PC), dan Server Utama (2 host).
+                  1. Rancang skema pengalamatan IP menggunakan metode VLSM untuk sebuah kampus/laboratorium dengan 4 subnet: Lab Komputer (14 PC), Ruang Dosen/Guru (6 PC), Administrasi (4 PC), dan Server Utama (2 host).
                   <br />
                   2. Tentukan Network ID, Subnet Mask, Alamat Host Pertama, Host Terakhir, dan Broadcast ID untuk tiap segmen.
                   <br />

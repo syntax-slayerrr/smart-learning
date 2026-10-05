@@ -86,7 +86,7 @@ export const RELATIONSHIP_TYPES = [
   { value: "wali", label: "Wali" },
 ] as const;
 
-// Grade Levels (SMK)
+// Grade Levels / Tingkat Pembelajaran
 export const GRADE_LEVELS = [
   { value: "X", label: "Kelas X" },
   { value: "XI", label: "Kelas XI" },

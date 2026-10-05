@@ -14,7 +14,7 @@ interface PushNotification {
   read: boolean;
 }
 
-const DB_NAME = 'absen-smk-notifications';
+const DB_NAME = 'smart-learning-notifications';
 const DB_VERSION = 1;
 const STORE_NAME = 'inbox';
 

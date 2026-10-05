@@ -70,7 +70,7 @@ export function MonthlyReportClient({ classes }: MonthlyReportClientProps) {
 
       await exportProfessionalExcel({
         title: "LAPORAN REKAPITULASI PRESENSI SISWA",
-        subtitle: `SMK TI SYNTAX SLAYER — Kelas: ${className}`,
+        subtitle: `SYNTAX SLAYER — Kelas: ${className}`,
         period: `Periode Rekapitulasi: ${monthName}`,
         filename: `Rekap_Siswa_${className}_${selectedMonth}.xlsx`,
         withPrintFooter: true,
@@ -100,7 +100,7 @@ export function MonthlyReportClient({ classes }: MonthlyReportClientProps) {
 
       await exportProfessionalExcel({
         title: "LAPORAN REKAPITULASI KEHADIRAN GURU",
-        subtitle: `SMK TI SYNTAX SLAYER — Seluruh Pendidik & Tenaga Pengajar`,
+        subtitle: `SYNTAX SLAYER — Seluruh Pendidik & Tenaga Pengajar`,
         period: `Periode Rekapitulasi: ${monthName}`,
         filename: `Rekap_Guru_${selectedMonth}.xlsx`,
         withPrintFooter: true,

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { exportAccreditationExcel, type AccreditationReportData } from "@/lib/accreditation-export";
 
 const MOCK_REPORT_DATA: AccreditationReportData = {
-  schoolName: "SMK Negeri 1",
+  schoolName: "Smart Learning AI Ecosystem",
   npsn: "20224151",
   academicYear: "2025/2026",
   semester: "Semester Ganjil",

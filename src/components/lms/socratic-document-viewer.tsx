@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { saveOfflineNote } from "@/lib/offline-lms-cache";
 
 export interface DocumentChapter {
   id: string;
@@ -307,6 +308,19 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
   const handlePinNote = async (msgId: string, noteContent: string) => {
     setSavingNoteId(msgId);
     try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await saveOfflineNote({
+          material_id: materialId || "",
+          chapter_id: activeChapter.id,
+          quote: activeChapter.title,
+          my_note: noteContent,
+        });
+        setChatMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
+        );
+        return;
+      }
+
       const res = await fetch("/api/lms/student/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -326,9 +340,20 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
         setChatMessages((prev) =>
           prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
         );
+      } else {
+        throw new Error("Respon server gagal");
       }
     } catch (err) {
-      console.error("Gagal menyimpan catatan:", err);
+      console.warn("Fallback menyimpan catatan ke cache lokal offline:", err);
+      await saveOfflineNote({
+        material_id: materialId || "",
+        chapter_id: activeChapter.id,
+        quote: activeChapter.title,
+        my_note: noteContent,
+      });
+      setChatMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, noteSaved: true } : m))
+      );
     } finally {
       setSavingNoteId(null);
     }

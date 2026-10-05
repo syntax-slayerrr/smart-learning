@@ -26,7 +26,7 @@ export default function StudentAssignmentsPage() {
       dueDate: "Jumat, 23:59 WIB",
       status: "pending_defense",
       points: 100,
-      description: "Rancang skema pengalamatan IP menggunakan metode VLSM untuk sebuah SMK dengan 4 subnet.",
+      description: "Rancang skema pengalamatan IP menggunakan metode VLSM untuk sebuah institusi dengan 4 subnet.",
     },
     {
       id: "asg-1",

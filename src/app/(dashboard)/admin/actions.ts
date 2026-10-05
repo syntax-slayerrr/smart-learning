@@ -1030,7 +1030,7 @@ export async function broadcastPWAInvitations() {
     .select("wa_token, wa_provider")
     .single();
 
-  const domain = process.env.NEXT_PUBLIC_SITE_URL || "https://aplikasi-absen-sekolah-smk.vercel.app";
+  const domain = process.env.NEXT_PUBLIC_SITE_URL || "https://smart-learning-black.vercel.app";
 
   waitUntil((async () => {
     for (const parent of targetParents) {
@@ -1080,7 +1080,7 @@ export async function broadcastTeacherPWAInvitations() {
     .select("wa_token, wa_provider")
     .single();
 
-  const domain = process.env.NEXT_PUBLIC_SITE_URL || "https://aplikasi-absen-sekolah-smk.vercel.app";
+  const domain = process.env.NEXT_PUBLIC_SITE_URL || "https://smart-learning-black.vercel.app";
 
   waitUntil((async () => {
     for (const teacher of targetTeachers) {

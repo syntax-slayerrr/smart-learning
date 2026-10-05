@@ -1,7 +1,44 @@
-// Simple IndexedDB wrapper for storing notifications
-const DB_NAME = 'absen-smk-notifications';
+// IndexedDB wrapper for notifications and offline cache
+const DB_NAME = 'smart-learning-notifications';
 const DB_VERSION = 1;
 const STORE_NAME = 'inbox';
+const CACHE_NAME = 'smart-learning-offline-v1';
+
+// Static resources to cache for offline shell
+const OFFLINE_URLS = [
+  '/',
+  '/icon.png',
+  '/apple-icon.png',
+  '/logo_square_192.png',
+  '/logo_square_512.png',
+  '/brand/syntax-slayer-logo.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(OFFLINE_URLS).catch((err) => {
+        console.warn('SW: Non-critical cache error on install', err);
+      });
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
 
 function openDB() {
   return new Promise((resolve, reject) => {
