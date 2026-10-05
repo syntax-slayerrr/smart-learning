@@ -205,12 +205,22 @@ export function HermesCopilotWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-full bg-stone-900 px-3.5 py-2.5 sm:px-4 sm:py-3 text-stone-100 shadow-xl border border-stone-800 hover:bg-stone-800 transition-all duration-200 active:scale-[0.98] group"
+          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-full bg-stone-900/95 backdrop-blur-md px-3 py-2 sm:px-3.5 sm:py-2.5 text-stone-100 shadow-xl border border-stone-800 hover:bg-stone-800 transition-all duration-200 active:scale-[0.98] group"
           title="Buka Hermes AI Workspace"
         >
-          <div className="relative flex h-5 w-5 items-center justify-center">
-            <Sparkles className="h-4 w-4 text-[#EA580C] group-hover:rotate-12 transition-transform" />
-            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="relative flex h-6 w-6 items-center justify-center rounded-full overflow-hidden bg-stone-950 ring-1 ring-stone-700/60 shrink-0">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              className="h-full w-full object-cover scale-110 pointer-events-none"
+            >
+              <source src="/assets/hermes-robot.webm" type="video/webm" />
+              <source src="/assets/hermes-robot.mp4" type="video/mp4" />
+            </video>
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-stone-900 animate-pulse" />
           </div>
           <span className="text-xs font-semibold tracking-tight">Hermes AI Workspace</span>
           <span className="rounded bg-stone-800 px-1.5 py-0.5 text-[9px] font-mono font-medium text-stone-400">
@@ -231,8 +241,19 @@ export function HermesCopilotWidget() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#E7E2DA] bg-[#FBF9F5] px-4 py-3">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C]">
-                <Bot className="h-4 w-4" />
+              <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-stone-950 border border-stone-800 overflow-hidden shrink-0 shadow-xs">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="h-full w-full object-cover scale-110 pointer-events-none"
+                >
+                  <source src="/assets/hermes-robot.webm" type="video/webm" />
+                  <source src="/assets/hermes-robot.mp4" type="video/mp4" />
+                </video>
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -297,8 +318,18 @@ export function HermesCopilotWidget() {
                 <div key={m.id} className="space-y-2">
                   <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isUser && (
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-stone-900 text-white shadow-2xs mt-0.5">
-                        <Bot className="h-3.5 w-3.5" />
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-stone-950 border border-stone-800 overflow-hidden shadow-2xs mt-0.5">
+                        <video
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          preload="auto"
+                          className="h-full w-full object-cover scale-110 pointer-events-none"
+                        >
+                          <source src="/assets/hermes-robot.webm" type="video/webm" />
+                          <source src="/assets/hermes-robot.mp4" type="video/mp4" />
+                        </video>
                       </div>
                     )}
 
