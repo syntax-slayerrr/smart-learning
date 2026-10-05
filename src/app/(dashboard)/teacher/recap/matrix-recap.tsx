@@ -214,6 +214,19 @@ export default function MatrixRecapClient({
         </div>
       </div>
 
+      {/* Informative notice if no sessions exist yet */}
+      {filteredSessions.length === 0 && (
+        <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-amber-900 text-xs shadow-xs">
+          <span className="text-base select-none">💡</span>
+          <div>
+            <p className="font-bold text-amber-950">Belum ada riwayat pertemuan presensi</p>
+            <p className="text-[11px] text-amber-800/90 mt-0.5">
+              Belum ada data absensi untuk kelas dan mata pelajaran yang dipilih. Kolom pertemuan otomatis tampil begitu guru melakukan sesi presensi.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 2. Matrix Table Card */}
       <div className="rounded-2xl border border-slate-200/80 bg-white/95 shadow-[var(--shadow-3d-card)] backdrop-blur-xl overflow-hidden">
         {/* Mobile scroll hint */}
@@ -221,9 +234,11 @@ export default function MatrixRecapClient({
           <span className="text-[11px] font-medium text-slate-500">
             Total {filteredStudents.length} siswa • {filteredSessions.length} sesi pertemuan
           </span>
-          <span className="text-[10px] font-semibold text-blue-600">
-            Geser tabel →
-          </span>
+          {filteredSessions.length > 0 && (
+            <span className="text-[10px] font-semibold text-blue-600">
+              Geser tabel →
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto scrollbar-thin">
@@ -235,20 +250,26 @@ export default function MatrixRecapClient({
                   Nama Siswa
                 </th>
 
-                {/* Fixed-Width Uniform Session Columns */}
-                {filteredSessions.map((session, idx) => (
-                  <th 
-                    key={session.id} 
-                    className="w-14 min-w-[56px] max-w-[56px] px-1 py-2.5 text-center border-r border-slate-200/70 bg-slate-50/90"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-0.5">
-                      <span className="text-[11px] font-extrabold text-slate-700">P{idx + 1}</span>
-                      <span className="text-[9px] font-medium text-slate-400 font-mono tracking-tight">
-                        {new Date(session.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })}
-                      </span>
-                    </div>
+                {/* Uniform Session Columns or Empty Session State Header */}
+                {filteredSessions.length === 0 ? (
+                  <th className="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70 border-r border-slate-200/70">
+                    Status Riwayat Pertemuan
                   </th>
-                ))}
+                ) : (
+                  filteredSessions.map((session, idx) => (
+                    <th 
+                      key={session.id} 
+                      className="w-14 min-w-[56px] max-w-[56px] px-1 py-2.5 text-center border-r border-slate-200/70 bg-slate-50/90"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="text-[11px] font-extrabold text-slate-700">P{idx + 1}</span>
+                        <span className="text-[9px] font-medium text-slate-400 font-mono tracking-tight">
+                          {new Date(session.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      </div>
+                    </th>
+                  ))
+                )}
 
                 {/* Summary Attendance Column */}
                 <th className="w-20 min-w-[80px] max-w-[80px] px-2 py-3 text-center text-[11px] font-bold text-blue-950 uppercase tracking-wider bg-blue-50/60 border-l border-slate-200/80">
@@ -280,25 +301,31 @@ export default function MatrixRecapClient({
                         </div>
                       </td>
 
-                      {/* Session Status Chips */}
-                      {filteredSessions.map((session) => {
-                        const status = recordMap[student.id]?.[session.id];
-                        if (status === "present" || status === "late") presentCount++;
-                        
-                        return (
-                          <td 
-                            key={session.id} 
-                            className="w-14 min-w-[56px] max-w-[56px] p-1.5 border-r border-slate-100 text-center align-middle"
-                          >
-                            <div className={cn(
-                              "mx-auto flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-xs font-bold transition-all shadow-xs",
-                              getStatusColor(status || "")
-                            )}>
-                              {getStatusCode(status || "")}
-                            </div>
-                          </td>
-                        );
-                      })}
+                      {/* Session Status Chips or Empty Sessions Row Cell */}
+                      {filteredSessions.length === 0 ? (
+                        <td className="px-4 py-2.5 text-center text-xs text-slate-400 italic border-r border-slate-100">
+                          Belum ada sesi presensi yang tercatat
+                        </td>
+                      ) : (
+                        filteredSessions.map((session) => {
+                          const status = recordMap[student.id]?.[session.id];
+                          if (status === "present" || status === "late") presentCount++;
+                          
+                          return (
+                            <td 
+                              key={session.id} 
+                              className="w-14 min-w-[56px] max-w-[56px] p-1.5 border-r border-slate-100 text-center align-middle"
+                            >
+                              <div className={cn(
+                                "mx-auto flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-xs font-bold transition-all shadow-xs",
+                                getStatusColor(status || "")
+                              )}>
+                                {getStatusCode(status || "")}
+                              </div>
+                            </td>
+                          );
+                        })
+                      )}
 
                       {/* Percentage Badge */}
                       {(() => {
@@ -308,14 +335,18 @@ export default function MatrixRecapClient({
 
                         return (
                           <td className="w-20 min-w-[80px] max-w-[80px] px-2 py-2.5 text-center align-middle bg-blue-50/20 border-l border-slate-100">
-                            <span className={cn(
-                              "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold",
-                              percentage >= 85 ? "bg-emerald-100 text-emerald-800" :
-                              percentage >= 70 ? "bg-amber-100 text-amber-800" :
-                              "bg-rose-100 text-rose-800"
-                            )}>
-                              {percentage}%
-                            </span>
+                            {totalSessions === 0 ? (
+                              <span className="text-xs font-semibold text-slate-400">-</span>
+                            ) : (
+                              <span className={cn(
+                                "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold",
+                                percentage >= 85 ? "bg-emerald-100 text-emerald-800" :
+                                percentage >= 70 ? "bg-amber-100 text-amber-800" :
+                                "bg-rose-100 text-rose-800"
+                              )}>
+                                {percentage}%
+                              </span>
+                            )}
                           </td>
                         );
                       })()}
@@ -328,27 +359,31 @@ export default function MatrixRecapClient({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/60 text-[11px] text-slate-600">
-          <span className="font-bold text-slate-700">Keterangan:</span>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-300/80 text-[10px]">H</span>
-            <span>Hadir</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-700 font-bold border border-amber-300/80 text-[10px]">T</span>
-            <span>Terlambat</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-700 font-bold border border-sky-300/80 text-[10px]">S</span>
-            <span>Sakit</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-50 text-purple-700 font-bold border border-purple-300/80 text-[10px]">I</span>
-            <span>Izin</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-300/80 text-[10px]">A</span>
-            <span>Alpa</span>
+        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Keterangan:</span>
+            <div className="grid grid-cols-5 gap-1 sm:flex sm:items-center sm:gap-3 text-slate-600">
+              <div className="flex items-center justify-center sm:justify-start gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-300/80 text-[10px]">H</span>
+                <span className="text-[10px] sm:text-xs">Hadir</span>
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-700 font-bold border border-amber-300/80 text-[10px]">T</span>
+                <span className="text-[10px] sm:text-xs">Telat</span>
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-700 font-bold border border-sky-300/80 text-[10px]">S</span>
+                <span className="text-[10px] sm:text-xs">Sakit</span>
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-purple-50 text-purple-700 font-bold border border-purple-300/80 text-[10px]">I</span>
+                <span className="text-[10px] sm:text-xs">Izin</span>
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-300/80 text-[10px]">A</span>
+                <span className="text-[10px] sm:text-xs">Alpa</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

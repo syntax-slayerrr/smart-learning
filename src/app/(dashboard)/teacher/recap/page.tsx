@@ -18,35 +18,46 @@ export default async function TeacherRecapPage() {
 
   if (!teacher) return <div>Data guru tidak ditemukan.</div>;
 
-  // Fetch all sessions by this teacher
+  // 1. Fetch available classes (all active classes, or fallback to all classes)
+  let { data: classes } = await supabase
+    .from("classes")
+    .select("id, name")
+    .order("name");
+
+  // Filter or unique classes
+  const classList = classes || [];
+
+  // 2. Fetch available subjects
+  const { data: subjectsData } = await supabase
+    .from("subjects")
+    .select("id, name")
+    .order("name");
+  
+  const subjects = subjectsData?.map(s => s.name).filter(Boolean) || [];
+
+  // 3. Fetch students for all classes
+  const classIds = classList.map(c => c.id);
+  const { data: students } = classIds.length > 0 
+    ? await supabase
+        .from("students")
+        .select("id, class_id, profiles(full_name)")
+        .in("class_id", classIds)
+    : { data: [] };
+
+  // 4. Fetch attendance sessions
   const { data: sessions } = await supabase
     .from("attendance_sessions")
     .select("*, subjects(name)")
-    .eq("teacher_id", teacher.id)
     .order("created_at", { ascending: false });
 
-  // Get unique classes and subjects from sessions
-  const classIds = Array.from(new Set(sessions?.map(s => s.class_id) || []));
-  const subjects = Array.from(new Set(sessions?.map(s => (s.subjects as any)?.name).filter(Boolean) || []));
-
-  // Fetch class details
-  const { data: classes } = await supabase
-    .from("classes")
-    .select("id, name")
-    .in("id", classIds);
-
-  // Fetch students for these classes
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, class_id, profiles(full_name)")
-    .in("class_id", classIds);
-
-  // Fetch attendance records for these sessions
+  // 5. Fetch attendance records for sessions
   const sessionIds = sessions?.map(s => s.id) || [];
-  const { data: records } = await supabase
-    .from("attendance_records")
-    .select("student_id, session_id, status")
-    .in("session_id", sessionIds);
+  const { data: records } = sessionIds.length > 0
+    ? await supabase
+        .from("attendance_records")
+        .select("student_id, session_id, status")
+        .in("session_id", sessionIds)
+    : { data: [] };
 
   // Format data for client component
   const formattedStudents = students?.map(s => ({
@@ -57,7 +68,7 @@ export default async function TeacherRecapPage() {
 
   const formattedSessions = sessions?.map(s => ({
     id: s.id,
-    date: s.created_at,
+    date: s.session_date || s.created_at,
     subject: (s.subjects as any)?.name || "Pelajaran",
     class_id: s.class_id
   })) || [];
@@ -73,8 +84,8 @@ export default async function TeacherRecapPage() {
         students={formattedStudents}
         sessions={formattedSessions}
         records={records || []}
-        classes={classes || []}
-        subjects={subjects || []}
+        classes={classList}
+        subjects={subjects}
       />
     </div>
   );
