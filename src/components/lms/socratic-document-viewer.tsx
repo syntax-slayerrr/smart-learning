@@ -27,6 +27,10 @@ import {
   Layers,
   PanelLeftClose,
   PanelLeftOpen,
+  Headphones,
+  X,
+  Bookmark,
+  Share2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,6 +124,14 @@ interface ChatMessage {
   };
 }
 
+interface CitationPeekState {
+  chapterNumber: number;
+  page: number;
+  title: string;
+  snippet: string;
+  takeaways: string[];
+}
+
 export function SocraticDocumentViewer({
   chapters: externalChapters,
   materialTitle = "Modul Praktis Subnetting IPv4 & VLSM Jaringan Komputer",
@@ -158,7 +170,16 @@ export function SocraticDocumentViewer({
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [selectedText, setSelectedText] = useState<string>("");
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [isAudioOverviewPlaying, setIsAudioOverviewPlaying] = useState<boolean>(false);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [selectionNoteSaved, setSelectionNoteSaved] = useState<boolean>(false);
+
+  // Feature 1: Apple Slide-Up Sheet for Citation Peek & Pop
+  const [activeCitationPeek, setActiveCitationPeek] = useState<CitationPeekState | null>(null);
+
+  // Feature 4: Touch swipe gestures state
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
 
   const documentRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -216,14 +237,43 @@ Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang
     setChatMessages([chapterGreeting]);
   }, [activeChapterIndex]);
 
-  // Handle Text Selection inside Document View
-  const handleTextSelection = () => {
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim().length > 3) {
-      setSelectedText(selection.toString().trim());
-    } else {
-      setSelectedText("");
+  // Feature 4: Touch swipe gesture handlers (Native App Feeling)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Minimum swipe distance 60px & predominantly horizontal
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX < 0 && viewMode === "studio") {
+        // Swipe Left: Beralih ke Reader Modul
+        setViewMode("reader");
+      } else if (deltaX > 0 && viewMode === "reader") {
+        // Swipe Right: Beralih ke Smart AI Studio
+        setViewMode("studio");
+      }
     }
+  };
+
+  // Feature 1: Apple Slide-Up Sheet (Peek & Pop) on citation click
+  const handleOpenCitationPeek = (chapNumber?: number, page?: number) => {
+    const targetChap =
+      chapters.find((c, i) => (c.chapterNumber || i + 1) === chapNumber) ||
+      activeChapter;
+    setActiveCitationPeek({
+      chapterNumber: targetChap.chapterNumber || chapNumber || 1,
+      page: page || targetChap.pageStart || 1,
+      title: targetChap.title,
+      snippet:
+        targetChap.contentSnippet ||
+        targetChap.summary ||
+        "Kutipan materi resmi modul guru.",
+      takeaways: targetChap.keyTakeaways || [],
+    });
   };
 
   // Switch to reader at specific chapter & page
@@ -240,7 +290,87 @@ Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang
     setViewMode("reader");
   };
 
-  // Text-to-Speech function for AI responses
+  // Handle Text Selection inside Document View
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 3) {
+      setSelectedText(selection.toString().trim());
+      setSelectionNoteSaved(false);
+    } else {
+      setSelectedText("");
+    }
+  };
+
+  // Feature 2: Pin selected quote directly to student notes
+  const handlePinSelectedQuote = async () => {
+    if (!selectedText.trim()) return;
+    try {
+      setSelectionNoteSaved(true);
+      await saveOfflineNote({
+        material_id: materialId || "",
+        chapter_id: activeChapter.id,
+        quote: `Kutipan Bab ${activeChapter.chapterNumber || activeChapterIndex + 1}`,
+        my_note: selectedText,
+      });
+
+      // Also sync to backend API if online
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        await fetch("/api/lms/student/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId,
+            materialId,
+            topicId: activeChapter.id,
+            noteContent: selectedText,
+            socraticContext: {
+              topicTitle: activeChapter.title,
+              savedAt: new Date().toISOString(),
+            },
+          }),
+        }).catch(() => null);
+      }
+    } catch (err) {
+      console.warn("Gagal pin catatan seleksi:", err);
+    }
+  };
+
+  // Feature 3: Audio Overview 1-Tap (NotebookLM Deep Dive Audio)
+  const handleToggleAudioOverview = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    if (isAudioOverviewPlaying) {
+      window.speechSynthesis.cancel();
+      setIsAudioOverviewPlaying(false);
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+
+    const takeawaysText =
+      activeChapter.keyTakeaways && activeChapter.keyTakeaways.length > 0
+        ? `Intisari pembahasan mencakup: ${activeChapter.keyTakeaways.join(", ")}.`
+        : "";
+
+    const overviewScript = `Ringkasan Audio ${activeChapter.title}. ${activeChapter.contentSnippet?.slice(0, 320) || ""}. ${takeawaysText} Mari pahami konsep ini secara bertahap bersama Smart AI.`;
+
+    const cleanText = overviewScript.replace(/[*_#`[\]]/g, "");
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "id-ID";
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => setIsAudioOverviewPlaying(false);
+    utterance.onerror = () => setIsAudioOverviewPlaying(false);
+
+    setIsAudioOverviewPlaying(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Text-to-Speech function for individual AI responses
   const handleToggleSpeech = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
@@ -248,6 +378,11 @@ Mengapa angka 2 wajib selalu dikurangkan di akhir perhitungan host, dan apa yang
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
+    }
+
+    if (isAudioOverviewPlaying) {
+      window.speechSynthesis.cancel();
+      setIsAudioOverviewPlaying(false);
     }
 
     const cleanText = text.replace(/[*_#`[\]]/g, "");
@@ -474,6 +609,8 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
 
   return (
     <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className={`flex flex-col h-[calc(100dvh-130px)] sm:h-[720px] max-h-[820px] bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-3xl border border-black/[0.06] dark:border-white/10 shadow-sm overflow-hidden overscroll-contain relative ${className}`}
     >
       {/* ============================================================== */}
@@ -496,17 +633,33 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="truncate max-w-[200px] sm:max-w-xs font-mono">
+                <span className="truncate max-w-[180px] sm:max-w-xs font-mono">
                   {fileName || "Modul_Resmi.pdf"}
                 </span>
                 <span>•</span>
-                <span>{chapters.length} Bab Terintegrasi</span>
+                <span>{chapters.length} Bab</span>
               </div>
             </div>
           </div>
 
-          {/* Right: Actions & Native Segmented Mode Switcher */}
-          <div className="flex items-center justify-between sm:justify-end gap-2">
+          {/* Right: Actions, Audio Overview & Native Segmented Switcher */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap sm:flex-nowrap">
+            {/* Feature 3: Audio Overview 1-Tap Button */}
+            <button
+              onClick={handleToggleAudioOverview}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 shrink-0 ${
+                isAudioOverviewPlaying
+                  ? "bg-blue-500 text-white border-blue-400 shadow-sm animate-pulse"
+                  : "bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] text-slate-700 dark:text-slate-200 border-black/5 dark:border-white/5"
+              }`}
+              title="Dengarkan intisari lisan bab ini (NotebookLM Deep Dive Audio)"
+            >
+              <Headphones className={`h-3.5 w-3.5 ${isAudioOverviewPlaying ? "text-white" : "text-[#007AFF]"}`} />
+              <span className="text-xs">
+                {isAudioOverviewPlaying ? "Hentikan Audio" : "Audio Bab"}
+              </span>
+            </button>
+
             {/* Download Original File Button */}
             {fileUrl ? (
               <a
@@ -514,21 +667,21 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 download={fileName || `${materialTitle}.pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold border border-black/5 dark:border-white/5 transition-all active:scale-95 shrink-0"
+                className="hidden xs:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] text-slate-700 dark:text-slate-200 text-xs font-semibold border border-black/5 dark:border-white/5 transition-all active:scale-95 shrink-0"
                 title="Unduh berkas modul original yang diunggah guru"
               >
                 <Download className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span className="text-xs">Unduh Dokumen</span>
+                <span className="text-xs">Unduh</span>
               </a>
             ) : (
               <button
                 onClick={() =>
                   alert("Dokumen original tersinkronisasi dalam cache offline PWA.")
                 }
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 text-xs font-semibold border border-black/5 transition-all shrink-0"
+                className="hidden xs:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 text-xs font-semibold border border-black/5 transition-all shrink-0"
               >
                 <Download className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span className="text-xs">Unduh Dokumen</span>
+                <span className="text-xs">Unduh</span>
               </button>
             )}
 
@@ -633,21 +786,21 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                   {/* Grounded Citation & Actions for Assistant */}
                   {msg.role === "assistant" && (
                     <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between gap-2 text-[11px]">
-                      {/* Clickable Citation Link (Jumps to exact module chapter & page) */}
+                      {/* Feature 1: Apple Slide-Up Sheet Trigger (Peek & Pop) */}
                       {msg.citation && (
                         <button
                           onClick={() =>
-                            handleJumpToSource(
+                            handleOpenCitationPeek(
                               msg.citation?.chapterNumber,
                               msg.citation?.page
                             )
                           }
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#007AFF] hover:underline"
-                          title="Buka dan baca halaman modul terkait"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-[#007AFF] dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/40 font-semibold hover:bg-blue-100 transition-all active:scale-95"
+                          title="Klik untuk intip cuplikan sumber resmi tanpa menutup chat"
                         >
                           <BookOpen className="h-3 w-3" />
                           <span>{msg.citation.label || "Lihat Sumber Modul"}</span>
-                          <ArrowRight className="h-2.5 w-2.5" />
+                          <span className="text-[9px] bg-[#007AFF] text-white px-1.5 py-0.2 rounded-full font-bold">Intip</span>
                         </button>
                       )}
 
@@ -792,8 +945,11 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
                 <Send className="h-3.5 w-3.5" />
               </button>
             </div>
+
+            {/* Mobile Native Gesture Hint & Quick Nav */}
             <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 px-1">
-              <span>Socratic Mentor: Membimbing nalar</span>
+              <span className="hidden sm:inline">Socratic Mentor: Membimbing nalar mandiri</span>
+              <span className="sm:hidden text-slate-400 font-medium">← Geser jari untuk Modul Asli</span>
               <button
                 onClick={() => setViewMode("reader")}
                 className="hover:text-[#007AFF] transition-colors flex items-center gap-1 font-medium"
@@ -839,6 +995,7 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
           <div
             ref={documentRef}
             onMouseUp={handleTextSelection}
+            onTouchEnd={handleTextSelection}
             className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-7 space-y-5 select-text relative"
           >
             {/* Chapter Header */}
@@ -884,28 +1041,55 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
             )}
           </div>
 
-          {/* Floating Pill on Highlight (Direct bridge to Smart AI) */}
+          {/* Feature 2: Floating Apple Contextual Menu saat Blok Teks */}
           {selectedText && (
-            <div className="absolute bottom-16 inset-x-4 sm:inset-x-8 p-2.5 rounded-2xl bg-[#1D1D1F] text-white shadow-xl flex items-center justify-between gap-3 animate-fade-in z-30">
-              <div className="flex items-center gap-2 pl-2 text-xs truncate max-w-xs">
-                <Highlighter className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span className="truncate italic text-slate-300">
-                  "{selectedText}"
+            <div className="absolute bottom-16 inset-x-3 sm:inset-x-8 p-3 rounded-2xl bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl border border-black/10 dark:border-white/15 text-slate-900 dark:text-white shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 animate-in slide-in-from-bottom-3 z-30">
+              <div className="flex items-center gap-2 pl-1 text-xs truncate max-w-sm">
+                <Highlighter className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span className="truncate italic text-slate-600 dark:text-slate-300">
+                  "{selectedText.slice(0, 48)}..."
                 </span>
               </div>
-              <button
-                onClick={() => {
-                  setViewMode("studio");
-                  handleSendPrompt(
-                    `Bisa tolong jelaskan bagian ini secara bertahap?`,
-                    selectedText
-                  );
-                }}
-                className="px-3 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition-all"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Tanya Smart AI
-              </button>
+              <div className="flex items-center gap-2 justify-end">
+                {/* Pin to Flashcard / Notes Button */}
+                <button
+                  onClick={handlePinSelectedQuote}
+                  disabled={selectionNoteSaved}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
+                    selectionNoteSaved
+                      ? "bg-emerald-600 text-white cursor-default"
+                      : "bg-black/[0.06] dark:bg-white/[0.1] hover:bg-black/[0.1] text-slate-700 dark:text-slate-200"
+                  }`}
+                  title="Simpan kutipan ini langsung ke catatan flashcard"
+                >
+                  {selectionNoteSaved ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-white" />
+                      <span>Tersimpan</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="h-3.5 w-3.5 text-[#007AFF]" />
+                      <span>Catat</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Ask Smart AI Button */}
+                <button
+                  onClick={() => {
+                    setViewMode("studio");
+                    handleSendPrompt(
+                      `Bisa tolong jelaskan kutipan ini secara bertahap?`,
+                      selectedText
+                    );
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 shadow-sm"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Tanya Smart AI</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -923,26 +1107,128 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
               </Button>
             </div>
 
-            {/* Pagination */}
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-mono">
-              <span>Hal {currentPage}</span>
-              <div className="flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] p-0.5 rounded-xl border border-black/5">
-                <button
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                  title="Halaman sebelumnya"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                  title="Halaman berikutnya"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
+            {/* Pagination & Mobile Gesture hint */}
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-[11px] text-slate-400 font-medium">
+                Geser jari ke kanan untuk AI Studio
+              </span>
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-mono">
+                <span>Hal {currentPage}</span>
+                <div className="flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.05] p-0.5 rounded-xl border border-black/5">
+                  <button
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                    title="Halaman sebelumnya"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                    title="Halaman berikutnya"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 3. FEATURE 1: APPLE SLIDE-UP SHEET (PEEK & POP CITATION)       */}
+      {/* ============================================================== */}
+      {activeCitationPeek && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          {/* Dimmed backdrop */}
+          <div
+            onClick={() => setActiveCitationPeek(null)}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Slide-Up Bottom Sheet Card */}
+          <div className="relative w-full sm:max-w-lg bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 flex flex-col gap-3.5 animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-hidden">
+            {/* iOS Pull Handle Bar */}
+            <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mx-auto -mt-1 shrink-0" />
+
+            {/* Header info */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#007AFF] flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-800/40">
+                  <BookOpen className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#007AFF] uppercase tracking-wider">
+                      Rujukan Resmi Modul Guru
+                    </span>
+                    <span className="text-[10px] bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-mono">
+                      Hal {activeCitationPeek.page}
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
+                    {activeCitationPeek.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveCitationPeek(null)}
+                className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Quotation Body */}
+            <div className="overflow-y-auto max-h-[30vh] sm:max-h-[36vh] space-y-3 pr-1 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#2C2C2E]/60 p-4 rounded-2xl border border-black/5 dark:border-white/5 font-serif italic">
+              "{activeCitationPeek.snippet}"
+            </div>
+
+            {/* Key takeaways */}
+            {activeCitationPeek.takeaways && activeCitationPeek.takeaways.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Intisari Bab:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeCitationPeek.takeaways.map((takeaway, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-0.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-[11px] text-slate-700 dark:text-slate-300 font-medium"
+                    >
+                      ✓ {takeaway}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-black/5 dark:border-white/10 mt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveCitationPeek(null)}
+                className="flex-1 rounded-xl text-xs h-9"
+              >
+                Tutup Intipan
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  handleJumpToSource(
+                    activeCitationPeek.chapterNumber,
+                    activeCitationPeek.page
+                  );
+                  setActiveCitationPeek(null);
+                }}
+                className="flex-1 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs h-9 gap-1.5 font-semibold"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span>Buka di Reader</span>
+              </Button>
             </div>
           </div>
         </div>
