@@ -44,6 +44,7 @@ export interface SocraticDocumentViewerProps {
   materialId?: string;
   studentId?: string;
   initialPage?: number;
+  initialPrompt?: string;
   className?: string;
 }
 
@@ -108,6 +109,7 @@ export function SocraticDocumentViewer({
   materialId,
   studentId = "std-001",
   initialPage = 13,
+  initialPrompt,
   className = "",
 }: SocraticDocumentViewerProps) {
   const chapters =
@@ -293,6 +295,13 @@ Mengapa angka 2 harus selalu dikurangkan di bagian akhir? Siapa dua 'pihak istim
       setIsAiLoading(false);
     }
   };
+
+  // Auto-send prompt when coming from Concept Graph action
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSendPrompt(initialPrompt.trim());
+    }
+  }, [initialPrompt]);
 
   // Simpan checkpoint pemahaman ke catatan siswa (student_study_notes)
   const handlePinNote = async (msgId: string, noteContent: string) => {

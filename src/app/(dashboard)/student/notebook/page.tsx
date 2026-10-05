@@ -27,6 +27,7 @@ type TabMode = "reader" | "concept_graph" | "assignments" | "readiness_radar";
 export default function StudentNotebookPage() {
   const [activeTab, setActiveTab] = useState<TabMode>("reader");
   const [selectedPageFromGraph, setSelectedPageFromGraph] = useState<number>(13);
+  const [selectedPromptFromGraph, setSelectedPromptFromGraph] = useState<string | undefined>(undefined);
   const [isDefenseModalOpen, setIsDefenseModalOpen] = useState<boolean>(false);
   const [submissionCompleted, setSubmissionCompleted] = useState<boolean>(false);
   const [notebookData, setNotebookData] = useState<any>(null);
@@ -107,6 +108,7 @@ export default function StudentNotebookPage() {
             materialTitle={notebookData?.material?.title}
             materialId={notebookData?.material?.id}
             initialPage={selectedPageFromGraph}
+            initialPrompt={selectedPromptFromGraph}
           />
         </div>
       )}
@@ -119,6 +121,10 @@ export default function StudentNotebookPage() {
             edges={notebookData?.conceptGraph?.edges}
             onSelectConceptPage={(page) => {
               setSelectedPageFromGraph(page);
+              setActiveTab("reader");
+            }}
+            onAskSmartAI={(conceptName) => {
+              setSelectedPromptFromGraph(`Bagaimana hubungan dan logika dasar dari konsep "${conceptName}" dalam modul ini?`);
               setActiveTab("reader");
             }}
           />

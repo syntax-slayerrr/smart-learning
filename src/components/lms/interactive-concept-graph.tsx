@@ -116,6 +116,7 @@ export interface InteractiveConceptGraphProps {
   nodes?: ConceptNodeData[];
   edges?: ConceptEdgeData[];
   onSelectConceptPage?: (page: number) => void;
+  onAskSmartAI?: (conceptName: string) => void;
   className?: string;
 }
 
@@ -123,6 +124,7 @@ export function InteractiveConceptGraph({
   nodes,
   edges,
   onSelectConceptPage,
+  onAskSmartAI,
   className,
 }: InteractiveConceptGraphProps) {
   const activeNodes = useMemo(() => (nodes && nodes.length > 0 ? nodes : DEFAULT_NODES), [nodes]);
@@ -488,6 +490,7 @@ export function InteractiveConceptGraph({
               <Button
                 variant="primary"
                 className="w-full justify-center text-xs h-9 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                onClick={() => onAskSmartAI?.(selectedNode.label)}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                 Minta Smart AI Jelaskan Konsep Ini

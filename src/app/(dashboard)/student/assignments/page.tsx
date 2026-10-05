@@ -46,7 +46,7 @@ export default function StudentAssignmentsPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       <PageHeader
         title="Tugas & Bimbingan Mandiri"
-        description="Kerjakan tugas dengan bimbingan Socratic AI dan verifikasi orisinalitas melalui AI Oral Defense."
+        description="Kerjakan tugas dengan bimbingan Smart AI dan verifikasi orisinalitas melalui AI Oral Defense."
         action={
           <Link href="/student/notebook">
             <Button
