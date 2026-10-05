@@ -125,12 +125,12 @@ export function SocraticDocumentViewer({
     return critIdx >= 0 ? critIdx : 0;
   });
 
-  const activeChapter = chapters[activeChapterIndex] || chapters[0];
+  const activeChapter = chapters[activeChapterIndex] || chapters[0] || DEFAULT_CHAPTERS[0];
 
   const [currentPage, setCurrentPage] = useState<number>(() => {
     return (
       initialPage ||
-      activeChapter.pageStart ||
+      activeChapter?.pageStart ||
       1
     );
   });

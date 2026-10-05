@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     if (materialIdParam) {
       const { data } = await admin
         .from("course_materials")
-        .select("*")
+        .select("*, subjects(name, code)")
         .eq("id", materialIdParam)
         .single();
       material = data;
@@ -31,18 +31,28 @@ export async function GET(request: NextRequest) {
         const targetId = materialsWithTopics[0].material_id;
         const { data } = await admin
           .from("course_materials")
-          .select("*")
+          .select("*, subjects(name, code)")
           .eq("id", targetId)
           .single();
         material = data;
       }
     }
 
+    if (!material) {
+      const { data } = await admin
+        .from("course_materials")
+        .select("*, subjects(name, code)")
+        .ilike("title", "%Subnetting%")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      material = data && data.length > 0 ? data[0] : null;
+    }
+
     // Fallback jika belum ada yang bertopik, ambil materi terakhir
     if (!material) {
       const { data } = await admin
         .from("course_materials")
-        .select("*")
+        .select("*, subjects(name, code)")
         .order("created_at", { ascending: false })
         .limit(1);
       material = data && data.length > 0 ? data[0] : null;
@@ -70,10 +80,15 @@ export async function GET(request: NextRequest) {
         id: t.id,
         chapterNumber: t.topic_order || 1,
         title: t.title || "Topik Pembelajaran",
+        pageStart: t.page_start || 1,
+        pageEnd: t.page_end || 10,
         pages: `Halaman ${t.page_start || 1} - ${t.page_end || 10}`,
         summary: t.description || "",
+        contentSnippet: t.content_snippet || t.description || "",
         keyTakeaways: Array.isArray(t.key_concepts) ? t.key_concepts : [],
+        isCriticalZone: isCritical,
         criticalZoneDrop: isCritical ? dropPct : undefined,
+        confusionScore: dropPct,
         criticalZoneLabel: isCritical
           ? `⚠️ ZONA KRITIS KELAS: Kamera AI mendeteksi ${dropPct}% siswa kebingungan di topik ini.`
           : undefined,
@@ -115,7 +130,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Format nodes untuk Dynamic Interactive Concept Graph
-    const formattedNodes = (rawNodes || []).map((n: any) => {
+    const formattedNodes = (rawNodes || []).map((n: any, idx: number) => {
       const mastery = masteryMap[n.id];
       const score = mastery ? Math.round(Number(mastery.mastery_score)) : 70;
       
@@ -124,16 +139,25 @@ export async function GET(request: NextRequest) {
       else if (n.category === "advanced") categoryType = "methodology";
       else if (n.category === "core") categoryType = "concept";
 
+      // Default safe visual coordinates jika tidak ada hint
+      const defaultX = n.coordinates_hint?.x ?? (180 + ((idx % 3) * 240));
+      const defaultY = n.coordinates_hint?.y ?? (140 + Math.floor(idx / 3) * 160);
+
       return {
         id: n.id,
         label: n.label,
         category: categoryType,
         mastery: score,
+        masteryScore: score,
         page: n.reference_page || 1,
+        referencePage: n.reference_page || 1,
+        difficultyLevel: n.difficulty_level || 3,
         connectionsCount: 0,
         summary: n.summary || "",
         criticalZone: n.category === "critical_zone",
-        coordinates: n.coordinates_hint || undefined,
+        coordinates: { x: defaultX, y: defaultY },
+        x: defaultX,
+        y: defaultY,
       };
     });
 
@@ -174,14 +198,25 @@ export async function GET(request: NextRequest) {
       if (score < 60) status = "critical_review";
       else if (score < 80) status = "needs_practice";
 
+      const isWeak = score < 75;
+      const rec = mastery?.recommended_action
+        ? `Perlu Penguatan: ${mastery.recommended_action}`
+        : isWeak
+        ? `Latih konsep "${n.label}" untuk meningkatkan akurasi ujian.`
+        : "Pemahaman materi sudah stabil. Pertahankan untuk ujian.";
+
       return {
+        id: n.id,
+        label: n.label,
         subject: n.label,
         score,
+        target: 75,
         benchmark: 75,
+        category: n.category === "formula" ? "Kalkulasi" : n.category === "methodology" ? "Metodologi" : "Teori",
+        isWeakSpot: isWeak,
+        recommendation: rec,
         status,
-        weaknessReason: mastery?.needs_remediation
-          ? `Perlu Perbaikan: ${mastery.recommended_action || "Latihan soal terarah"}`
-          : undefined,
+        weaknessReason: isWeak ? rec : undefined,
       };
     });
 

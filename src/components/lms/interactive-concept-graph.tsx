@@ -247,7 +247,7 @@ export function InteractiveConceptGraph({
               </marker>
             </defs>
 
-            {DEFAULT_EDGES.map((edge) => {
+            {activeEdges.map((edge) => {
               const src = nodeMap.get(edge.source);
               const tgt = nodeMap.get(edge.target);
               if (!src || !tgt) return null;
@@ -291,7 +291,7 @@ export function InteractiveConceptGraph({
             })}
 
             {/* Draw Nodes */}
-            {DEFAULT_NODES.map((node) => {
+            {activeNodes.map((node) => {
               const isSelected = selectedNodeId === node.id;
               const isHovered = hoveredNodeId === node.id;
               const isConnected = connectedNodeIds.has(node.id);
@@ -405,26 +405,26 @@ export function InteractiveConceptGraph({
                 </span>
                 <Badge
                   variant={
-                    selectedNode.category === "methodology"
+                    selectedNode?.category === "methodology"
                       ? "secondary"
-                      : selectedNode.category === "formula"
+                      : selectedNode?.category === "formula"
                       ? "warning"
                       : "default"
                   }
                   className="capitalize font-mono text-[10px]"
                 >
-                  {selectedNode.category}
+                  {selectedNode?.category || "Konsep"}
                 </Badge>
               </div>
 
               <div>
                 <h4 className="text-base font-bold text-slate-900 tracking-tight">
-                  {selectedNode.label}
+                  {selectedNode?.label || "Pilih Simpul Konsep"}
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Terdokumentasi di Dokumen Resmi:{" "}
                   <strong className="text-slate-700">
-                    Halaman {selectedNode.referencePage}
+                    Halaman {selectedNode?.referencePage || (selectedNode as any)?.page || 1}
                   </strong>
                 </p>
               </div>
@@ -435,27 +435,27 @@ export function InteractiveConceptGraph({
                   <span className="text-slate-600">Tingkat Penguasaan Siswa</span>
                   <span
                     className={`font-mono font-bold ${
-                      (selectedNode.masteryScore || 0) < 50
+                      ((selectedNode?.masteryScore || (selectedNode as any)?.mastery || 0)) < 50
                         ? "text-red-600"
                         : "text-emerald-600"
                     }`}
                   >
-                    {selectedNode.masteryScore || 0}%
+                    {selectedNode?.masteryScore || (selectedNode as any)?.mastery || 70}%
                   </span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      (selectedNode.masteryScore || 0) < 50
+                      ((selectedNode?.masteryScore || (selectedNode as any)?.mastery || 0)) < 50
                         ? "bg-red-500"
-                        : (selectedNode.masteryScore || 0) < 75
+                        : ((selectedNode?.masteryScore || (selectedNode as any)?.mastery || 0)) < 75
                         ? "bg-amber-500"
                         : "bg-emerald-500"
                     }`}
-                    style={{ width: `${selectedNode.masteryScore || 0}%` }}
+                    style={{ width: `${selectedNode?.masteryScore || (selectedNode as any)?.mastery || 70}%` }}
                   />
                 </div>
-                {(selectedNode.masteryScore || 0) < 50 && (
+                {((selectedNode?.masteryScore || (selectedNode as any)?.mastery || 0)) < 50 && (
                   <p className="text-[11px] text-red-600 font-medium flex items-center gap-1 pt-0.5">
                     ⚠️ Titik Lemah Terdeteksi! Disarankan penguatan konsep.
                   </p>
@@ -468,7 +468,7 @@ export function InteractiveConceptGraph({
                   Intisari Konsep (AI Extracted):
                 </span>
                 <p className="text-xs text-slate-600 leading-relaxed bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-                  {selectedNode.summary}
+                  {selectedNode?.summary || "Penjelasan ringkas konsep belum tersedia."}
                 </p>
               </div>
             </div>
@@ -478,11 +478,11 @@ export function InteractiveConceptGraph({
               <Button
                 variant="outline"
                 className="w-full justify-between text-xs h-9 bg-white hover:bg-slate-50"
-                onClick={() => onSelectConceptPage?.(selectedNode.referencePage)}
+                onClick={() => onSelectConceptPage?.(selectedNode?.referencePage || (selectedNode as any)?.page || 1)}
               >
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="h-3.5 w-3.5 text-blue-600" />
-                  Buka Bab di Halaman {selectedNode.referencePage}
+                  Buka Bab di Halaman {selectedNode?.referencePage || (selectedNode as any)?.page || 1}
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
               </Button>
@@ -490,7 +490,7 @@ export function InteractiveConceptGraph({
               <Button
                 variant="primary"
                 className="w-full justify-center text-xs h-9 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
-                onClick={() => onAskSmartAI?.(selectedNode.label)}
+                onClick={() => onAskSmartAI?.(selectedNode?.label || "Konsep Jaringan")}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                 Minta Smart AI Jelaskan Konsep Ini

@@ -69,12 +69,16 @@ const DEFAULT_AXES: CompetencyAxis[] = [
 
 export interface ExamReadinessRadarProps {
   axes?: CompetencyAxis[];
+  overallReadinessScore?: number;
+  onSelectFocusTopic?: (topic: string) => void;
   onStartFlashcardDrill?: (category: string) => void;
   className?: string;
 }
 
 export function ExamReadinessRadar({
   axes: externalAxes,
+  overallReadinessScore,
+  onSelectFocusTopic,
   onStartFlashcardDrill,
   className,
 }: ExamReadinessRadarProps) {
@@ -136,20 +140,21 @@ export function ExamReadinessRadar({
   }, [studentNotes]);
 
   // Calculate Overall Readiness
-  const averageScore = Math.round(
-    axes.reduce((sum, item) => sum + item.score, 0) / axes.length
-  );
+  const safeAxes = axes && axes.length > 0 ? axes : DEFAULT_AXES;
+  const averageScore = safeAxes.length > 0
+    ? Math.round(safeAxes.reduce((sum, item) => sum + (item.score ?? 0), 0) / safeAxes.length)
+    : 75;
 
-  const weakSpots = axes.filter((a) => a.isWeakSpot);
+  const weakSpots = safeAxes.filter((a) => a.isWeakSpot);
 
   // Radar geometry calculations (Pentagon)
   const size = 300;
   const center = size / 2;
   const radius = 105;
-  const angleStep = (Math.PI * 2) / axes.length;
+  const angleStep = safeAxes.length > 0 ? (Math.PI * 2) / safeAxes.length : 1;
 
   const getCoordinates = (value: number, index: number) => {
-    const r = (value / 100) * radius;
+    const r = ((value ?? 0) / 100) * radius;
     const angle = index * angleStep - Math.PI / 2;
     return {
       x: center + r * Math.cos(angle),
@@ -313,11 +318,14 @@ export function ExamReadinessRadar({
             })}
 
             {/* Labels on Outer Rim */}
-            {axes.map((axis, i) => {
+            {safeAxes.map((axis: any, i) => {
               const labelRadius = radius + 22;
               const angle = i * angleStep - Math.PI / 2;
               const lx = center + labelRadius * Math.cos(angle);
               const ly = center + labelRadius * Math.sin(angle);
+              const displayLabel = axis.label || axis.subject || "Topik";
+              const firstWord = displayLabel.split(" ")[0];
+              const scoreVal = axis.score ?? 0;
               return (
                 <text
                   key={i}
@@ -330,7 +338,7 @@ export function ExamReadinessRadar({
                   fill={axis.isWeakSpot ? "#dc2626" : "#475569"}
                   className="font-sans"
                 >
-                  {axis.label.split(" ")[0]} ({axis.score}%)
+                  {firstWord} ({scoreVal}%)
                 </text>
               );
             })}
@@ -372,7 +380,7 @@ export function ExamReadinessRadar({
           </div>
 
           <div className="space-y-2.5">
-            {axes.map((axis, idx) => (
+            {safeAxes.map((axis: any, idx) => (
               <div
                 key={idx}
                 className={`p-3.5 rounded-2xl border transition-all ${
@@ -385,7 +393,7 @@ export function ExamReadinessRadar({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-slate-900">
-                        {axis.label}
+                        {axis.label || axis.subject || "Topik"}
                       </span>
                       {axis.isWeakSpot ? (
                         <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
@@ -398,7 +406,7 @@ export function ExamReadinessRadar({
                       )}
                     </div>
                     <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                      {axis.recommendation}
+                      {axis.recommendation || axis.weaknessReason || "Pemahaman materi stabil."}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -407,7 +415,7 @@ export function ExamReadinessRadar({
                         axis.isWeakSpot ? "text-red-600" : "text-emerald-600"
                       }`}
                     >
-                      {axis.score}%
+                      {axis.score ?? 0}%
                     </span>
                     <span className="text-[10px] text-slate-400 block">/ 100</span>
                   </div>
@@ -419,7 +427,7 @@ export function ExamReadinessRadar({
       </div>
 
       {/* Interactive AI Flashcard Drill Modal */}
-      {activeDrillModal && (
+      {activeDrillModal && flashcards.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -432,8 +440,8 @@ export function ExamReadinessRadar({
                     Latihan Kilat Titik Lemah AI
                   </h4>
                   <p className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-                    <span>Kartu {currentFlashcardIndex + 1} dari {flashcards.length} • {flashcards[currentFlashcardIndex].topic}</span>
-                    {flashcards[currentFlashcardIndex].source && (
+                    <span>Kartu {currentFlashcardIndex + 1} dari {flashcards.length} • {flashcards[currentFlashcardIndex]?.topic || "Topik"}</span>
+                    {flashcards[currentFlashcardIndex]?.source && (
                       <span className="text-[10px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full border border-indigo-100">
                         {flashcards[currentFlashcardIndex].source}
                       </span>
@@ -458,7 +466,7 @@ export function ExamReadinessRadar({
                 Pertanyaan Uji Pemahaman:
               </span>
               <p className="text-sm font-semibold text-slate-800 leading-relaxed">
-                {flashcards[currentFlashcardIndex].q}
+                {flashcards[currentFlashcardIndex]?.q || "Tidak ada pertanyaan tersedia."}
               </p>
 
               {revealedAnswer && (
@@ -468,7 +476,7 @@ export function ExamReadinessRadar({
                     Penjelasan Kunci AI:
                   </span>
                   <p className="text-xs text-emerald-900 mt-1 leading-relaxed">
-                    {flashcards[currentFlashcardIndex].a}
+                    {flashcards[currentFlashcardIndex]?.a || "Kunci jawaban tersimpan."}
                   </p>
                 </div>
               )}
