@@ -226,11 +226,11 @@ export function HermesCopilotWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-4 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-1.5 pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_16px_42px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-300 group"
+          className="fixed bottom-22 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2 sm:gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-1.5 pr-3 sm:pr-4 text-slate-800 shadow-[0_10px_30px_rgba(15,23,42,0.12)] border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_16px_42px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-300 group"
           title="Buka Smart AI"
         >
           {/* Wrapped Character Icon ("sedikit dibungkus" & larger size) */}
-          <div className="relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-inner group-hover:scale-105 transition-transform duration-300">
+          <div className="relative flex h-11 w-11 sm:h-13 sm:w-13 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-inner group-hover:scale-105 transition-transform duration-300">
             <picture className="h-full w-full flex items-center justify-center">
               <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
               <img
@@ -240,22 +240,22 @@ export function HermesCopilotWidget() {
                 loading="eager"
               />
             </picture>
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="absolute -top-1 -right-1 flex h-3 w-3 sm:h-3.5 sm:w-3.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+              <span className="relative inline-flex h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
             </span>
           </div>
 
           <div className="flex flex-col items-start pr-0.5 text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
                 Smart AI
               </span>
-              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-blue-600 border border-blue-200/60">
+              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] sm:text-[9.5px] font-semibold text-blue-600 border border-blue-200/60">
                 Copilot
               </span>
             </div>
-            <span className="text-[10.5px] font-medium text-slate-500 -mt-0.5">
+            <span className="text-[10px] sm:text-[10.5px] font-medium text-slate-500 -mt-0.5">
               Asisten Cerdas
             </span>
           </div>

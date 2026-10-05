@@ -18,6 +18,7 @@ import {
   Bell,
   Calendar,
   BookOpen,
+  ClipboardList,
 } from "lucide-react";
 
 interface MobileBottomNavProps {
@@ -53,7 +54,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
       case "teacher":
         return [
           { label: "Beranda", href: "/teacher", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
-          { label: "Riwayat", href: "/teacher/history", icon: History },
+          { label: "Tugas", href: "/teacher/assignments", icon: ClipboardList, asset: "/icons/absensi-siswa.png" },
           { label: "Scan QR", href: "/teacher/scan", icon: QrCode, isCenter: true },
           { label: "Rekap", href: "/teacher/recap", icon: BarChart3, asset: "/icons/laporan-rekap.png" },
           { label: "Profil", href: "/teacher/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
