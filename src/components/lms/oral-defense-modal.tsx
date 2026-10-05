@@ -256,27 +256,15 @@ export function OralDefenseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-      <div className="w-full max-w-xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[92dvh] bg-white text-slate-900 border-0 sm:border border-slate-200/90 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden overscroll-contain">
+      <div className="w-full max-w-xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[92dvh] bg-[#F8FAFC] text-slate-900 border-0 sm:border border-slate-200/90 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden overscroll-contain">
         
-        {/* Top Header Bar (Clean Light Porcelain Theme) */}
-        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600 shadow-sm">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                  AI Voice Defense
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
-                  Validasi Pemahaman
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 truncate max-w-[210px] sm:max-w-xs mt-0.5 font-medium">
-                {assignmentTitle}
-              </p>
-            </div>
+        {/* Top Floating App Bar (Ella Reference Style) */}
+        <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 pt-5 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping" />
+            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
+              Smart AI • Verifikasi Lisan
+            </span>
           </div>
 
           <button
@@ -284,207 +272,135 @@ export function OralDefenseModal({
               stopVoiceRecording();
               onClose();
             }}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs font-semibold transition-all active:scale-95"
+            className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs font-semibold transition-all border border-slate-200/80 shadow-xs active:scale-95"
             aria-label="Tutup"
           >
             ✕
           </button>
         </div>
 
-        {/* Step 1: Active Questioning State */}
+        {/* Step 1: Active Questioning State (Ella-inspired Layout) */}
         {step === "questioning" && (
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-5 sm:px-6 space-y-4 pb-4">
             
-            {/* Step & Focus Indicator */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-blue-600 font-semibold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-                  Pertanyaan {activeQuestionIdx + 1} dari {defenseQuestions.length}
-                </span>
-                <span className="text-slate-500 text-[11px] font-medium">
-                  Fokus: <strong className="text-slate-800">{currentQ.focusArea}</strong>
-                </span>
-              </div>
-
-              {/* Progress Bar (Light Porcelain) */}
-              <div className="grid grid-cols-2 gap-1.5 h-1.5">
-                {defenseQuestions.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      idx <= activeQuestionIdx
-                        ? "bg-blue-600 shadow-sm"
-                        : "bg-slate-200"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Question Card */}
-            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 relative overflow-hidden shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-2">
-                <FileCheck className="w-4 h-4 text-blue-600" />
-                <span>Berdasarkan naskah tugasmu:</span>
-                <span className="text-[10px] text-slate-400 font-mono">({submissionFilename})</span>
-              </div>
-              <p className="text-sm sm:text-[15px] font-semibold text-slate-900 leading-relaxed">
-                "{currentQ.question}"
+            {/* 1. Hero Warm Greeting (Ella Reference: "Hai, saya Ella") */}
+            <div className="space-y-0.5 pt-1">
+              <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
+                Hai, Zaldy 👋
+              </h2>
+              <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
+                Mari diskusikan tugas <strong className="text-slate-700 font-semibold">{assignmentTitle}</strong> secara santai.
               </p>
             </div>
 
-            {/* Quick Thought Starters (Bantuan Kerangka Argumen) */}
-            {currentQ.thoughtStarters && currentQ.thoughtStarters.length > 0 && (
+            {/* 2. Featured Notification Card (Ella Reference: Announcement Card) */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden group">
+              <div className="flex items-center justify-between gap-2 mb-2.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+                  <Sparkles className="w-3 h-3 text-blue-600" />
+                  Pertanyaan {activeQuestionIdx + 1} dari {defenseQuestions.length}
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  Fokus: <span className="text-slate-700 font-semibold">{currentQ.focusArea}</span>
+                </span>
+              </div>
+
+              {/* Progress Line */}
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
+                <div 
+                  className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                  style={{ width: `${((activeQuestionIdx + 1) / defenseQuestions.length) * 100}%` }}
+                />
+              </div>
+
               <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Pemantik Gagasan (Sentuh untuk menambahkan poin):</span>
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <FileCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Naskah Tugas ({submissionFilename}):</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {currentQ.thoughtStarters.map((starter, sIdx) => (
+                <p className="text-sm sm:text-[15px] font-bold text-slate-900 leading-snug">
+                  \"{currentQ.question}\"
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Tool Cards Grid (Ella Reference: "Alat Produktivitas" Cards) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Kerangka Pikir & Pemantik Jawaban</span>
+                </h3>
+                <span className="text-[10px] text-slate-400">Sentuh untuk masukkan ide</span>
+              </div>
+
+              {/* Grid of Clean Action Cards */}
+              <div className="grid grid-cols-2 gap-2">
+                {currentQ.thoughtStarters?.map((starter, sIdx) => {
+                  const icons = ["🧮", "⚡", "🎯", "🛡️"];
+                  const icon = icons[sIdx % icons.length];
+                  return (
                     <button
                       key={sIdx}
                       type="button"
                       onClick={() => handleApplyThoughtStarter(starter)}
-                      className="text-[11px] px-2.5 py-1 rounded-xl bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 hover:border-blue-300 transition-all text-left shadow-sm active:scale-95"
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/90 hover:border-blue-300 text-left transition-all shadow-xs active:scale-[0.98] group"
                     >
-                      💡 {starter}
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-sm shrink-0 transition-colors">
+                        {icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 group-hover:text-blue-700 truncate">
+                          {starter.split("(")[0]?.trim() || starter}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {starter.includes("(") ? starter.match(/\((.*?)\)/)?.[1] : "Gunakan argumen ini"}
+                        </div>
+                      </div>
                     </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Input Mode Selector (Voice vs Text) */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-              <span className="text-xs text-slate-600 font-medium">Pilih Cara Menjawab:</span>
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
-                <button
-                  type="button"
-                  onClick={() => setInputMode("voice")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                    inputMode === "voice"
-                      ? "bg-white text-blue-600 font-semibold shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                  <span>Jawab Lisan</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    stopVoiceRecording();
-                    setInputMode("text");
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                    inputMode === "text"
-                      ? "bg-white text-blue-600 font-semibold shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Keyboard className="w-3.5 h-3.5" />
-                  <span>Ketik Manual</span>
-                </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Answer Mode 1: Voice Recorder Experience */}
-            {inputMode === "voice" ? (
-              <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-5 flex flex-col items-center justify-center text-center space-y-4">
-                
-                {/* Big Tactile Microphone Button */}
-                <div className="relative">
-                  {isRecording && (
-                    <div className="absolute inset-0 rounded-full bg-red-400/30 animate-ping scale-125" />
-                  )}
+            {/* 4. Active Live Transcription / Text Feedback Card */}
+            {currentInput && (
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-semibold flex items-center gap-1.5 text-slate-700">
+                    <Volume2 className="w-3.5 h-3.5 text-blue-600" />
+                    Argumen yang Disiapkan:
+                  </span>
                   <button
                     type="button"
-                    onClick={toggleRecording}
-                    className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl active:scale-95 ${
-                      isRecording
-                        ? "bg-red-500 text-white hover:bg-red-600 shadow-red-500/25"
-                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/25"
-                    }`}
+                    onClick={() => setCurrentInput("")}
+                    className="text-slate-400 hover:text-slate-700 flex items-center gap-1 text-[11px] font-medium"
                   >
-                    {isRecording ? (
-                      <MicOff className="w-9 h-9" />
-                    ) : (
-                      <Mic className="w-9 h-9" />
-                    )}
+                    <RotateCcw className="w-3 h-3" />
+                    Reset
                   </button>
                 </div>
-
-                {/* Status & Timer */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-2">
-                    {isRecording ? (
-                      <>
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-sm font-semibold text-slate-900">
-                          Mendengarkan suaramu... ({formatSeconds(recordingSeconds)})
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-sm font-semibold text-slate-800">
-                        {currentInput ? "Transkrip Suara Tersimpan" : "Sentuh Mic untuk Mulai Bicara"}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    {isRecording
-                      ? "Bicara dengan bahasa santai. Sentuh tombol lagi saat selesai."
-                      : "Jelaskan dengan bahasamu sendiri seperti sedang mengobrol dengan guru."}
-                  </p>
-                </div>
-
-                {/* Waveform Animation when Recording */}
-                {isRecording && (
-                  <div className="flex items-center justify-center gap-1.5 h-6">
-                    <span className="w-1 bg-blue-600 rounded-full animate-bounce [animation-delay:0ms] h-3" />
-                    <span className="w-1 bg-blue-600 rounded-full animate-bounce [animation-delay:150ms] h-5" />
-                    <span className="w-1 bg-blue-600 rounded-full animate-bounce [animation-delay:300ms] h-6" />
-                    <span className="w-1 bg-blue-600 rounded-full animate-bounce [animation-delay:450ms] h-4" />
-                    <span className="w-1 bg-blue-600 rounded-full animate-bounce [animation-delay:200ms] h-2" />
-                  </div>
-                )}
-
-                {/* Live Transcript / Current Text Preview */}
-                {currentInput && (
-                  <div className="w-full text-left bg-white border border-slate-200/90 rounded-xl p-3.5 space-y-1.5 shadow-sm">
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span className="font-semibold flex items-center gap-1 text-slate-700">
-                        <Volume2 className="w-3.5 h-3.5 text-blue-600" />
-                        Transkrip Suara:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentInput("")}
-                        className="text-slate-500 hover:text-slate-800 flex items-center gap-1 font-medium"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        Ulangi
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-800 leading-relaxed max-h-24 overflow-y-auto">
-                      {currentInput}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Answer Mode 2: Manual Typing */
-              <div className="space-y-2">
-                <textarea
-                  value={currentInput}
-                  onChange={(e) => setCurrentInput(e.target.value)}
-                  rows={4}
-                  placeholder="Ketikkan argumen dan pemikiran konseptualmu di sini..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed resize-none shadow-sm transition-all"
-                />
+                <p className="text-xs sm:text-[13px] text-slate-800 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100 max-h-24 overflow-y-auto font-medium">
+                  {currentInput}
+                </p>
               </div>
             )}
+
+            {/* Recording Active Status Banner */}
+            {isRecording && (
+              <div className="flex items-center justify-between bg-red-50 border border-red-200/80 rounded-2xl px-4 py-2.5 text-red-700 animate-pulse">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                  <span>Mendengarkan ucapanmu... ({formatSeconds(recordingSeconds)})</span>
+                </div>
+                <div className="flex items-center gap-1 h-4">
+                  <span className="w-1 bg-red-500 rounded-full animate-bounce h-2" />
+                  <span className="w-1 bg-red-500 rounded-full animate-bounce [animation-delay:150ms] h-4" />
+                  <span className="w-1 bg-red-500 rounded-full animate-bounce [animation-delay:300ms] h-3" />
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
@@ -532,56 +448,73 @@ export function OralDefenseModal({
                 </span>
               </div>
               <p className="text-xs text-emerald-800 leading-relaxed italic border-l-2 border-emerald-500 pl-3 py-0.5">
-                "{aiEvaluation.feedback}"
+                \"{aiEvaluation.feedback}\"
               </p>
             </div>
           </div>
         )}
 
-        {/* Bottom Action Footer (Light Porcelain Theme) */}
-        <div className="shrink-0 p-4 border-t border-slate-100 bg-slate-50/80 backdrop-blur-xl flex items-center justify-between gap-3">
+        {/* Bottom Floating Prompt Dock (Ella Reference Style: Sleek Pill Bar) */}
+        <div className="shrink-0 p-3.5 sm:p-4 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl">
           {step === "questioning" && (
-            <>
+            <div className="flex items-center gap-2">
+              
+              {/* Input Capsule (Ella Style) */}
+              <div className="flex-1 flex items-center bg-slate-100 hover:bg-slate-100/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-slate-200/80 rounded-full px-4 py-1.5 sm:py-2 transition-all shadow-inner">
+                <input
+                  type="text"
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && currentInput.trim() && !isRecording) {
+                      handleNextQuestion();
+                    }
+                  }}
+                  placeholder={isRecording ? "Mendengarkan ucapanmu..." : "Ketik argumen atau bicara..."}
+                  className="w-full bg-transparent text-xs sm:text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                />
+
+                {/* Tactile Mic Button inside Capsule */}
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ml-1.5 shrink-0 ${
+                    isRecording
+                      ? "bg-red-500 text-white animate-pulse shadow-xs"
+                      : "bg-white text-slate-600 hover:text-blue-600 border border-slate-200/80 shadow-xs active:scale-95"
+                  }`}
+                  title={isRecording ? "Hentikan rekaman" : "Mulai bicara (Voice)"}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Submit / Next Arrow Button (Ella Style Pill Action) */}
               <button
                 type="button"
-                onClick={() => {
-                  stopVoiceRecording();
-                  onClose();
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200/80 shadow-xs transition-all"
-              >
-                Nanti Dulu
-              </button>
-
-              <Button
-                variant="primary"
                 disabled={!currentInput.trim() || isRecording}
                 onClick={handleNextQuestion}
-                className="flex-1 sm:flex-initial h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-2 shadow-md shadow-blue-500/20 disabled:opacity-40 transition-all active:scale-95"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 disabled:hover:bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                title="Kirim & Lanjut"
               >
-                <span>
-                  {activeQuestionIdx < defenseQuestions.length - 1
-                    ? "Konfirmasi & Lanjut (1/2)"
-                    : "Selesai & Evaluasi Jawaban"}
-                </span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </>
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
           )}
 
           {step === "passed" && (
-            <div className="w-full flex gap-3">
+            <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-1/3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200/80 shadow-xs transition-all"
+                className="w-1/3 py-2.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all"
               >
                 Tutup
               </button>
               <Button
                 variant="primary"
                 onClick={handleFinalSubmit}
-                className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-2 shadow-md shadow-emerald-500/20 transition-all active:scale-95"
+                className="flex-1 h-11 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-2 shadow-md shadow-emerald-500/20 transition-all active:scale-95"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Submit Resmi ke Guru Sekarang</span>
@@ -589,6 +522,7 @@ export function OralDefenseModal({
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
