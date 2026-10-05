@@ -27,22 +27,22 @@ export function AmbientBackground({
 
       {/* 2. Educational Atmospheric Base Image */}
       <div
-        className={`absolute inset-0 transition-opacity duration-700 ease-out ${opacityMap[intensity]} mix-blend-multiply contrast-[1.02] saturate-[1.05]`}
+        className={`absolute inset-0 transition-opacity duration-700 ease-out ${opacityMap[intensity]} contrast-[1.02] saturate-[1.05]`}
       >
         <Image
-          src="/assets/backgrounds/academic-atmosphere.jpg"
+          src="/assets/backgrounds/poto1.png"
           alt=""
           fill
           priority
           sizes="100vw"
-          quality={90}
-          className="object-cover object-center"
+          quality={100}
+          className="object-cover object-bottom"
         />
       </div>
 
       {/* 3. Central Luminous Mask / Radial Diffuse Gradient
-          Creates high-contrast, calm negative space in the center so text, cards, and data remain 100% sharp and readable */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.72)_0%,rgba(248,250,252,0.85)_50%,rgba(241,245,249,0.92)_100%)] backdrop-blur-[0.5px]" />
+          Creates high-contrast, calm negative space in the center for cards while preserving the books & desk at the bottom */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,255,255,0.85)_0%,rgba(255,255,255,0.45)_50%,rgba(255,255,255,0.05)_85%,transparent_100%)] pointer-events-none" />
 
       {/* 4. Spatial Depth Ambient Blooms
           Soft optical blooms matching the lavender, indigo, and periwinkle ribbons of the artwork */}
