@@ -8,93 +8,88 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const materialIdParam = searchParams.get("materialId");
-    const studentIdParam = searchParams.get("studentId");
 
-    // 1. Dapatkan Material (spesifik atau yang terbaru)
-    let materialQuery = admin.from("course_materials").select("*");
+    // 1. Ambil materi aktif
+    let material: any = null;
     if (materialIdParam) {
-      materialQuery = materialQuery.eq("id", materialIdParam);
-    } else {
-      materialQuery = materialQuery.order("created_at", { ascending: false }).limit(1);
+      const { data } = await admin
+        .from("course_materials")
+        .select("*")
+        .eq("id", materialIdParam)
+        .single();
+      material = data;
     }
-
-    const { data: materials, error: matErr } = await materialQuery;
-    const material = materials && materials.length > 0 ? materials[0] : null;
 
     if (!material) {
-      return NextResponse.json({ success: true, empty: true, message: "Belum ada materi aktif" });
-    }
+      // Prioritaskan materi yang memiliki topik dan graf konsep
+      const { data: materialsWithTopics } = await admin
+        .from("material_topics")
+        .select("material_id")
+        .limit(1);
 
-    // 2. Dapatkan Bab / Topik beserta tautan telemetri (Critical Zone)
-    const { data: topics } = await admin
-      .from("material_topics")
-      .select(`
-        id,
-        topic_title,
-        chapter_number,
-        page_start,
-        page_end,
-        summary,
-        key_takeaways,
-        material_telemetry_links (
-          id,
-          observed_drop_percentage,
-          ai_correlation_notes,
-          recorded_at
-        )
-      `)
-      .eq("material_id", material.id)
-      .order("chapter_number", { ascending: true });
-
-    // Format topics to DocumentChapter[]
-    const formattedChapters = (topics || []).map((t: any) => {
-      const telemetry = t.material_telemetry_links && t.material_telemetry_links.length > 0
-        ? t.material_telemetry_links[0]
-        : null;
-      
-      const isCritical = Boolean(telemetry && Number(telemetry.observed_drop_percentage) > 30);
-
-      return {
-        id: t.id,
-        title: `Bab ${t.chapter_number}: ${t.topic_title}`,
-        pageStart: t.page_start || 1,
-        pageEnd: t.page_end || 10,
-        isCriticalZone: isCritical,
-        confusionScore: telemetry ? Math.round(Number(telemetry.observed_drop_percentage)) : undefined,
-        detectedTimestamp: telemetry ? "Tadi Siang, Sesi Kelas Fisik" : undefined,
-        contentSnippet: t.summary || "Rangkuman bab pembelajaran yang diekstrak oleh Smart AI.",
-      };
-    });
-
-    // 3. Dapatkan Simpul Konsep (Concept Nodes) & Relasi (Concept Edges)
-    let nodesQuery = admin.from("concept_nodes").select("*");
-    if (material.id) {
-      nodesQuery = nodesQuery.eq("material_id", material.id);
-    }
-    const { data: rawNodes } = await nodesQuery;
-
-    // Dapatkan data mastery siswa jika ada student_id
-    let studentId = studentIdParam;
-    if (!studentId) {
-      const { data: s } = await admin.from("students").select("id").limit(1).maybeSingle();
-      studentId = s?.id || null;
-    }
-
-    let masteryMap: Record<string, any> = {};
-    if (studentId) {
-      const { data: masteryRecords } = await admin
-        .from("student_concept_mastery")
-        .select("*")
-        .eq("student_id", studentId);
-
-      if (masteryRecords) {
-        masteryRecords.forEach((m: any) => {
-          masteryMap[m.concept_id] = m;
-        });
+      if (materialsWithTopics && materialsWithTopics.length > 0) {
+        const targetId = materialsWithTopics[0].material_id;
+        const { data } = await admin
+          .from("course_materials")
+          .select("*")
+          .eq("id", targetId)
+          .single();
+        material = data;
       }
     }
 
+    // Fallback jika belum ada yang bertopik, ambil materi terakhir
+    if (!material) {
+      const { data } = await admin
+        .from("course_materials")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      material = data && data.length > 0 ? data[0] : null;
+    }
+
+    if (!material) {
+      return NextResponse.json({
+        success: true,
+        empty: true,
+        message: "Belum ada modul aktif.",
+      });
+    }
+
+    // 2. Ambil topik materi (material_topics)
+    const { data: topics } = await admin
+      .from("material_topics")
+      .select("*")
+      .eq("material_id", material.id)
+      .order("topic_order", { ascending: true });
+
+    const formattedChapters = (topics || []).map((t: any) => {
+      const isCritical = Boolean(t.is_critical_zone);
+      const dropPct = t.avg_confusion_score ? Math.round(Number(t.avg_confusion_score)) : 42;
+      return {
+        id: t.id,
+        chapterNumber: t.topic_order || 1,
+        title: t.title || "Topik Pembelajaran",
+        pages: `Halaman ${t.page_start || 1} - ${t.page_end || 10}`,
+        summary: t.description || "",
+        keyTakeaways: Array.isArray(t.key_concepts) ? t.key_concepts : [],
+        criticalZoneDrop: isCritical ? dropPct : undefined,
+        criticalZoneLabel: isCritical
+          ? `⚠️ ZONA KRITIS KELAS: Kamera AI mendeteksi ${dropPct}% siswa kebingungan di topik ini.`
+          : undefined,
+      };
+    });
+
+    // 3. Ambil graf konsep (concept_nodes)
+    const { data: rawNodes } = await admin
+      .from("concept_nodes")
+      .select("*")
+      .eq("material_id", material.id)
+      .order("difficulty_level", { ascending: true });
+
     const nodeIds = (rawNodes || []).map((n: any) => n.id);
+
+    // 4. Ambil edges
     let rawEdges: any[] = [];
     if (nodeIds.length > 0) {
       const { data: edges } = await admin
@@ -104,48 +99,89 @@ export async function GET(request: NextRequest) {
       rawEdges = edges || [];
     }
 
-    // Default coordinates layout algorithm for dynamic nodes
-    const formattedNodes = (rawNodes || []).map((n: any, idx: number) => {
-      const m = masteryMap[n.id];
-      const coords = n.coordinates_hint || {};
+    // 5. Ambil student concept mastery
+    let masteryMap: Record<string, any> = {};
+    if (nodeIds.length > 0) {
+      const { data: masteryRecords } = await admin
+        .from("student_concept_mastery")
+        .select("*")
+        .in("concept_id", nodeIds);
+
+      if (masteryRecords) {
+        masteryRecords.forEach((m: any) => {
+          masteryMap[m.concept_id] = m;
+        });
+      }
+    }
+
+    // Format nodes untuk Dynamic Interactive Concept Graph
+    const formattedNodes = (rawNodes || []).map((n: any) => {
+      const mastery = masteryMap[n.id];
+      const score = mastery ? Math.round(Number(mastery.mastery_score)) : 70;
       
-      const defaultX = coords.x || 160 + (idx % 3) * 220;
-      const defaultY = coords.y || 120 + Math.floor(idx / 3) * 160;
+      let categoryType: "chapter" | "concept" | "formula" | "methodology" = "concept";
+      if (n.category === "critical_zone") categoryType = "formula";
+      else if (n.category === "advanced") categoryType = "methodology";
+      else if (n.category === "core") categoryType = "concept";
 
       return {
         id: n.id,
         label: n.label,
-        category: n.category || "concept",
-        summary: n.summary || "Simpul konsep pembelajaran kurikulum.",
-        difficultyLevel: n.difficulty_level || 1,
-        referencePage: n.reference_page || 1,
-        x: defaultX,
-        y: defaultY,
-        masteryScore: m ? Math.round(Number(m.mastery_score)) : 75,
+        category: categoryType,
+        mastery: score,
+        page: n.reference_page || 1,
+        connectionsCount: 0,
+        summary: n.summary || "",
+        criticalZone: n.category === "critical_zone",
+        coordinates: n.coordinates_hint || undefined,
       };
     });
 
-    const formattedEdges = rawEdges.map((e: any) => ({
-      id: e.id,
-      source: e.source_node_id,
-      target: e.target_node_id,
-      relationType: e.relation_type,
-      strength: Number(e.strength) || 1.0,
-    }));
+    // Hitung jumlah koneksi per node
+    const connectionCounts: Record<string, number> = {};
+    rawEdges.forEach((e: any) => {
+      connectionCounts[e.source_node_id] = (connectionCounts[e.source_node_id] || 0) + 1;
+      connectionCounts[e.target_node_id] = (connectionCounts[e.target_node_id] || 0) + 1;
+    });
 
-    // 4. Hitung Sumbu Radar Kesiapan Ujian (Competency Axes)
-    const axes = (rawNodes || []).slice(0, 6).map((n: any) => {
-      const m = masteryMap[n.id];
-      const score = m ? Math.round(Number(m.mastery_score)) : 70;
-      const isWeak = score < 65;
+    formattedNodes.forEach((node) => {
+      node.connectionsCount = connectionCounts[node.id] || 1;
+    });
+
+    // Format edges
+    const formattedEdges = rawEdges.map((e: any) => {
+      let label = "Terkait";
+      if (e.relation_type === "prerequisite_of") label = "Prasyarat";
+      else if (e.relation_type === "part_of") label = "Bagian Dari";
+      else if (e.relation_type === "applies_to") label = "Diterapkan Di";
+      else if (e.relation_type === "relates_to") label = "Korelasi";
 
       return {
-        label: n.label,
+        id: e.id,
+        source: e.source_node_id,
+        target: e.target_node_id,
+        label,
+        relationType: e.relation_type,
+        strength: Number(e.strength) || 1,
+      };
+    });
+
+    // Format axes untuk Exam Readiness Radar
+    const formattedAxes = formattedNodes.map((n) => {
+      const score = n.mastery;
+      const mastery = masteryMap[n.id];
+      let status: "mastered" | "needs_practice" | "critical_review" = "mastered";
+      if (score < 60) status = "critical_review";
+      else if (score < 80) status = "needs_practice";
+
+      return {
+        subject: n.label,
         score,
-        target: 75,
-        category: n.category === "formula" ? "Kalkulasi" : n.category === "methodology" ? "Praktik" : "Teori",
-        isWeakSpot: isWeak,
-        recommendation: m?.recommended_action || (isWeak ? "Perlu pendalaman latihan soal & simulasi." : "Penguasaan konsep sudah solid."),
+        benchmark: 75,
+        status,
+        weaknessReason: mastery?.needs_remediation
+          ? `Perlu Perbaikan: ${mastery.recommended_action || "Latihan soal terarah"}`
+          : undefined,
       };
     });
 
@@ -158,7 +194,7 @@ export async function GET(request: NextRequest) {
           description: material.description,
           fileUrl: material.file_url,
           fileName: material.file_name,
-          pageCount: material.page_count,
+          pageCount: material.page_count || 32,
         },
         chapters: formattedChapters,
         conceptGraph: {
@@ -166,12 +202,24 @@ export async function GET(request: NextRequest) {
           edges: formattedEdges,
         },
         examReadiness: {
-          axes: axes.length > 0 ? axes : null,
+          axes: formattedAxes,
+          averageScore: formattedAxes.length
+            ? Math.round(
+                formattedAxes.reduce((acc, curr) => acc + curr.score, 0) /
+                  formattedAxes.length
+              )
+            : 70,
         },
       },
     });
   } catch (error: any) {
-    console.error("[API_LMS_STUDENT_NOTEBOOK_ERROR]", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("GET /api/lms/student/notebook-data error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Gagal mengambil data notebook mahasiswa",
+      },
+      { status: 500 }
+    );
   }
 }
