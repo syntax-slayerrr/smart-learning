@@ -17,6 +17,29 @@ import numpy as np
 from cv_engine.config import YOLO26_ONNX_PATH, YOLO26_ROOT_PATH
 
 
+def letterbox(
+    img: np.ndarray,
+    target_shape: Tuple[int, int] = (320, 320),
+    color: Tuple[int, int, int] = (114, 114, 114)
+) -> Tuple[np.ndarray, float, Tuple[float, float]]:
+    """
+    Letterboxing aspect-ratio preserving padding untuk menjaga proporsi tubuh manusia.
+    Mencegah distorsi pipih/gepeng pada kamera 16:9 saat diumpankan ke model YOLO.
+    """
+    shape = img.shape[:2]  # [tinggi, lebar]
+    r = min(target_shape[0] / shape[0], target_shape[1] / shape[1])
+    new_unpad = (int(round(shape[1] * r)), int(round(shape[0] * r)))
+    dw = (target_shape[1] - new_unpad[0]) / 2.0
+    dh = (target_shape[0] - new_unpad[1]) / 2.0
+
+    if shape[::-1] != new_unpad:
+        img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    return img, r, (dw, dh)
+
+
 class DetektorYOLO26:
     """
     Detektor Objek Makro YOLO26n berbasis ONNX Runtime Engine.
@@ -75,9 +98,9 @@ class DetektorYOLO26:
 
         tinggi_asli, lebar_asli = frame.shape[:2]
 
-        # 1. Prapemrosesan Citra (Normalisasi Tensor)
-        citra_kecil = cv2.resize(frame, (dimensi_input, dimensi_input))
-        citra_rgb = cv2.cvtColor(citra_kecil, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        # 1. Prapemrosesan Citra (Letterbox Aspect-Ratio Preserving)
+        citra_boxed, r_skala, (pad_w, pad_h) = letterbox(frame, target_shape=(dimensi_input, dimensi_input))
+        citra_rgb = cv2.cvtColor(citra_boxed, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         tensor_masukan = np.transpose(citra_rgb, (2, 0, 1))[np.newaxis, ...]
 
         # 2. Eksekusi Inferensi Neural
@@ -91,19 +114,21 @@ class DetektorYOLO26:
         kotak_valid = kotak_prediksi[masker_valid]
         skor_valid = skor_manusia[masker_valid]
 
-        skala_x = lebar_asli / float(dimensi_input)
-        skala_y = tinggi_asli / float(dimensi_input)
         kotak_calon = []
         skor_calon = []
 
         for (pusat_x, pusat_y, lebar_kotak, tinggi_kotak), skor in zip(kotak_valid, skor_valid):
-            koordinat_x = max(0, int((pusat_x - lebar_kotak / 2.0) * skala_x))
-            koordinat_y = max(0, int((pusat_y - tinggi_kotak / 2.0) * skala_y))
-            lebar_piksel = min(lebar_asli - koordinat_x, int(lebar_kotak * skala_x))
-            tinggi_piksel = min(tinggi_asli - koordinat_y, int(tinggi_kotak * skala_y))
+            # Inversi letterbox: kembalikan koordinat kotak ke ruang citra asli tanpa distorsi
+            x_unpad = pusat_x - pad_w
+            y_unpad = pusat_y - pad_h
+            
+            koordinat_x = max(0, int(round((x_unpad - lebar_kotak / 2.0) / r_skala)))
+            koordinat_y = max(0, int(round((y_unpad - tinggi_kotak / 2.0) / r_skala)))
+            lebar_piksel = min(lebar_asli - koordinat_x, int(round(lebar_kotak / r_skala)))
+            tinggi_piksel = min(tinggi_asli - koordinat_y, int(round(tinggi_kotak / r_skala)))
 
-            # Filter ukuran minimum agar tidak memproses noise
-            if lebar_piksel > 35 and tinggi_piksel > 50:
+            # Filter ukuran minimum proporsional agar tidak memproses noise
+            if lebar_piksel > 30 and tinggi_piksel > 45:
                 kotak_calon.append([koordinat_x, koordinat_y, lebar_piksel, tinggi_piksel])
                 skor_calon.append(float(skor))
 

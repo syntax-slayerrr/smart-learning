@@ -49,10 +49,10 @@ class DetektorPoseMediaPipe:
                 opsi_pose = mp_vision.PoseLandmarkerOptions(
                     base_options=opsi_dasar,
                     running_mode=mp_vision.RunningMode.IMAGE,
-                    num_poses=4,
-                    min_pose_detection_confidence=0.35,
-                    min_pose_presence_confidence=0.35,
-                    min_tracking_confidence=0.35
+                    num_poses=8,
+                    min_pose_detection_confidence=0.40,
+                    min_pose_presence_confidence=0.40,
+                    min_tracking_confidence=0.40
                 )
                 self.detector = mp_vision.PoseLandmarker.create_from_options(opsi_pose)
                 print(f"[+] MediaPipe Pose ({os.path.basename(self.jalur_model)}) 33-Keypoints Aktif!")

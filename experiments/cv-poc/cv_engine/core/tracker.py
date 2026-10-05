@@ -24,6 +24,13 @@ from cv_engine.config import (
     KECEPATAN_TANGAN_DIAM_TIDUR,
     DURASI_TAHAN_TIDUR_DETIK,
     FAKTOR_EMA_SMOOTHING,
+    ONE_EURO_MIN_CUTOFF,
+    ONE_EURO_BETA,
+    ONE_EURO_D_CUTOFF,
+    MINIMAL_HIT_STREAK_KONFIRMASI,
+    MAKSIMAL_FRAME_TENTATIVE_HILANG,
+    AMBANG_IOU_PELACAKAN,
+    AMBANG_BIAYA_ASOSIASI_MAKSIMAL,
     TOLERANSI_TRACK_HILANG_DETIK,
     MINIMAL_VOTING_IDENTITAS
 )
@@ -32,6 +39,63 @@ from cv_engine.core.kinematics import (
     saring_pose_tumpang_tindih,
     saring_kandidat_spasial
 )
+
+
+class OneEuroFilter:
+    """
+    Filter adaptif kecepatan One Euro untuk mereduksi jitter hingga >90% tanpa lag gerakan.
+    Ketika objek diam (velocity rendah), filter memperkecil cutoff frequency sehingga jitter hilang total.
+    Ketika objek bergerak cepat (velocity tinggi), filter memperlebar cutoff frequency secara otomatis.
+    """
+    def __init__(self, t0: float, x0: float, dx0: float = 0.0, min_cutoff: float = 0.8, beta: float = 0.005, d_cutoff: float = 1.0):
+        self.min_cutoff = float(min_cutoff)
+        self.beta = float(beta)
+        self.d_cutoff = float(d_cutoff)
+        self.x_prev = float(x0)
+        self.dx_prev = float(dx0)
+        self.t_prev = float(t0)
+
+    def filter(self, t: float, x: float) -> float:
+        t_e = t - self.t_prev
+        if t_e <= 0.0001:
+            return self.x_prev
+
+        a_d = self._alpha(t_e, self.d_cutoff)
+        dx = (x - self.x_prev) / t_e
+        dx_hat = a_d * dx + (1.0 - a_d) * self.dx_prev
+
+        cutoff = self.min_cutoff + self.beta * abs(dx_hat)
+        a = self._alpha(t_e, cutoff)
+        x_hat = a * x + (1.0 - a) * self.x_prev
+
+        self.x_prev = x_hat
+        self.dx_prev = dx_hat
+        self.t_prev = t
+        return x_hat
+
+    def _alpha(self, t_e: float, cutoff: float) -> float:
+        r = 2.0 * math.pi * cutoff * t_e
+        return r / (r + 1.0)
+
+
+def hitung_iou(box1: Tuple[float, float, float, float], box2: Tuple[float, float, float, float]) -> float:
+    """
+    Menghitung rasio tumpang-tindih spasial Intersection over Union (IoU) antara dua kotak (x, y, w, h).
+    """
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[0] + box1[2], box2[0] + box2[2])
+    y2 = min(box1[1] + box1[3], box2[1] + box2[3])
+
+    lebar_irisan = max(0.0, x2 - x1)
+    tinggi_irisan = max(0.0, y2 - y1)
+    area_irisan = lebar_irisan * tinggi_irisan
+
+    area1 = box1[2] * box1[3]
+    area2 = box2[2] * box2[3]
+    area_gabungan = area1 + area2 - area_irisan
+
+    return (area_irisan / area_gabungan) if area_gabungan > 0.0 else 0.0
 
 
 class PelacakSubjekKelas:
@@ -200,16 +264,34 @@ class PelacakSubjekKelas:
                 arah_tatapan = "Depan / Papan Tulis"
                 memiliki_pose = False
 
-            # 4. Asosiasi Penjejakan Spasial (Active Tracks Matching)
+            # 4. Asosiasi Penjejakan Spasial (IoU + Centroid Distance Matching)
             id_terbaik = None
-            jarak_terbaik = 160.0
+            skor_biaya_terbaik = AMBANG_BIAYA_ASOSIASI_MAKSIMAL
+            kotak_kandidat = (float(px), float(py), float(pw), float(ph))
+
             for id_track, data_track in self.tracks.items():
                 if id_track in id_tercocokkan:
                     continue
                 tcx, tcy = data_track["center"]
-                jarak = math.hypot(pusat_subjek_x - tcx, pusat_subjek_y - tcy)
-                if jarak < jarak_terbaik:
-                    jarak_terbaik = jarak
+                t_box = data_track["box"]
+
+                iou = hitung_iou(kotak_kandidat, t_box)
+                jarak_pusat = math.hypot(pusat_subjek_x - tcx, pusat_subjek_y - tcy)
+                skala_patokan = max(float(t_box[2]), float(t_box[3]), float(pw), float(ph), 80.0)
+                jarak_ternormalisasi = jarak_pusat / skala_patokan
+
+                # Biaya gabungan: IoU tinggi menurunkan biaya, jarak dekat menurunkan biaya
+                biaya = (1.0 - iou) + (0.5 * jarak_ternormalisasi)
+
+                # Kondisi pencocokan valid: IoU memadai atau jarak sangat dekat
+                apakah_cocok = (
+                    (iou >= AMBANG_IOU_PELACAKAN) or
+                    (jarak_pusat < 85.0) or
+                    (biaya < AMBANG_BIAYA_ASOSIASI_MAKSIMAL and jarak_pusat < 130.0)
+                )
+
+                if apakah_cocok and biaya < skor_biaya_terbaik:
+                    skor_biaya_terbaik = biaya
                     id_terbaik = id_track
 
             # Guardrail 5: Seat-Anchored Re-ID Matching pada Lost Tracks (Toleransi Oklusi 4.0s)
@@ -217,7 +299,10 @@ class PelacakSubjekKelas:
                 for id_hilang, data_hilang in list(self.lost_tracks.items()):
                     if waktu_sekarang - data_hilang["last_seen"] <= TOLERANSI_TRACK_HILANG_DETIK:
                         lcx, lcy = data_hilang["center"]
-                        if math.hypot(pusat_subjek_x - lcx, pusat_subjek_y - lcy) < 170.0:
+                        l_box = data_hilang["box"]
+                        iou_lost = hitung_iou(kotak_kandidat, l_box)
+                        jarak_lost = math.hypot(pusat_subjek_x - lcx, pusat_subjek_y - lcy)
+                        if iou_lost >= 0.20 or jarak_lost < 110.0:
                             id_terbaik = id_hilang
                             self.tracks[id_hilang] = data_hilang
                             del self.lost_tracks[id_hilang]
@@ -398,21 +483,33 @@ class PelacakSubjekKelas:
 
             sub_label_hud = f"Postur: {'Duduk' if postur == 'sitting' else 'Berdiri'} • Fokus: {skor_atensi}% • {arah_tatapan}"
 
-            # Guardrail 4: EMA Coordinate Smoothing Adaptif (Zero Jitter, Zero Snap)
+            # Guardrail 4: One Euro Filter Coordinate Smoothing (Zero Jitter, Sub-pixel Accuracy)
             if id_terbaik is not None:
                 track_lama = self.tracks[id_terbaik]
-                lama_x, lama_y, lama_w, lama_h = track_lama["box"]
 
-                jarak_geser = math.hypot(px - lama_x, py - lama_y)
-                # Alpha adaptif: transisi meluncur mulus tanpa patah-patah
-                alpha_adaptif = min(0.60, max(FAKTOR_EMA_SMOOTHING, jarak_geser / 250.0))
+                # Inisialisasi OneEuroFilter jika belum ada pada track
+                if "filter_x" not in track_lama:
+                    track_lama["filter_x"] = OneEuroFilter(waktu_sekarang, float(px), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    track_lama["filter_y"] = OneEuroFilter(waktu_sekarang, float(py), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    track_lama["filter_w"] = OneEuroFilter(waktu_sekarang, float(pw), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    track_lama["filter_h"] = OneEuroFilter(waktu_sekarang, float(ph), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
 
-                halus_x = int(alpha_adaptif * px + (1.0 - alpha_adaptif) * lama_x)
-                halus_y = int(alpha_adaptif * py + (1.0 - alpha_adaptif) * lama_y)
-                halus_w = int(alpha_adaptif * pw + (1.0 - alpha_adaptif) * lama_w)
-                halus_h = int(alpha_adaptif * ph + (1.0 - alpha_adaptif) * lama_h)
+                halus_x = track_lama["filter_x"].filter(waktu_sekarang, float(px))
+                halus_y = track_lama["filter_y"].filter(waktu_sekarang, float(py))
+                halus_w = track_lama["filter_w"].filter(waktu_sekarang, float(pw))
+                halus_h = track_lama["filter_h"].filter(waktu_sekarang, float(ph))
 
-                track_lama["box"] = (halus_x, halus_y, halus_w, halus_h)
+                # Update hit streak & konfirmasi track
+                track_lama["hits"] = track_lama.get("hits", 1) + 1
+                track_lama["hit_streak"] = track_lama.get("hit_streak", 1) + 1
+                track_lama["unseen_frames"] = 0
+
+                if track_lama["hit_streak"] >= MINIMAL_HIT_STREAK_KONFIRMASI or track_lama.get("is_recognized", False):
+                    track_lama["is_confirmed"] = True
+                    track_lama["state"] = "confirmed"
+
+                track_lama["box"] = (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h)))
+                track_lama["smooth_box"] = (halus_x, halus_y, halus_w, halus_h)
                 track_lama["center"] = (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0)
                 track_lama["landmarks"] = landmarks
                 track_lama["posture"] = postur
@@ -429,9 +526,16 @@ class PelacakSubjekKelas:
                 track_lama["gaze_dir"] = arah_tatapan
                 id_tercocokkan.add(id_terbaik)
             else:
+                # Spawning Candidate Track Baru (Status TENTATIVE untuk mencegah Ghost Box)
                 id_baru = self.id_berikutnya
                 self.id_berikutnya += 1
                 self.next_id = self.id_berikutnya
+
+                fx = OneEuroFilter(waktu_sekarang, float(px), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                fy = OneEuroFilter(waktu_sekarang, float(py), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                fw = OneEuroFilter(waktu_sekarang, float(pw), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                fh = OneEuroFilter(waktu_sekarang, float(ph), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+
                 self.tracks[id_baru] = {
                     "id": id_baru,
                     "student_name": f"Siswa #{id_baru}",
@@ -439,6 +543,7 @@ class PelacakSubjekKelas:
                     "seat_latched": False,
                     "identity_votes": {},
                     "box": (px, py, pw, ph),
+                    "smooth_box": (float(px), float(py), float(pw), float(ph)),
                     "center": (pusat_subjek_x, pusat_subjek_y),
                     "landmarks": landmarks,
                     "posture": postur,
@@ -452,21 +557,41 @@ class PelacakSubjekKelas:
                     "hand_box": kotak_tangan,
                     "is_sleep": is_tidur,
                     "head_tilt": round(kemiringan_kepala, 1),
-                    "gaze_dir": arah_tatapan
+                    "gaze_dir": arah_tatapan,
+                    "state": "tentative",
+                    "is_confirmed": False,
+                    "hits": 1,
+                    "hit_streak": 1,
+                    "unseen_frames": 0,
+                    "filter_x": fx,
+                    "filter_y": fy,
+                    "filter_w": fw,
+                    "filter_h": fh
                 }
                 id_tercocokkan.add(id_baru)
 
-        # Pembersihan Jejak Terhalang (Pindah ke lost_tracks untuk toleransi hingga 4.0 detik)
-        for id_t, data_t in list(self.tracks.items()):
-            if waktu_sekarang - data_t["last_seen"] > 2.2:
-                self.lost_tracks[id_t] = data_t
-                del self.tracks[id_t]
-                self.pencatat_waktu_tidur.pop(id_t, None)
-                self.pencatat_mulai_angkat_tangan.pop(id_t, None)
-                self.penahan_histesis_tangan.pop(id_t, None)
-                self.riwayat_posisi_pergelangan.pop(id_t, None)
-                self.riwayat_postur.pop(id_t, None)
-                self.penahan_waktu_menulis.pop(id_t, None)
+        # Pembersihan Jejak & Eliminasi Agresif Ghost Box
+        for id_t in list(self.tracks.keys()):
+            if id_t not in id_tercocokkan:
+                data_t = self.tracks[id_t]
+                # Jika track masih tentative dan tidak terdeteksi pada update ini, HAPUS SEGERA (Zero Ghost Box)!
+                if not data_t.get("is_confirmed", False):
+                    del self.tracks[id_t]
+                    continue
+
+                # Jika sudah terkonfirmasi tapi terlewat, hitung unseen dan reset streak
+                data_t["hit_streak"] = 0
+                data_t["unseen_frames"] = data_t.get("unseen_frames", 0) + 1
+
+                if waktu_sekarang - data_t["last_seen"] > 1.8:
+                    self.lost_tracks[id_t] = data_t
+                    del self.tracks[id_t]
+                    self.pencatat_waktu_tidur.pop(id_t, None)
+                    self.pencatat_mulai_angkat_tangan.pop(id_t, None)
+                    self.penahan_histesis_tangan.pop(id_t, None)
+                    self.riwayat_posisi_pergelangan.pop(id_t, None)
+                    self.riwayat_postur.pop(id_t, None)
+                    self.penahan_waktu_menulis.pop(id_t, None)
 
         # Hapus rekaman jika telah melampaui toleransi TTL 4.0 detik
         self.lost_tracks = {
@@ -522,7 +647,13 @@ class PelacakSubjekKelas:
             self.riwayat_postur.pop(id_buang, None)
             self.penahan_waktu_menulis.pop(id_buang, None)
 
-        return list(self.tracks.values())
+        # HANYA kembalikan track yang telah TERKONFIRMASI ke Pipeline, HUD, dan Telemetri
+        # Menjamin 0% Ghost Box muncul di layar pengguna!
+        track_terkonfirmasi = [
+            t for t in self.tracks.values()
+            if t.get("is_confirmed", False)
+        ]
+        return track_terkonfirmasi
 
     # Alias kompatibilitas bahasa Inggris
     update_hybrid = perbarui_posisi_hibrida

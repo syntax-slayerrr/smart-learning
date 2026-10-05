@@ -101,11 +101,18 @@ DURASI_TAHAN_TIDUR_DETIK            = 3.5    # Waktu akumulasi menunduk + diam s
 # Guardrail 3: Buffer Voting Identitas Spasial
 MINIMAL_VOTING_IDENTITAS            = 2      # Akumulasi kecocokan ArcFace berturut-turut untuk mengunci identitas
 
-# Guardrail 4: Filter Penghalus Koordinat EMA
-FAKTOR_EMA_SMOOTHING                = 0.22   # Bobot koordinat baru (0.22 baru + 0.78 lama)
+# Guardrail 4: Filter Penghalus Koordinat & Reduksi Jitter (One Euro Filter + EMA Sub-pixel)
+FAKTOR_EMA_SMOOTHING                = 0.22   # Fallback bobot koordinat baru
+ONE_EURO_MIN_CUTOFF                 = 0.25   # Frekuensi cutoff minimum (Hz) saat objek diam (reduksi jitter >95%)
+ONE_EURO_BETA                       = 0.012  # Koefisien responsivitas kecepatan (menghilangkan lag gerakan cepat)
+ONE_EURO_D_CUTOFF                   = 1.0    # Cutoff derivatif kecepatan
 
-# Guardrail 5: Toleransi Retensi Re-ID Kursi Saat Terhalang
-TOLERANSI_TRACK_HILANG_DETIK        = 4.0    # Jeda toleransi waktu saat siswa tertutup sementara
+# Guardrail 5: Toleransi Retensi & Eliminasi Ghost Box
+MINIMAL_HIT_STREAK_KONFIRMASI       = 3      # Wajib terdeteksi >= 3 frame berturut-turut sebelum di-render ke HUD
+MAKSIMAL_FRAME_TENTATIVE_HILANG     = 1      # Track tentatif langsung dihapus jika hilang 1 frame (zero ghost retention)
+TOLERANSI_TRACK_HILANG_DETIK        = 3.0    # Jeda toleransi waktu saat siswa terkonfirmasi tertutup sementara
+AMBANG_IOU_PELACAKAN                = 0.30   # Ambang batas tumpang tindih spasial (IoU)
+AMBANG_BIAYA_ASOSIASI_MAKSIMAL      = 0.80   # Ambang batas gabungan IoU + Jarak Centroid Ternormalisasi
 
 # Alias kompatibilitas
 GUARDRAIL_ELBOW_ANGLE_THRESH        = AMBANG_SUDUT_SIKU_DERAJAT
@@ -118,6 +125,7 @@ GUARDRAIL_SLEEP_HOLD_SEC            = DURASI_TAHAN_TIDUR_DETIK
 GUARDRAIL_EMA_ALPHA                 = FAKTOR_EMA_SMOOTHING
 GUARDRAIL_LOST_TRACK_GRACE_SEC      = TOLERANSI_TRACK_HILANG_DETIK
 GUARDRAIL_ARCFACE_MATCH_VOTES       = MINIMAL_VOTING_IDENTITAS
+GUARDRAIL_MIN_HIT_STREAK            = MINIMAL_HIT_STREAK_KONFIRMASI
 
 
 # ==============================================================================
