@@ -14,15 +14,15 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
 
   return (
     <>
-      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-stone-900 transition-all">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs text-card-foreground transition-all">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-500/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold tracking-tight text-stone-900 dark:text-stone-100">
+                <h3 className="text-base font-bold tracking-tight text-foreground">
                   Biometrik Face ID Kelas
                 </h3>
                 {isEnrolled ? (
@@ -36,7 +36,7 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 max-w-xl">
+              <p className="mt-1 text-xs text-muted-foreground max-w-xl">
                 Digunakan untuk presensi kelas otomatis dan pengenalan meja cerdas oleh kamera AI saat kegiatan belajar mengajar berlangsung.
               </p>
             </div>
@@ -44,7 +44,7 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-orange-600/20 hover:bg-orange-500 active:scale-[0.98] transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all"
           >
             <Camera className="h-4 w-4" />
             <span>{isEnrolled ? "Pindai Ulang Wajah" : "Daftarkan Face ID"}</span>
@@ -53,17 +53,17 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
         </div>
 
         {/* Info Grid Spec */}
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-stone-100 dark:border-white/5 pt-4 text-xs font-mono">
-          <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border pt-4 text-xs font-mono">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             <span>Mesin: ArcFace 512-D</span>
           </div>
-          <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <span>Anti-Swap: Anchor Meja Statis</span>
           </div>
-          <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
             <span>Enkripsi: Vektor Fitur Lokal</span>
           </div>
         </div>

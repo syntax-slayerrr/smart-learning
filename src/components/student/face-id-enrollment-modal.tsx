@@ -356,7 +356,7 @@ export function FaceIdEnrollmentModal({
         {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-600/20 text-orange-500 border border-orange-500/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/30">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
@@ -364,7 +364,7 @@ export function FaceIdEnrollmentModal({
                 <h2 className="text-base font-semibold leading-tight tracking-tight">
                   Pendaftaran Face ID Kelas
                 </h2>
-                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono text-cyan-400 border border-cyan-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary border border-primary/20">
                   <Zap className="h-2.5 w-2.5" />
                   Auto-Scan Fintech
                 </span>
@@ -394,7 +394,7 @@ export function FaceIdEnrollmentModal({
                   <p className="text-xs text-zinc-300">{cameraError}</p>
                   <button
                     onClick={startCamera}
-                    className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white hover:bg-orange-500 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Coba Hubungkan Ulang
@@ -417,7 +417,7 @@ export function FaceIdEnrollmentModal({
                   {/* Laser Scan Line Animasi Otomatis (Fintech Aesthetic) */}
                   <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
                     <div className="w-[180px] h-[230px] relative">
-                      <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-75 shadow-[0_0_12px_#22d3ee] animate-pulse -translate-y-full animate-[scan_2s_ease-in-out_infinite]" />
+                      <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#007AFF] to-transparent opacity-85 shadow-[0_0_12px_#007AFF] animate-pulse -translate-y-full animate-[scan_2s_ease-in-out_infinite]" />
                     </div>
                   </div>
 
@@ -430,8 +430,8 @@ export function FaceIdEnrollmentModal({
                           <ellipse cx="190" cy="142" rx="90" ry="115" fill="black" />
                         </mask>
                         <linearGradient id="fintechProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#06b6d4" />
-                          <stop offset="100%" stopColor="#10b981" />
+                          <stop offset="0%" stopColor="#007AFF" />
+                          <stop offset="100%" stopColor="#34C759" />
                         </linearGradient>
                       </defs>
 
@@ -450,7 +450,7 @@ export function FaceIdEnrollmentModal({
                         rx="90"
                         ry="115"
                         fill="none"
-                        stroke="rgba(255, 255, 255, 0.2)"
+                        stroke="rgba(255, 255, 255, 0.25)"
                         strokeWidth="2.5"
                         strokeDasharray="6 6"
                       />
@@ -470,16 +470,16 @@ export function FaceIdEnrollmentModal({
                         style={{
                           transition: "stroke-dashoffset 0.08s linear",
                         }}
-                        className="filter drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                        className="filter drop-shadow-[0_0_8px_rgba(0,122,255,0.7)]"
                       />
                     </svg>
 
                     {/* Persentase Auto-Capture Ring Center Counter */}
                     <div className="absolute bottom-6 flex items-center justify-center">
-                      <div className="bg-black/75 backdrop-blur-md px-3 py-1 rounded-full border border-cyan-500/30 text-[11px] font-mono font-bold text-cyan-400 flex items-center gap-1.5 shadow-lg">
+                      <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30 text-[11px] font-mono font-bold text-primary flex items-center gap-1.5 shadow-lg">
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                         </span>
                         <span>Merekam Otomatis: {Math.round(autoProgress)}%</span>
                       </div>
@@ -513,10 +513,10 @@ export function FaceIdEnrollmentModal({
                           key={sIndex}
                           className={`h-2 rounded-full transition-all duration-300 ${
                             isDone
-                              ? "w-5 bg-emerald-500"
+                              ? "w-4 bg-emerald-500"
                               : isCurrent
-                              ? "w-6 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"
-                              : "w-2 bg-zinc-700"
+                              ? "w-6 bg-primary shadow-[0_0_8px_rgba(0,122,255,0.8)]"
+                              : "w-2 bg-white/20"
                           }`}
                         />
                       );
@@ -543,7 +543,7 @@ export function FaceIdEnrollmentModal({
                 </p>
               </div>
               <div className="flex items-center gap-2 rounded-xl bg-zinc-950 px-3.5 py-1.5 border border-white/10 text-[11px] font-mono text-zinc-300">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
                 <span>3 Pose Auto-Capture • Presisi 99.8%</span>
               </div>
             </div>
@@ -583,7 +583,7 @@ export function FaceIdEnrollmentModal({
                 <Focus className="h-3 w-3" />
                 <span>Posisi: Pas</span>
               </div>
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-primary/10 text-primary border-primary/20">
                 <Zap className="h-3 w-3" />
                 <span>Total: {totalProgress}%</span>
               </div>
@@ -605,7 +605,7 @@ export function FaceIdEnrollmentModal({
                   onSuccess();
                   onClose();
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span>Selesai & Aktifkan</span>
                 <ChevronRight className="h-4 w-4" />
@@ -624,10 +624,10 @@ export function FaceIdEnrollmentModal({
                 </button>
 
                 {/* Status hands-free auto-capture */}
-                <div className="hidden sm:flex items-center gap-2 rounded-xl bg-cyan-950/60 border border-cyan-500/30 px-3.5 py-2 text-xs font-medium text-cyan-300">
+                <div className="hidden sm:flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/25 px-3.5 py-2 text-xs font-medium text-primary">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                   </span>
                   <span>Auto-Scan Berjalan</span>
                 </div>
