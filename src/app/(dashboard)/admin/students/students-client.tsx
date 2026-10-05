@@ -358,23 +358,35 @@ export function StudentsClient({
               type="button"
               key={s.id}
               onClick={() => setSelectedMobileStudent(s)}
-              className="w-full text-left min-h-[58px] flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[rgba(60,60,67,0.12)] active:bg-[#F2F2F0] active:scale-[0.99] transition-all cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+              className="w-full text-left min-h-[64px] flex items-center justify-between p-3.5 sm:p-4 card-3d-ceramic active:scale-[0.98] transition-all cursor-pointer"
             >
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-[#1D1D1F]">
-                  {s.profiles?.full_name || "—"}
-                </span>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-mono text-[#8E8E93]">{s.nis}</span>
-                  <span className="text-xs text-[#8E8E93]">•</span>
-                  <span className="text-xs text-[#6E6E73] font-medium">{classNameStr}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100/80 flex items-center justify-center font-extrabold text-xs text-blue-600 shrink-0 shadow-sm">
+                  {(s.profiles?.full_name || "S").charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-extrabold text-slate-900 truncate">
+                    {s.profiles?.full_name || "—"}
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-mono text-slate-400 tabular-nums">{s.nis}</span>
+                    <span className="text-xs text-slate-300">•</span>
+                    <span className="text-xs font-semibold text-blue-600 truncate">{classNameStr}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {s.device_id && (
-                  <span className="h-2 w-2 rounded-full bg-[#FF9F0A]" title="HP Terkunci" />
+              <div className="flex items-center gap-2 shrink-0 pl-2">
+                {s.device_id ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60 shadow-sm" title="HP Terkunci">
+                    <Smartphone className="h-3 w-3" />
+                    <span className="hidden xs:inline">Terkunci</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                    Bebas
+                  </span>
                 )}
-                <ChevronRight className="h-4 w-4 text-[#C7C7CC]" />
+                <ChevronRight className="h-4 w-4 text-slate-400" />
               </div>
             </button>
           );

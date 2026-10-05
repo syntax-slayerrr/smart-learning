@@ -31,8 +31,12 @@ export function PushManager() {
   const pathname = usePathname();
 
   const isTeacher = pathname?.startsWith("/teacher");
+  const isDashboardRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/teacher") || pathname?.startsWith("/student");
 
   useEffect(() => {
+    // Only prompt on actual protected dashboard views
+    if (!isDashboardRoute) return;
+
     async function checkStatus() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         return; // Push not supported
@@ -51,7 +55,7 @@ export function PushManager() {
     }
 
     checkStatus();
-  }, [searchParams]);
+  }, [searchParams, isDashboardRoute]);
 
   const handleSubscribe = async () => {
     setIsSubscribing(true);
@@ -114,44 +118,51 @@ export function PushManager() {
     // Users MUST accept to proceed.
   };
 
-  if (!showModal) return null;
+  if (!showModal || !isDashboardRoute) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border/50 overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-300">
-        <div className="bg-primary/10 p-6 flex justify-center">
-          <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center relative">
-            <Bell className="w-10 h-10 text-primary animate-pulse" />
-            <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-card"></div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-300">
+      <div className="card-3d-ceramic w-full max-w-md rounded-3xl overflow-hidden flex flex-col relative shadow-[0_25px_50px_-12px_rgba(15,23,42,0.25)] border-t border-white/80 animate-in zoom-in-95 duration-300">
+        <div className="bg-gradient-to-b from-blue-50/80 to-transparent p-6 flex justify-center border-b border-slate-100">
+          <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-blue-500 rounded-3xl flex items-center justify-center relative shadow-[0_8px_20px_-4px_rgba(37,99,235,0.4)] border-t border-white/40">
+            <Bell className="w-9 h-9 text-white animate-pulse" />
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
           </div>
         </div>
         
         <div className="p-6 text-center space-y-4">
-          <h2 className="text-xl font-bold text-foreground">
-            {isTeacher ? "Peringatan Sistem: Wajib Akses ⏱" : "Peringatan Sistem: Wajib Akses"}
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="space-y-1.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-xs font-semibold text-blue-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
+              Sistem Presensi Aktif
+            </span>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight pt-1">
+              {isTeacher ? "Peringatan Sistem: Wajib Akses ⏱" : "Peringatan Sistem: Wajib Akses"}
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
             {isTeacher 
               ? "Sekolah mewajibkan seluruh Guru untuk mengaktifkan Notifikasi agar tidak terlewat peringatan jadwal dan tugas kelas otomatis."
-              : "Demi kelancaran informasi dan pengawasan siswa, fitur Push Notification WAJIB diaktifkan sebelum Anda bisa menggunakan aplikasi."}
+              : "Demi kelancaran informasi dan pengawasan presensi, fitur Notifikasi wajib diaktifkan untuk sinkronisasi real-time."}
           </p>
           
           {isDenied ? (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 text-sm font-medium">
-              Akses Notifikasi diblokir oleh browser Anda. Mohon buka pengaturan browser (ikon gembok di url bar), izinkan Notifikasi, lalu muat ulang halaman ini.
+            <div className="bg-amber-50 text-amber-800 p-3.5 rounded-2xl border border-amber-200/80 text-xs font-medium text-left space-y-1">
+              <p className="font-semibold">Akses Notifikasi Terkunci</p>
+              <p className="text-amber-700">Mohon buka pengaturan browser Anda (ikon gembok di URL bar), pilih Izinkan Notifikasi, lalu refresh halaman.</p>
             </div>
           ) : (
             <button
               onClick={handleSubscribe}
               disabled={isSubscribing}
-              className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-2xl transition-all shadow-[0_4px_14px_rgba(37,99,235,0.35)] active:scale-98 disabled:opacity-70 flex items-center justify-center gap-2 border-t border-white/20"
             >
               {isSubscribing ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               ) : (
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4" />
               )}
-              {isSubscribing ? "Mengaktifkan..." : "Wajib Izinkan Notifikasi"}
+              <span className="text-sm">{isSubscribing ? "Menghubungkan..." : "Izinkan Notifikasi Sistem"}</span>
             </button>
           )}
         </div>

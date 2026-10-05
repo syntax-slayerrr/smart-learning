@@ -13,12 +13,12 @@ export function Card({
 }: CardProps) {
   const variantStyles = {
     default:
-      "bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_2px_12px_rgba(0,0,0,0.04)]",
+      "bg-white/95 border border-slate-200/80 border-t-white shadow-[0_2px_4px_-1px_rgba(15,23,42,0.03),0_12px_24px_-4px_rgba(15,23,42,0.06)]",
     secondary:
       "bg-[#F7F7F5] border border-[rgba(60,60,67,0.08)] shadow-[0_1px_3px_rgba(0,0,0,0.02)]",
-    outline: "bg-transparent border border-[rgba(60,60,67,0.16)]",
+    outline: "bg-transparent border border-slate-200/80",
     interactive:
-      "bg-white border border-[rgba(60,60,67,0.12)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[rgba(60,60,67,0.2)] active:scale-[0.99] transition-all duration-200 cursor-pointer",
+      "bg-white/95 border border-slate-200/80 border-t-white shadow-[0_2px_4px_-1px_rgba(15,23,42,0.03),0_12px_24px_-4px_rgba(15,23,42,0.06)] hover:shadow-[0_4px_8px_-1px_rgba(15,23,42,0.05),0_20px_36px_-6px_rgba(15,23,42,0.1)] hover:-translate-y-1 active:scale-[0.985] active:translate-y-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer touch-manipulation",
   };
 
   return (

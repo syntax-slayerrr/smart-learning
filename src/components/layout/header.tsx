@@ -14,13 +14,13 @@ interface HeaderProps {
 
 export function Header({ role, onMenuClick }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-[rgba(60,60,67,0.12)] bg-[#F7F7F5]/85 px-4 sm:px-6 backdrop-blur-[24px] supports-[backdrop-filter]:bg-[#F7F7F5]/75 transition-colors">
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 sm:px-6 backdrop-blur-[24px] supports-[backdrop-filter]:bg-white/70 transition-colors shadow-[0_1px_3px_0_rgba(15,23,42,0.02)]">
       {/* Left: Brand Identity on Mobile / Role Badge on Desktop */}
       <div className="flex items-center gap-3">
         {/* Mobile menu trigger */}
         <button
           onClick={onMenuClick}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-[#1D1D1F] hover:bg-[#F2F2F0] lg:hidden apple-press touch-manipulation"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-900 hover:bg-slate-100/80 lg:hidden transition-colors active:scale-95 touch-manipulation"
           aria-label="Buka Menu Navigasi"
         >
           <Menu className="h-5 w-5" />
@@ -31,7 +31,7 @@ export function Header({ role, onMenuClick }: HeaderProps) {
           href={`/${role}`}
           className="flex items-center gap-2.5 lg:hidden"
         >
-          <div className="relative h-7 w-7 overflow-hidden rounded-lg border border-[rgba(60,60,67,0.12)] bg-white p-0.5 shadow-sm">
+          <div className="relative h-8 w-8 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-0.5 shadow-sm">
             <Image
               src="/brand/syntax-slayer-logo.png"
               alt="Logo"
@@ -40,17 +40,22 @@ export function Header({ role, onMenuClick }: HeaderProps) {
               priority
             />
           </div>
-          <span className="text-xs font-bold tracking-tight text-[#1D1D1F]">
-            Smart Learning
-          </span>
+          <div>
+            <span className="text-xs font-extrabold tracking-tight text-slate-900 block leading-tight">
+              Smart Learning
+            </span>
+            <span className="text-[10px] font-medium text-slate-400 block leading-tight">
+              Syntax Slayer
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Role Tag */}
         <div className="hidden lg:flex items-center gap-2.5">
-          <span className="inline-flex items-center rounded-lg border border-[rgba(60,60,67,0.12)] bg-white px-2.5 py-1 text-xs font-semibold text-[#1D1D1F] shadow-[var(--shadow-subtle)]">
+          <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm border-t-white">
             {getRoleLabel(role)}
           </span>
-          <span className="text-xs text-[#8E8E93]">
+          <span className="text-xs text-slate-400 font-medium">
             • Syntax Slayer Enterprise
           </span>
         </div>
@@ -60,25 +65,25 @@ export function Header({ role, onMenuClick }: HeaderProps) {
       {role === "admin" ? (
         <Link
           href="/admin/camera-monitor"
-          className="hidden md:flex items-center gap-2 rounded-full border border-[rgba(52,199,89,0.25)] bg-[#34C759]/[0.08] hover:bg-[#34C759]/[0.15] px-3.5 py-1 text-xs font-medium text-[#1D1D1F] transition-all apple-press"
+          className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-100/70 px-3.5 py-1.5 text-xs font-semibold text-slate-800 transition-all active:scale-95 shadow-sm"
           title="Buka AI Classroom Vision & Live Monitor"
         >
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
           <span className="text-[12px] tracking-tight">
-            AI Telemetry <span className="text-[#34C759] font-semibold">• Live Monitor</span>
+            AI Telemetry <span className="text-emerald-600 font-bold">• Live Monitor</span>
           </span>
         </Link>
       ) : (
-        <div className="hidden md:flex items-center gap-2 rounded-full border border-[rgba(52,199,89,0.25)] bg-[#34C759]/[0.08] px-3.5 py-1 text-xs font-medium text-[#1D1D1F]">
+        <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
           <span className="text-[12px] tracking-tight">
-            AI Engine <span className="text-[#34C759] font-semibold">• Aktif</span>
+            AI Engine <span className="text-emerald-600 font-bold">• Aktif</span>
           </span>
         </div>
       )}

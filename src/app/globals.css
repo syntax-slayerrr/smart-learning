@@ -4,7 +4,7 @@
   /* Apple HIG Semantic Palette */
   --color-background: #F7F7F5;
   --color-foreground: #1D1D1F;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
 
   /* Primary Brand / Apple System Blue */
@@ -91,6 +91,14 @@
     --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.06);
     --shadow-floating: 0 16px 50px rgba(0, 0, 0, 0.10);
+
+    /* 3D Depth & Elevation Tokens (Composite Dual Shadows with Chromatic Tint) */
+    --shadow-3d-light: 0 2px 5px -1px rgba(15, 23, 42, 0.04), 0 14px 28px -4px rgba(37, 99, 235, 0.07), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+    --shadow-3d-dark: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 20px 36px -6px rgba(15, 23, 42, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
+    --shadow-3d-chip: 0 2px 4px -1px rgba(15, 23, 42, 0.03), 0 8px 18px -2px rgba(37, 99, 235, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+    --shadow-clay-pill: 0 8px 20px -3px rgba(37, 99, 235, 0.28), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.15);
+    --shadow-search-pill: 0 2px 4px rgba(15, 23, 42, 0.02), 0 10px 24px -3px rgba(30, 41, 59, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+    --shadow-dock-floating: 0 -2px 10px rgba(0, 0, 0, 0.03), 0 20px 42px -8px rgba(15, 23, 42, 0.22);
   }
 
   *,
@@ -209,18 +217,101 @@
     border-color: rgba(60, 60, 67, 0.22);
   }
 
-  /* Apple Tactile Press & Minimum Touch Target (Section 9 & 30) */
+  /* 3D Tactile Floating Depth System (Proton Vault Visual Physics) */
+  .card-3d-ceramic {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 1);
+    box-shadow: var(--shadow-3d-light);
+    border-radius: 24px;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card-3d-navy {
+    background: linear-gradient(145deg, #0F172A 0%, #1E293B 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--shadow-3d-dark);
+    border-radius: 24px;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card-3d-chip {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-top: 1px solid rgba(255, 255, 255, 1);
+    box-shadow: var(--shadow-3d-chip);
+    border-radius: 20px;
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 160ms ease,
+                box-shadow 160ms ease;
+  }
+
+  .card-3d-chip:active {
+    transform: scale(0.96);
+  }
+
+  .search-pill-3d {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 1);
+    box-shadow: var(--shadow-search-pill);
+    border-radius: 9999px;
+  }
+
+  /* Apple Tactile Press & Minimum Touch Target (Taptic Engine Simulation) */
   .apple-press {
     min-height: 44px;
     transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
                 background-color 140ms ease,
-                box-shadow 140ms ease,
+                box-shadow 140ms cubic-bezier(0.16, 1, 0.3, 1),
                 border-color 140ms ease;
     will-change: transform;
+    touch-action: manipulation;
+  }
+
+  .apple-press:hover {
+    transform: translateY(-1px);
   }
 
   .apple-press:active {
-    transform: scale(0.98);
+    transform: scale(0.958) translateY(0);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+  }
+
+  /* Card 3D Ceramic with Fluid Physics */
+  .card-3d-ceramic {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 4px -1px rgba(15, 23, 42, 0.03), 0 12px 24px -4px rgba(15, 23, 42, 0.06);
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 180ms ease;
+    will-change: transform, box-shadow;
+  }
+
+  .card-3d-ceramic:hover {
+    transform: translateY(-2.5px);
+    box-shadow: 0 4px 8px -1px rgba(15, 23, 42, 0.05), 0 20px 36px -6px rgba(15, 23, 42, 0.09);
+    border-color: rgba(203, 213, 225, 0.95);
+  }
+
+  .card-3d-ceramic:active {
+    transform: scale(0.985) translateY(0);
+    transition-duration: 80ms;
+  }
+
+  /* Apple Spring Pill Indicator */
+  .apple-spring-pill {
+    transition: all 340ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  /* Accessible Smooth Focus Transition */
+  input:focus, select:focus, textarea:focus {
+    transition: box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms ease;
   }
 
   /* Tabular numbers for telemetry precision */
@@ -234,6 +325,21 @@
 
   .animate-slide-up {
     animation: slideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-sheet-in {
+    animation: sheetIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

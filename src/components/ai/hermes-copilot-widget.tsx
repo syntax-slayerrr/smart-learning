@@ -205,7 +205,7 @@ export function HermesCopilotWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full bg-stone-900 px-4 py-3 text-stone-100 shadow-xl border border-stone-800 hover:bg-stone-800 transition-all duration-200 active:scale-[0.98] group"
+          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-full bg-stone-900 px-3.5 py-2.5 sm:px-4 sm:py-3 text-stone-100 shadow-xl border border-stone-800 hover:bg-stone-800 transition-all duration-200 active:scale-[0.98] group"
           title="Buka Hermes AI Workspace"
         >
           <div className="relative flex h-5 w-5 items-center justify-center">
@@ -222,10 +222,10 @@ export function HermesCopilotWidget() {
       {/* Floating Workspace Modal */}
       {isOpen && (
         <div
-          className={`fixed bottom-5 right-5 z-50 flex flex-col rounded-2xl border border-[#E7E2DA] bg-white shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
+          className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col rounded-2xl border border-[#E7E2DA] bg-white shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${
             isExpanded
-              ? "h-[650px] w-[560px] max-w-[calc(100vw-24px)]"
-              : "h-[540px] w-[410px] max-w-[calc(100vw-24px)]"
+              ? "h-[650px] w-[560px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
+              : "h-[540px] w-[410px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-6rem)]"
           }`}
         >
           {/* Header */}

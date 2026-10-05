@@ -106,51 +106,58 @@ export default function SubjectsClient({
         </button>
       </div>
 
-      {/* Grid Mata Pelajaran */}
+      {/* Grid Mata Pelajaran 3D Ceramic Squircle */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredSubjects.map((subject) => (
           <div
             key={subject.id}
-            className="group relative rounded-xl border border-border bg-card p-4 transition-all hover:shadow-md apple-card"
+            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 border-t-white bg-white/95 p-5 shadow-[0_2px_4px_-1px_rgba(15,23,42,0.03),0_12px_24px_-4px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_8px_-1px_rgba(15,23,42,0.05),0_20px_36px_-6px_rgba(15,23,42,0.1)] card-3d-ceramic"
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-sm leading-tight">{subject.name}</h3>
-                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider mt-0.5">
-                    {subject.code || "TANPA KODE"}
-                  </p>
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-600 shadow-xs">
+                    <BookOpen className="h-5 w-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base tracking-tight leading-snug">{subject.name}</h3>
+                    <div className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-slate-100/90 px-2 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200/60 tracking-wider">
+                      {subject.code || "REGULER"}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+            </div>
+
+            {/* Inset Tactile Action Bar */}
+            <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100/80">
+              <span className="text-[11px] font-medium text-slate-400">Kurikulum Aktif</span>
+              <div className="flex items-center gap-1 rounded-2xl bg-slate-50/90 p-1 border border-slate-200/60 shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)]">
                 <button
                   onClick={() => {
                     setError("");
                     setEditingSubject(subject);
                   }}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-amber-600 hover:shadow-xs transition-all cursor-pointer"
                   title="Edit Mata Pelajaran"
                   aria-label={`Edit ${subject.name}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setDeletingSubject({ id: subject.id, name: subject.name })}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-red-600 hover:shadow-xs transition-all cursor-pointer"
                   title="Hapus Mata Pelajaran"
                   aria-label={`Hapus ${subject.name}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
           </div>
         ))}
         {filteredSubjects.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
+          <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-white/50 px-4 py-12 text-center text-sm font-medium text-slate-500">
             {searchTerm ? "Tidak ditemukan mata pelajaran yang cocok" : "Belum ada mata pelajaran. Klik tombol Tambah untuk memulai."}
           </div>
         )}

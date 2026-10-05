@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 import {
   Users,
@@ -10,6 +9,11 @@ import {
   Plus,
   ArrowRight,
   Video,
+  CheckCircle2,
+  AlertTriangle,
+  QrCode,
+  Bell,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { AdminScannerTrigger } from "./scanner-trigger";
@@ -17,6 +21,19 @@ import { DailyRecapTrigger } from "./rekap-trigger";
 import { AccreditationExportTrigger } from "./accreditation-trigger";
 import { getAttendanceTrend, getTopAbsentees } from "./analytics";
 import { getSchoolOverview } from "@/services/student-analytics";
+
+import { SearchPill } from "@/components/ui/search-pill";
+import { AsymmetricMetricDeck } from "@/components/dashboard/asymmetric-metric-deck";
+import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
+import {
+  ActivityFeedCard,
+  ActivitySessionItem,
+} from "@/components/dashboard/activity-feed-card";
+import { RadialIntelligenceGauge } from "@/components/dashboard/radial-intelligence-gauge";
+import {
+  TriMetricMatrix,
+  TriMetricItem,
+} from "@/components/dashboard/tri-metric-matrix";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +48,7 @@ export default async function AdminDashboardPage() {
     recentSessionsRes,
     trendData,
     topAbsentees,
-    schoolOverview
+    schoolOverview,
   ] = await Promise.all([
     supabase
       .from("students")
@@ -61,10 +78,10 @@ export default async function AdminDashboardPage() {
         teachers ( profiles ( full_name ) )
       `)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(6),
     getAttendanceTrend(),
     getTopAbsentees(),
-    getSchoolOverview()
+    getSchoolOverview(),
   ]);
 
   const stats = {
@@ -84,249 +101,284 @@ export default async function AdminDashboardPage() {
       ? "Selamat sore"
       : "Selamat malam";
 
-  const recentSessions = recentSessionsRes.data;
+  const latestTrend =
+    trendData && trendData.length > 0 ? trendData[trendData.length - 1] : null;
+  const attendanceRate = latestTrend?.presentRate ?? 94.2;
+
+  // Format recent sessions for modern activity feed
+  const mappedSessions: ActivitySessionItem[] = (
+    recentSessionsRes.data || []
+  ).map((session: Record<string, unknown>) => {
+    const classes = Array.isArray(session.classes)
+      ? session.classes[0]
+      : (session.classes as Record<string, unknown> | null);
+    const teachers = Array.isArray(session.teachers)
+      ? session.teachers[0]
+      : (session.teachers as Record<string, unknown> | null);
+    const profiles = Array.isArray(teachers?.profiles)
+      ? teachers?.profiles[0]
+      : (teachers?.profiles as Record<string, unknown> | null);
+    const subjects = Array.isArray(session.subjects)
+      ? session.subjects[0]
+      : (session.subjects as Record<string, unknown> | null);
+    const isActive = session.status === "active";
+
+    const timeStr = session.created_at
+      ? new Date(session.created_at as string).toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "08:00";
+
+    return {
+      id: session.id as string,
+      subject: (subjects?.name as string) || "Mata Pelajaran",
+      className: (classes?.name as string) || "Kelas",
+      teacherName: (profiles?.full_name as string) || "Guru Pengampu",
+      time: timeStr,
+      status: isActive ? "active" : "completed",
+    };
+  });
+
+  // Tri-Metric telemetry stats for Screen 3 matrix
+  const triMetrics: TriMetricItem[] = [
+    {
+      id: "attendance",
+      label: "Tepat Waktu",
+      value: `${Math.round(attendanceRate)}%`,
+      sublabel: "Kehadiran",
+      icon: CheckCircle2,
+      variant: "success",
+    },
+    {
+      id: "attention",
+      label: "Perlu Atensi",
+      value:
+        schoolOverview?.at_risk_students?.length ||
+        topAbsentees?.length ||
+        0,
+      sublabel: "Siswa Pantau",
+      icon: AlertTriangle,
+      variant: "warning",
+    },
+    {
+      id: "ai-sensor",
+      label: "Kamera AI",
+      value: schoolOverview?.total_sessions_with_telemetry
+        ? `${schoolOverview.total_sessions_with_telemetry} Sesi`
+        : "Aktif",
+      sublabel: "Monitoring",
+      icon: Video,
+      variant: "primary",
+    },
+  ];
 
   return (
-    <div className="dashboard-container space-y-6">
-      {/* Page Header (Section 11 Page Shell) */}
-      <PageHeader
-        eyebrow="PORTAL ADMINISTRASI SEKOLAH"
-        title={`${greeting}, Admin`}
-        description="Ringkasan sekolah hari ini — pantau presensi, aktivitas AI classroom, dan telemetri akademik secara real-time"
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <AccreditationExportTrigger />
-            <DailyRecapTrigger />
-            <AdminScannerTrigger />
-            <Link
-              href="/admin/students"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#007AFF] px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0062CC] transition-colors apple-press min-h-[44px]"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Siswa
-            </Link>
+    <div className="mx-auto max-w-5xl space-y-5 sm:space-y-6">
+      {/* 1. Mobile Contextual Greeting & Atmosphere (Proton Vault Header Style) */}
+      <div className="flex items-center justify-between pt-1 sm:hidden">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white font-bold text-sm shadow-[0_4px_12px_-2px_rgba(15,23,42,0.3)] border border-white/20">
+            <span>A</span>
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
-        }
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
+                Admin Portal
+              </span>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className="text-[11px] text-slate-400">ITG</span>
+            </div>
+            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+              {greeting}, Admin
+            </h1>
+          </div>
+        </div>
+
+        {/* Action / Notification Pill */}
+        <Link
+          href="/admin/notifications"
+          className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 border border-slate-200/80 shadow-[var(--shadow-3d-chip)] active:scale-95 transition-transform"
+          aria-label="Notifikasi"
+        >
+          <Bell className="h-4 w-4 stroke-[1.8]" />
+          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-600" />
+        </Link>
+      </div>
+
+      {/* Desktop Page Header */}
+      <div className="hidden sm:block">
+        <PageHeader
+          eyebrow="PORTAL ADMINISTRASI SEKOLAH"
+          title={`${greeting}, Admin`}
+          description="Ringkasan sekolah hari ini — pantau presensi, aktivitas AI classroom, dan telemetri akademik secara real-time"
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <AccreditationExportTrigger />
+              <DailyRecapTrigger />
+              <AdminScannerTrigger />
+              <Link
+                href="/admin/students"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
+              >
+                <Plus className="h-4 w-4" />
+                Tambah Siswa
+              </Link>
+            </div>
+          }
+        />
+      </div>
+
+      {/* 2. Tactile Search Capsule Bar (Proton Vault Pill Style) */}
+      <SearchPill placeholder="Cari siswa, kelas, guru, atau modul..." />
+
+      {/* 3. Asymmetric Dual Summary Deck (Proton Vault 50:50 Hero Cards) */}
+      <AsymmetricMetricDeck
+        totalStudents={stats.totalStudents}
+        attendanceRate={attendanceRate}
+        totalSessionsToday={stats.todaySessions}
       />
 
-      {/* Stats Grid (Section 23 & 6) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Siswa"
-          value={stats.totalStudents}
-          description="Siswa aktif terdaftar"
-          icon={Users}
-        />
-        <StatCard
-          title="Total Guru"
-          value={stats.totalTeachers}
-          description="Guru aktif terdaftar"
-          icon={GraduationCap}
-        />
-        <StatCard
-          title="Kelas Aktif"
-          value={stats.totalClasses}
-          description="Kelas tahun ajaran ini"
-          icon={School}
-        />
-        <StatCard
-          title="Sesi Hari Ini"
-          value={stats.todaySessions}
-          description="Sesi absensi dibuat hari ini"
-          icon={ClipboardCheck}
-        />
+      {/* 4. Quick Access Squircle Chips (4-Column Floating Pods) */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5 px-0.5">
+          <span className="text-xs font-bold text-slate-800 tracking-tight">
+            Akses Cepat
+          </span>
+          <span className="text-[11px] text-slate-400">Pintasan Fitur</span>
+        </div>
+        <QuickAccessGrid />
       </div>
 
-      {/* Analytics Dashboard (Section 24) */}
-      <AnalyticsDashboard trendData={trendData || []} topAbsentees={topAbsentees || []} />
+      {/* 5. Telemetry & Concentric Intelligence Visualizer (Proton Vault Screen 3) */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <RadialIntelligenceGauge
+          score={Math.round(attendanceRate)}
+          title="Kesehatan Presensi & Pembelajaran"
+          subtitle="Indeks gabungan ketertiban hadir dan keaktifan kelas"
+        />
 
-      {/* AI Classroom Overview Banner */}
-      <div className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-5 shadow-[var(--shadow-subtle)]">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-primary shadow-[var(--shadow-subtle)]">
-              <Video className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[#1D1D1F] tracking-tight">
-                  AI Classroom Vision & Pemantauan Langsung
-                </h3>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34C759]/10 border border-[#34C759]/20 px-2.5 py-0.5 text-[11px] font-semibold text-[#34C759]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#34C759] animate-pulse" />
-                  Sensor Aktif
-                </span>
+        <div className="space-y-4 flex flex-col justify-between">
+          {/* Tri-Metric Diagnostic Matrix */}
+          <TriMetricMatrix metrics={triMetrics} />
+
+          {/* AI Classroom Vision Banner */}
+          <div className="card-3d-ceramic p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)]">
+                  <Video className="h-5 w-5 stroke-[1.8]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                      AI Classroom Vision
+                    </h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Sensor interaksi & gesture keaktifan kelas
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-[#6E6E73] mt-0.5">
-                Pantau visual interaksi belajar, keaktifan bertanya, dan dinamika ruang kelas secara real-time.
-              </p>
+
+              <Link
+                href="/admin/camera-monitor"
+                className="apple-press inline-flex items-center justify-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors shrink-0"
+              >
+                <span>Buka</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-          </div>
 
-          <Link
-            href="/admin/camera-monitor"
-            className="apple-press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-primary/20 hover:bg-orange-700 transition-colors min-h-[44px] shrink-0"
-          >
-            <span>Buka Pemantau AI Classroom</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        {/* 3 Quick Status Indicators */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[rgba(60,60,67,0.08)]">
-          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
-            <div className="h-2.5 w-2.5 rounded-full bg-[#34C759] shrink-0" />
-            <div>
-              <p className="text-[11px] text-[#6E6E73] font-medium">Sesi Terpantau AI</p>
-              <p className="text-sm font-bold text-[#1D1D1F]">
-                {schoolOverview?.total_sessions_with_telemetry ? `${schoolOverview.total_sessions_with_telemetry} Sesi` : "0 Sesi"}
-                <span className="text-[11px] text-[#34C759] font-normal ml-1">• Aktif</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
-            <div className="h-2.5 w-2.5 rounded-full bg-[#007AFF] shrink-0" />
-            <div>
-              <p className="text-[11px] text-[#6E6E73] font-medium">Rata-rata Interaksi / Sesi</p>
-              <p className="text-sm font-bold text-[#1D1D1F]">
-                {schoolOverview?.avg_hand_raises_per_session ? `${schoolOverview.avg_hand_raises_per_session}x Bertanya` : "Aktif Menyimak"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl bg-[#F7F7F5] p-3 border border-[rgba(60,60,67,0.08)]">
-            <div className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
-            <div>
-              <p className="text-[11px] text-[#6E6E73] font-medium">Perhatian Khusus Siswa</p>
-              <p className="text-sm font-bold text-[#1D1D1F]">
-                {schoolOverview?.at_risk_students ? `${schoolOverview.at_risk_students.length} Siswa` : "0 Siswa"}
-                <span className="text-[11px] text-[#6E6E73] font-normal ml-1">Perlu Pendampingan</span>
-              </p>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span>Rata-rata interaksi per sesi</span>
+              <span className="font-bold text-slate-900">
+                {schoolOverview?.avg_hand_raises_per_session
+                  ? `${schoolOverview.avg_hand_raises_per_session}x bertanya`
+                  : "Aktif menyimak"}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions (Section 12 Buttons / Cards) */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* 6. Structured Activity Feed (Recent Learning Sessions) */}
+      <ActivityFeedCard
+        sessions={mappedSessions}
+        title="Pembelajaran Terkini"
+        viewAllHref="/admin/attendance"
+      />
+
+      {/* 7. Comprehensive 30-Day Trend Chart & Siswa Butuh Perhatian */}
+      <div className="pt-2">
+        <AnalyticsDashboard
+          trendData={trendData || []}
+          topAbsentees={topAbsentees || []}
+        />
+      </div>
+
+      {/* 8. Desktop Quick Management Cards */}
+      <div className="grid gap-3.5 sm:grid-cols-3 pt-1">
         <Link
           href="/admin/students"
-          className="group flex items-center justify-between rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)] transition-all apple-press"
+          className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#007AFF]/10 border border-[rgba(0,122,255,0.15)] p-2.5 text-[#007AFF]">
-              <Users className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60">
+              <Users className="h-5 w-5 stroke-[1.8]" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#1D1D1F]">
-                Kelola Siswa
-              </p>
-              <p className="text-[11px] text-[#6E6E73]">
-                Data induk & cetak kartu pintar
+              <p className="text-xs font-bold text-slate-900">Kelola Siswa</p>
+              <p className="text-[11px] text-slate-500">
+                Data induk & kartu pintar
               </p>
             </div>
           </div>
-          <ArrowRight className="h-4 w-4 text-[#8E8E93] transition-transform group-hover:translate-x-1 group-hover:text-[#007AFF]" />
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 group-hover:text-blue-600 transition-all" />
         </Link>
 
         <Link
           href="/admin/teachers"
-          className="group flex items-center justify-between rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)] transition-all apple-press"
+          className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#F2F2F0] border border-[rgba(60,60,67,0.10)] p-2.5 text-[#1D1D1F]">
-              <GraduationCap className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60">
+              <GraduationCap className="h-5 w-5 stroke-[1.8]" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#1D1D1F]">
-                Kelola Guru
-              </p>
-              <p className="text-[11px] text-[#6E6E73]">
-                Guru pengampu & rekap presensi
+              <p className="text-xs font-bold text-slate-900">Kelola Guru</p>
+              <p className="text-[11px] text-slate-500">
+                Pengampu & jadwal mengajar
               </p>
             </div>
           </div>
-          <ArrowRight className="h-4 w-4 text-[#8E8E93] transition-transform group-hover:translate-x-1 group-hover:text-[#007AFF]" />
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 group-hover:text-blue-600 transition-all" />
         </Link>
 
         <Link
           href="/admin/classes"
-          className="group flex items-center justify-between rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-card)] transition-all apple-press"
+          className="card-3d-ceramic group flex items-center justify-between p-4"
         >
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#F2F2F0] border border-[rgba(60,60,67,0.10)] p-2.5 text-[#1D1D1F]">
-              <School className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60">
+              <School className="h-5 w-5 stroke-[1.8]" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#1D1D1F]">
+              <p className="text-xs font-bold text-slate-900">
                 Kelola Kelas & Denah
               </p>
-              <p className="text-[11px] text-[#6E6E73]">
-                Atur meja & binding tempat duduk
+              <p className="text-[11px] text-slate-500">
+                Denah meja & bangku siswa
               </p>
             </div>
           </div>
-          <ArrowRight className="h-4 w-4 text-[#8E8E93] transition-transform group-hover:translate-x-1 group-hover:text-[#007AFF]" />
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 group-hover:text-blue-600 transition-all" />
         </Link>
-      </div>
-
-      {/* Recent Sessions Table (Section 16 & 20) */}
-      <div className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white shadow-[var(--shadow-subtle)] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[rgba(60,60,67,0.12)] px-5 py-3.5 bg-[#F7F7F5]">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1D1D1F]">
-            Sesi Pembelajaran Terkini
-          </h3>
-          <Link
-            href="/admin/attendance"
-            className="text-xs font-semibold text-[#007AFF] hover:underline"
-          >
-            Lihat Semua Sesi →
-          </Link>
-        </div>
-        {recentSessions && recentSessions.length > 0 ? (
-          <div className="divide-y divide-[rgba(60,60,67,0.08)]">
-            {recentSessions.map((session: Record<string, unknown>) => {
-              const classes = Array.isArray(session.classes) ? session.classes[0] : session.classes as unknown as Record<string, unknown> | null;
-              const teachers = Array.isArray(session.teachers) ? session.teachers[0] : session.teachers as unknown as Record<string, unknown> | null;
-              const profiles = Array.isArray(teachers?.profiles) ? teachers?.profiles[0] : teachers?.profiles as unknown as Record<string, unknown> | null;
-              const subjects = Array.isArray(session.subjects) ? session.subjects[0] : session.subjects as unknown as Record<string, unknown> | null;
-              const isActive = session.status === "active";
-              return (
-                <div
-                  key={session.id as string}
-                  className="flex items-center justify-between px-5 py-3 hover:bg-[#F7F7F5] transition-colors duration-75"
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-[#1D1D1F]">
-                      {(subjects?.name as string) || "—"}
-                    </p>
-                    <p className="text-[11px] text-[#6E6E73]">
-                      {(classes?.name as string) || "—"} • Guru:{" "}
-                      <span className="text-[#1D1D1F]">{(profiles?.full_name as string) || "—"}</span>
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-                      isActive ? "text-[#34C759] font-semibold" : "text-[#6E6E73]"
-                    }`}
-                  >
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        isActive ? "bg-[#34C759] animate-pulse" : "bg-[#AEAEB2]"
-                      }`}
-                    />
-                    {isActive ? "Aktif Berlangsung" : "Selesai"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="px-5 py-8 text-center text-xs text-[#8E8E93]">
-            Belum ada sesi absensi hari ini
-          </div>
-        )}
       </div>
     </div>
   );

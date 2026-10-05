@@ -80,67 +80,92 @@ export function ClassesClient({ classes, teachers }: { classes: ClassRow[]; teac
         </button>
       </div>
 
-      {/* Grid Kelas */}
+      {/* Grid Kelas 3D Ceramic Squircle */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {classes.map((c) => (
-          <div key={c.id} className="rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md apple-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">{c.name}</h3>
-                <p className="text-xs text-muted-foreground">Tingkat {c.grade} • {c.academic_year}</p>
-                {c.teachers?.profiles?.full_name && (
-                  <p className="mt-1 text-xs text-muted-foreground">Wali: {c.teachers.profiles.full_name}</p>
-                )}
+          <div
+            key={c.id}
+            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 border-t-white bg-white/95 p-5 shadow-[0_2px_4px_-1px_rgba(15,23,42,0.03),0_12px_24px_-4px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_8px_-1px_rgba(15,23,42,0.05),0_20px_36px_-6px_rgba(15,23,42,0.1)] card-3d-ceramic"
+          >
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 font-bold text-sm shadow-xs">
+                    {c.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 tracking-tight">{c.name}</h3>
+                    <p className="text-xs font-medium text-slate-500">Tingkat {c.grade} • {c.academic_year}</p>
+                  </div>
+                </div>
+
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${
+                    c.is_active
+                      ? "border border-emerald-200/70 bg-emerald-50 text-emerald-700"
+                      : "border border-slate-200 bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${c.is_active ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  {c.is_active ? "Aktif" : "Nonaktif"}
+                </span>
               </div>
-              <div className="flex items-center gap-1">
+
+              {c.teachers?.profiles?.full_name && (
+                <div className="mt-3.5 flex items-center gap-2 rounded-xl bg-slate-50/80 px-3 py-2 border border-slate-100/90 text-xs text-slate-600">
+                  <span className="font-semibold text-slate-500">Wali:</span>
+                  <span className="font-medium text-slate-800 truncate">{c.teachers.profiles.full_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Inset Tactile Action Bar */}
+            <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100/80">
+              <span className="text-[11px] font-medium text-slate-400">Opsi Manajemen</span>
+              <div className="flex items-center gap-1 rounded-2xl bg-slate-50/90 p-1 border border-slate-200/60 shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)]">
                 <button
                   onClick={() => {
                     setEditingClass(c);
                     setFormError("");
                   }}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-amber-600 hover:shadow-xs transition-all cursor-pointer"
                   title="Edit Kelas"
                   aria-label={`Edit kelas ${c.name}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setSelectedClassQr({ id: c.id, name: c.name })}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-xs transition-all cursor-pointer"
                   title="Cetak QR Statis"
                   aria-label={`Cetak QR statis kelas ${c.name}`}
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => window.open(`/admin/classes/print-cards/${c.id}`, "_blank")}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-xs transition-all cursor-pointer"
                   title="Cetak Semua Kartu Siswa"
                   aria-label={`Cetak kartu siswa kelas ${c.name}`}
                 >
-                  <Printer className="h-4 w-4" />
+                  <Printer className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setDeletingClass({ id: c.id, name: c.name })}
                   disabled={isPending}
-                  className="apple-press rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer disabled:opacity-50"
+                  className="apple-press rounded-xl p-2 text-slate-600 hover:bg-white hover:text-red-600 hover:shadow-xs transition-all cursor-pointer disabled:opacity-50"
                   title="Hapus Kelas"
                   aria-label={`Hapus kelas ${c.name}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
-            <div className="mt-3">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.is_active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" : "bg-muted text-muted-foreground border border-border"}`}>
-                {c.is_active ? "Aktif" : "Nonaktif"}
-              </span>
             </div>
           </div>
         ))}
         {classes.length === 0 && (
-          <div className="col-span-full rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            Belum ada data kelas
+          <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-white/50 px-4 py-12 text-center text-sm font-medium text-slate-500">
+            Belum ada data kelas terdaftar
           </div>
         )}
       </div>

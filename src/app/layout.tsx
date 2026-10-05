@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 export const viewport: Viewport = {
-  themeColor: "#EA580C",
+  themeColor: "#0F172A",
 };
 import { Suspense } from "react";
 import { PushManager } from "@/components/shared/push-manager";

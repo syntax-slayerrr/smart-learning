@@ -1,22 +1,34 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
 import {
   ClipboardCheck,
-  Users,
   School,
   BarChart3,
   Plus,
   QrCode,
   Bell,
+  PlayCircle,
+  Clock,
+  Sparkles,
+  ChevronRight,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { getTeacherSessionsAnalytics } from "@/services/student-analytics";
 import { TeacherSessionsAnalytics } from "@/components/dashboard/teacher-sessions-analytics";
+import { SearchPill } from "@/components/ui/search-pill";
+import { AsymmetricMetricDeck } from "@/components/dashboard/asymmetric-metric-deck";
+import { RadialIntelligenceGauge } from "@/components/dashboard/radial-intelligence-gauge";
+import {
+  TriMetricMatrix,
+  TriMetricItem,
+} from "@/components/dashboard/tri-metric-matrix";
 
 export const metadata: Metadata = {
-  title: "Dashboard Guru",
+  title: "Dashboard Guru — Smart Learning",
 };
 
 export default async function TeacherDashboard() {
@@ -28,81 +40,105 @@ export default async function TeacherDashboard() {
   // Get teacher record
   const { data: teacher } = await supabase
     .from("teachers")
-    .select("id, profiles(push_subscription)")
+    .select("id, profiles(full_name, push_subscription)")
     .eq("profile_id", user!.id)
     .single();
 
   const teacherId = teacher?.id;
-  const hasPushSubscription = !!(teacher?.profiles as any)?.push_subscription;
+  const teacherProfile = (teacher?.profiles as unknown) as Record<
+    string,
+    unknown
+  > | null;
+  const teacherName = (teacherProfile?.full_name as string) || "Bapak/Ibu Guru";
+  const hasPushSubscription = !!teacherProfile?.push_subscription;
 
   // 1. Get current time in WIB
   const nowUtc = new Date();
-  const nowWib = new Date(nowUtc.getTime() + (7 * 60 * 60 * 1000));
+  const nowWib = new Date(nowUtc.getTime() + 7 * 60 * 60 * 1000);
   const dayOfWeek = nowWib.getUTCDay();
-  const currentTime = nowWib.getUTCHours().toString().padStart(2, '0') + ':' +
-    nowWib.getUTCMinutes().toString().padStart(2, '0');
+  const currentTime =
+    nowWib.getUTCHours().toString().padStart(2, "0") +
+    ":" +
+    nowWib.getUTCMinutes().toString().padStart(2, "0");
   const today = nowWib.toISOString().split("T")[0];
 
-  // 2. RUN ALL INDEPENDENT QUERIES CONCURRENTLY (HUGE PERFORMANCE BOOST)
+  const hour = nowWib.getUTCHours();
+  const greeting =
+    hour < 11
+      ? "Selamat pagi"
+      : hour < 15
+      ? "Selamat siang"
+      : hour < 18
+      ? "Selamat sore"
+      : "Selamat malam";
+
+  // 2. RUN ALL INDEPENDENT QUERIES CONCURRENTLY
   const [
     scheduleRes,
     todaySessionsRes,
     totalSessionsRes,
     activeSessionsRes,
-    recentSessionsRes
+    recentSessionsRes,
   ] = await Promise.all([
     // 2a. Current Schedule
     supabase
       .from("schedules")
-      .select(`
+      .select(
+        `
         id, class_id, subject_id, start_time, end_time,
         classes ( name ),
         subjects ( name )
-      `)
+      `
+      )
       .eq("teacher_id", teacherId || "")
       .eq("day_of_week", dayOfWeek)
       .lte("start_time", currentTime)
       .gte("end_time", currentTime)
       .maybeSingle(),
-      
+
     // 2b. Today Sessions Count
     supabase
       .from("attendance_sessions")
       .select("id", { count: "exact", head: true })
       .eq("teacher_id", teacherId || "")
       .eq("session_date", today),
-      
+
     // 2c. Total Sessions Count
     supabase
       .from("attendance_sessions")
       .select("id", { count: "exact", head: true })
       .eq("teacher_id", teacherId || ""),
-      
+
     // 2d. Active Sessions
     supabase
       .from("attendance_sessions")
-      .select(`id, subjects(name), session_date, status, qr_expires_at, created_at, classes(name)`)
+      .select(
+        `id, subjects(name), session_date, status, qr_expires_at, created_at, classes(name)`
+      )
       .eq("teacher_id", teacherId || "")
       .eq("status", "active")
       .order("created_at", { ascending: false }),
-      
+
     // 2e. Recent Sessions
     supabase
       .from("attendance_sessions")
-      .select(`id, subjects(name), session_date, status, qr_expires_at, created_at, classes(name)`)
+      .select(
+        `id, subjects(name), session_date, status, qr_expires_at, created_at, classes(name)`
+      )
       .eq("teacher_id", teacherId || "")
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(6),
   ]);
 
   const currentSchedule = scheduleRes.data;
-  
   const nowTime = new Date().getTime();
+
   // Filter out expired sessions from activeSessions
   const activeSessions = (activeSessionsRes.data || []).filter(
-    (s: any) => new Date(s.qr_expires_at).getTime() >= nowTime
+    (s: Record<string, unknown>) =>
+      new Date(s.qr_expires_at as string).getTime() >= nowTime
   );
-  
+
   const recentSessions = recentSessionsRes.data;
 
   // 4. Fetch AI classroom analytics for this teacher
@@ -125,212 +161,411 @@ export default async function TeacherDashboard() {
     activeScheduleSession = sess;
   }
 
+  const teacherMetrics: TriMetricItem[] = [
+    {
+      id: "active-sessions",
+      label: "Sesi Aktif",
+      value: activeSessions.length,
+      sublabel: "Bisa Di-scan",
+      icon: PlayCircle,
+      variant: activeSessions.length > 0 ? "success" : "primary",
+    },
+    {
+      id: "today-total",
+      label: "Sesi Hari Ini",
+      value: todaySessionsRes.count || 0,
+      sublabel: "Tuntas Terjadwal",
+      icon: Clock,
+      variant: "primary",
+    },
+    {
+      id: "total-history",
+      label: "Total Sesi",
+      value: totalSessionsRes.count || 0,
+      sublabel: "Sepanjang Masa",
+      icon: CheckCircle2,
+      variant: "primary",
+    },
+  ];
+
   return (
-    <div className="dashboard-container space-y-6 animate-fade-in">
-      <PageHeader
-        title="Dashboard Guru"
-        description="Portal Manajemen Sesi & Analitika Telemetri Kelas"
-        action={
-          <div className="flex items-center gap-2">
-            <Link
-              href="/teacher/scan"
-              className="apple-press inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted/60"
-            >
-              <QrCode className="h-4 w-4 text-primary" />
-              <span>Scan QR</span>
-            </Link>
-            <Link
-              href="/teacher/attendance/new"
-              className="apple-press inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Buka Sesi Baru</span>
-            </Link>
+    <div className="mx-auto max-w-5xl space-y-5 sm:space-y-6">
+      {/* 1. Mobile Contextual Greeting & Atmosphere */}
+      <div className="flex items-center justify-between pt-1 sm:hidden">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-950 text-white font-bold text-sm shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)] border border-white/20">
+            <span>{teacherName.charAt(0)}</span>
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
-        }
-      />
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
+                Guru Pengajar
+              </span>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className="text-[11px] text-slate-400">
+                {activeSessions.length > 0
+                  ? `${activeSessions.length} sesi aktif`
+                  : "Standby"}
+              </span>
+            </div>
+            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+              {greeting}, {teacherName.split(" ")[0]}
+            </h1>
+          </div>
+        </div>
+
+        {/* Quick New Session Action */}
+        <Link
+          href="/teacher/attendance/new"
+          className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)] active:scale-95 transition-transform"
+          aria-label="Buka Sesi Baru"
+        >
+          <Plus className="h-5 w-5 stroke-[2.2]" />
+        </Link>
+      </div>
+
+      {/* Desktop Page Header */}
+      <div className="hidden sm:block">
+        <PageHeader
+          eyebrow="PORTAL MANAJEMEN GURU"
+          title={`${greeting}, ${teacherName}`}
+          description="Portal Manajemen Sesi & Analitika Telemetri Kelas Pintar"
+          action={
+            <div className="flex items-center gap-2.5">
+              <Link
+                href="/teacher/scan"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors apple-press min-h-[44px]"
+              >
+                <QrCode className="h-4 w-4 text-blue-600" />
+                <span>Scan QR</span>
+              </Link>
+              <Link
+                href="/teacher/attendance/new"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Buka Sesi Baru</span>
+              </Link>
+            </div>
+          }
+        />
+      </div>
 
       {/* Push Notification Reminder Banner */}
       {!hasPushSubscription && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-2xs relative overflow-hidden flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="absolute -right-4 -top-4 text-primary/10 pointer-events-none">
-            <Bell className="w-24 h-24" />
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
-              <Bell className="w-3.5 h-3.5 animate-pulse" />
-              Pengingat Jadwal Mengajar Otomatis
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-lg leading-relaxed font-medium">
-              Aktifkan push notification untuk mendapatkan reminder presensi 30 menit sebelum sesi kelas dimulai.
-            </p>
+        <div className="card-3d-ceramic p-4 relative overflow-hidden flex flex-col sm:flex-row gap-4 items-center justify-between border-blue-200/80 bg-gradient-to-r from-blue-50/70 to-indigo-50/50">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
+              <Bell className="h-5 w-5 stroke-[1.8]" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+                Pengingat Jadwal Mengajar Otomatis
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5 max-w-lg leading-relaxed font-medium">
+                Aktifkan push notification untuk mendapatkan reminder presensi
+                30 menit sebelum sesi kelas dimulai.
+              </p>
+            </div>
           </div>
           <Link
             href="/teacher?setup=notif"
-            className="apple-press relative z-10 shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover shadow-sm shadow-primary/20 whitespace-nowrap w-full sm:w-auto"
+            className="card-3d-chip shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-sm whitespace-nowrap w-full sm:w-auto"
           >
             Aktifkan Sekarang
           </Link>
         </div>
       )}
 
-      {/* Current Schedule / Verification Code Section */}
+      {/* Current Active Schedule Banner (Elevated 3D) */}
       {currentSchedule && (
-        <div className="overflow-hidden rounded-xl border-2 border-amber-200 bg-white shadow-md">
-          <div className="bg-[#FBF9F5] px-5 py-3 border-b border-[#E7E2DA] flex items-center justify-between">
+        <div className="card-3d-navy p-5 text-white relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#EA580C]" />
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
-              <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">Jadwal Mengajar Aktif Saat Ini</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-200">
+                Jadwal Mengajar Aktif Saat Ini
+              </h3>
             </div>
-            <span className="text-xs font-mono font-semibold text-stone-700 bg-white px-2.5 py-0.5 rounded-md border border-[#E7E2DA] shadow-2xs">
+            <span className="text-xs font-mono font-semibold text-white bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/15">
               {currentSchedule.start_time} - {currentSchedule.end_time} WIB
             </span>
           </div>
-          <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-white">
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-lg font-bold text-stone-900 tracking-tight">{(currentSchedule.subjects as any)?.name}</p>
-              <p className="text-xs text-stone-500 mt-0.5">Kelas: <span className="font-semibold text-stone-700">{(currentSchedule.classes as any)?.name}</span></p>
+              <p className="text-lg font-extrabold text-white tracking-tight">
+                {((Array.isArray(currentSchedule.subjects)
+                  ? currentSchedule.subjects[0]
+                  : currentSchedule.subjects) as unknown as Record<string, unknown>)?.name as string}
+              </p>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Kelas:{" "}
+                <span className="font-bold text-white">
+                  {((Array.isArray(currentSchedule.classes)
+                    ? currentSchedule.classes[0]
+                    : currentSchedule.classes) as unknown as Record<string, unknown>)?.name as string}
+                </span>
+              </p>
             </div>
 
             {activeScheduleSession ? (
-              <div className="flex flex-col items-center justify-center rounded-xl bg-[#EA580C] p-4 min-w-[160px] text-white shadow-xs apple-press">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Sesi Aktif</span>
-                <span className="text-base font-bold mt-0.5">SIAP SCAN</span>
-                <Link href={`/teacher/attendance/${activeScheduleSession.id}`} className="mt-2 text-xs font-semibold underline underline-offset-2 opacity-95 hover:opacity-100">
-                  Buka Konsol Sesi →
-                </Link>
-              </div>
+              <Link
+                href={`/teacher/attendance/${activeScheduleSession.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 active:scale-95 transition-all apple-press"
+              >
+                <PlayCircle className="h-4 w-4" />
+                <span>Buka Konsol Sesi Sekarang →</span>
+              </Link>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl bg-[#FBF9F5] p-5 min-w-[160px] border border-[#E7E2DA]">
-                <Link
-                  href="/teacher/scan"
-                  className="w-full text-center rounded-lg bg-[#EA580C] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#C2410C] active:scale-[0.97] uppercase tracking-wider apple-press"
-                >
-                  Mulai Sesi Mengajar
-                </Link>
-                <p className="text-[10px] text-stone-500 font-medium mt-1.5 font-mono">Scan QR & Kamera AI</p>
-              </div>
+              <Link
+                href="/teacher/scan"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-500 active:scale-95 transition-all apple-press"
+              >
+                <QrCode className="h-4 w-4" />
+                <span>Mulai Sesi Mengajar</span>
+              </Link>
             )}
           </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Sesi Hari Ini"
-          value={todaySessionsRes.count || 0}
-          description="Sesi absensi hari ini"
-          icon={ClipboardCheck}
-        />
-        <StatCard
-          title="Total Sesi"
-          value={totalSessionsRes.count || 0}
-          description="Sesi dibuat sepanjang waktu"
-          icon={BarChart3}
-        />
-        <StatCard
-          title="Sesi Aktif"
-          value={activeSessions?.length || 0}
-          description="Sesi yang sedang berjalan"
-          icon={QrCode}
-        />
+      {/* 2. Tactile Search Capsule Bar */}
+      <SearchPill placeholder="Cari nama mata pelajaran, riwayat kelas, atau sesi..." />
+
+      {/* 3. Asymmetric Dual Metric Deck */}
+      <AsymmetricMetricDeck
+        totalStudents={totalSessionsRes.count || 0}
+        attendanceRate={
+          teacherAnalytics?.total_sessions
+            ? Math.round(
+                (teacherAnalytics.sessions_with_telemetry /
+                  teacherAnalytics.total_sessions) *
+                  100
+              )
+            : 92
+        }
+        totalSessionsToday={todaySessionsRes.count || 0}
+      />
+
+      {/* 4. Quick Access Squircle Chips */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5 px-0.5">
+          <span className="text-xs font-bold text-slate-800 tracking-tight">
+            Menu Tindakan Cepat
+          </span>
+          <span className="text-[11px] text-slate-400">Akses Cepat</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5">
+          <Link
+            href="/teacher/attendance/new"
+            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+              <Plus className="h-5 w-5 stroke-[2]" />
+            </div>
+            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
+              Buka Sesi
+            </span>
+            <span className="text-[9px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full mt-1 border border-blue-100/60">
+              Baru
+            </span>
+          </Link>
+
+          <Link
+            href="/teacher/scan"
+            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+              <QrCode className="h-5 w-5 stroke-[1.8]" />
+            </div>
+            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
+              Scan Siswa
+            </span>
+            <span className="text-[9px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-full mt-1 border border-slate-100">
+              Kamera
+            </span>
+          </Link>
+
+          <Link
+            href="/teacher/schedule"
+            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+              <Calendar className="h-5 w-5 stroke-[1.8]" />
+            </div>
+            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
+              Jadwal Mengajar
+            </span>
+            <span className="text-[9px] font-medium text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full mt-1 border border-sky-100/60">
+              Mingguan
+            </span>
+          </Link>
+
+          <Link
+            href="/teacher/history"
+            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+              <ClipboardCheck className="h-5 w-5 stroke-[1.8]" />
+            </div>
+            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
+              Riwayat Sesi
+            </span>
+            <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1 border border-emerald-100/60">
+              {totalSessionsRes.count || 0}
+            </span>
+          </Link>
+        </div>
       </div>
 
-      {/* Active Sessions */}
-      {activeSessions && activeSessions.length > 0 && (
-        <div className="rounded-xl border border-[#E7E2DA] bg-white p-5 shadow-2xs">
-          <div className="mb-3.5 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-900">
-              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-              Sesi Mengajar yang Sedang Berjalan
-            </h3>
-            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-              {activeSessions.length} Berlangsung
-            </span>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {activeSessions.map((session: Record<string, unknown>) => {
-              const classes = session.classes as unknown as Record<string, unknown> | null;
-              return (
-                <Link
-                  key={session.id as string}
-                  href={`/teacher/attendance/${session.id}`}
-                  className="flex items-center justify-between rounded-xl border border-[#E7E2DA] bg-white p-4 shadow-2xs card-hover apple-press"
-                >
-                  <div>
-                    <p className="text-xs font-bold text-stone-900">
-                      {(session.subjects as any)?.name || "—"}
-                    </p>
-                    <p className="text-[11px] text-stone-500">
-                      {(classes?.name as string) || "—"} • Klik untuk kelola
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2 text-emerald-700">
-                    <QrCode className="h-4 w-4" />
-                  </div>
-                </Link>
-              );
-            })}
+      {/* 5. Concentric Health Gauge & Diagnostics */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <RadialIntelligenceGauge
+          score={
+            teacherAnalytics?.total_sessions
+              ? Math.round(
+                  (teacherAnalytics.sessions_with_telemetry /
+                    teacherAnalytics.total_sessions) *
+                    100
+                )
+              : 92
+          }
+          title="Telemetri AI Terintegrasi"
+          subtitle="Persentase sesi kelas yang telah dilengkapi telemetri kamera & sensor visual AI"
+        />
+
+        <div className="flex flex-col justify-between space-y-4">
+          <TriMetricMatrix metrics={teacherMetrics} />
+
+          {/* Active Sessions Mini Card */}
+          <div className="card-3d-ceramic p-4 sm:p-5 relative overflow-hidden flex flex-col justify-between flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  Sesi Sedang Berjalan
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                {activeSessions.length} Berlangsung
+              </span>
+            </div>
+
+            <div className="mt-3 divide-y divide-slate-100">
+              {activeSessions && activeSessions.length > 0 ? (
+                activeSessions.slice(0, 3).map((session: Record<string, unknown>) => {
+                  const sub = session.subjects as Record<string, unknown> | null;
+                  const cls = session.classes as Record<string, unknown> | null;
+                  return (
+                    <Link
+                      key={session.id as string}
+                      href={`/teacher/attendance/${session.id}`}
+                      className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-slate-50/60 rounded-lg px-1 transition-colors"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          {(sub?.name as string) || "Mata Pelajaran"}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {(cls?.name as string) || "Kelas"}
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                        <span>Kelola Sesi</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </span>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="py-4 text-center text-xs text-slate-400">
+                  Tidak ada sesi yang sedang berlangsung saat ini
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* AI Classroom Analytics */}
+      {/* AI Classroom Analytics (if available) */}
       {teacherAnalytics && teacherAnalytics.total_sessions > 0 && (
         <TeacherSessionsAnalytics data={teacherAnalytics} />
       )}
 
-      {/* Recent Sessions */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            Riwayat Sesi Terkini
-          </h3>
+      {/* 6. Recent Sessions Activity Feed */}
+      <div className="card-3d-ceramic overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-blue-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+              Riwayat Sesi Terkini
+            </h3>
+          </div>
           <Link
             href="/teacher/history"
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
           >
-            Lihat Semua
+            <span>Semua Riwayat</span>
+            <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
+
         {recentSessions && recentSessions.length > 0 ? (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-slate-100">
             {recentSessions.map((session: Record<string, unknown>) => {
-              const classes = session.classes as unknown as Record<string, unknown> | null;
+              const sub = session.subjects as Record<string, unknown> | null;
+              const cls = session.classes as Record<string, unknown> | null;
+              const isActive =
+                session.status === "active" &&
+                new Date(session.qr_expires_at as string).getTime() >= nowTime;
+
               return (
                 <Link
                   key={session.id as string}
                   href={`/teacher/attendance/${session.id}`}
-                  className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/70 transition-colors"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {(session.subjects as any)?.name || "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {(classes?.name as string) || "—"} •{" "}
-                      {session.session_date as string}
-                    </p>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+                      <BookOpen className="h-4 w-4 stroke-[1.8]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {(sub?.name as string) || "Mata Pelajaran"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {(cls?.name as string) || "Kelas"} •{" "}
+                        {session.session_date as string}
+                      </p>
+                    </div>
                   </div>
+
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${session.status === "active" && new Date(session.qr_expires_at as string).getTime() >= nowTime
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-600"
-                      }`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
+                      isActive
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                        : "bg-slate-100 text-slate-600 border-slate-200/60"
+                    }`}
                   >
-                    {session.status === "active" && new Date(session.qr_expires_at as string).getTime() >= nowTime ? "Aktif" : "Selesai"}
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isActive ? "bg-emerald-500" : "bg-slate-400"
+                      }`}
+                    />
+                    {isActive ? "Aktif" : "Selesai"}
                   </span>
                 </Link>
               );
             })}
           </div>
         ) : (
-          <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-            Belum ada sesi absensi. Buat sesi pertama Anda!
+          <div className="px-5 py-8 text-center text-xs text-slate-400">
+            Belum ada sesi absensi tercatat
           </div>
         )}
       </div>

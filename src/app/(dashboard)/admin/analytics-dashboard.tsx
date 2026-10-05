@@ -33,7 +33,7 @@ export function AnalyticsDashboard({
   trendData: ChartData[];
   topAbsentees: TopAbsentee[];
 }) {
-  // Custom Tooltip for the chart - Apple Glass Style (Section 4 & 24)
+  // Custom Tooltip with 3D Ceramic Glass Depth
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -42,25 +42,25 @@ export function AnalyticsDashboard({
         month: "short",
       });
       return (
-        <div className="bg-white/95 p-3.5 border border-[rgba(60,60,67,0.14)] shadow-[var(--shadow-floating)] rounded-2xl backdrop-blur-md">
-          <p className="font-semibold text-xs text-[#1D1D1F] mb-2">{dateStr}</p>
-          <div className="space-y-1 text-xs">
-            <p className="text-[#34C759] font-medium flex items-center justify-between gap-3">
+        <div className="card-3d-ceramic p-3.5 border border-slate-200/80 shadow-[0_12px_24px_-4px_rgba(15,23,42,0.12)] rounded-2xl bg-white/95 backdrop-blur-xl">
+          <p className="font-bold text-xs text-slate-900 mb-2">{dateStr}</p>
+          <div className="space-y-1.5 text-xs">
+            <p className="text-emerald-600 font-semibold flex items-center justify-between gap-3">
               <span>Hadir:</span>
-              <span className="font-bold tabular">{data.hadir}</span>
+              <span className="font-extrabold tabular-nums">{data.hadir}</span>
             </p>
-            <p className="text-[#FF3B30] font-medium flex items-center justify-between gap-3">
+            <p className="text-rose-600 font-semibold flex items-center justify-between gap-3">
               <span>Alpa:</span>
-              <span className="font-bold tabular">{data.alpa}</span>
+              <span className="font-extrabold tabular-nums">{data.alpa}</span>
             </p>
-            <p className="text-[#FF9F0A] font-medium flex items-center justify-between gap-3">
+            <p className="text-amber-600 font-semibold flex items-center justify-between gap-3">
               <span>Terlambat:</span>
-              <span className="font-bold tabular">{data.terlambat}</span>
+              <span className="font-extrabold tabular-nums">{data.terlambat}</span>
             </p>
-            <div className="pt-2 mt-2 border-t border-[rgba(60,60,67,0.12)]">
-              <p className="font-bold text-[#007AFF] text-xs flex items-center justify-between gap-3">
+            <div className="pt-2 mt-1.5 border-t border-slate-100">
+              <p className="font-bold text-blue-600 text-xs flex items-center justify-between gap-3">
                 <span>Tingkat Kehadiran:</span>
-                <span className="tabular">{data.presentRate}%</span>
+                <span className="tabular-nums font-extrabold">{data.presentRate}%</span>
               </p>
             </div>
           </div>
@@ -72,19 +72,19 @@ export function AnalyticsDashboard({
 
   return (
     <div className="grid gap-5 md:grid-cols-3">
-      {/* Trend Chart - Spans 2 columns on desktop (Section 24) */}
-      <div className="md:col-span-2 rounded-[18px] border border-[rgba(60,60,67,0.12)] bg-white p-6 shadow-[var(--shadow-subtle)] apple-card">
+      {/* Trend Chart - Spans 2 columns on desktop */}
+      <div className="md:col-span-2 card-3d-ceramic p-5 sm:p-6 transition-all duration-300">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-[#007AFF]/10 p-1.5 text-[#007AFF]">
-                <TrendingUp className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-xl bg-blue-50 p-2 text-blue-600 border border-blue-100/80 shadow-sm">
+                <TrendingUp className="h-4 w-4 stroke-[2.2]" />
               </div>
-              <h3 className="font-bold text-base text-[#1D1D1F] tracking-tight">
+              <h3 className="font-extrabold text-base text-slate-900 tracking-tight">
                 Tren Kehadiran (30 Hari)
               </h3>
             </div>
-            <p className="text-xs text-[#6E6E73] mt-1">
+            <p className="text-xs text-slate-500 mt-1 font-medium">
               Persentase siswa hadir terdaftar setiap harinya
             </p>
           </div>
@@ -98,15 +98,15 @@ export function AnalyticsDashboard({
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="appleRateGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#007AFF" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#007AFF" stopOpacity={0.0} />
+                  <linearGradient id="smartRateGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="rgba(60,60,67,0.08)"
+                  stroke="rgba(15,23,42,0.06)"
                 />
                 <XAxis
                   dataKey="date"
@@ -118,12 +118,12 @@ export function AnalyticsDashboard({
                   }
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: "#8E8E93" }}
+                  tick={{ fontSize: 11, fill: "#64748B" }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: "#8E8E93" }}
+                  tick={{ fontSize: 11, fill: "#64748B" }}
                   domain={[0, 100]}
                   tickFormatter={(val) => `${val}%`}
                 />
@@ -131,38 +131,39 @@ export function AnalyticsDashboard({
                 <Area
                   type="monotone"
                   dataKey="presentRate"
-                  stroke="#007AFF"
+                  stroke="#2563EB"
                   strokeWidth={2.5}
                   fillOpacity={1}
-                  fill="url(#appleRateGradient)"
+                  fill="url smartRateGradient"
+                  style={{ fill: "url(#smartRateGradient)" }}
                   activeDot={{
                     r: 5,
-                    className: "fill-[#007AFF] stroke-white stroke-[2px]",
+                    className: "fill-blue-600 stroke-white stroke-[2.5px]",
                   }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[250px] flex items-center justify-center text-xs text-[#8E8E93] border border-dashed border-[rgba(60,60,67,0.16)] rounded-2xl">
+          <div className="h-[250px] flex items-center justify-center text-xs font-medium text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
             Belum ada riwayat absensi 30 hari terakhir
           </div>
         )}
       </div>
 
-      {/* Top Absentees - Siswa Butuh Perhatian (Section 23 & 20) */}
-      <div className="rounded-[18px] border border-[rgba(60,60,67,0.12)] bg-white p-6 shadow-[var(--shadow-subtle)] apple-card">
+      {/* Top Absentees - Siswa Butuh Perhatian */}
+      <div className="card-3d-ceramic p-5 sm:p-6 transition-all duration-300">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-[#FF3B30]/10 p-1.5 text-[#FF3B30]">
-                <AlertTriangle className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-xl bg-rose-50 p-2 text-rose-600 border border-rose-100/80 shadow-sm">
+                <AlertTriangle className="h-4 w-4 stroke-[2.2]" />
               </div>
-              <h3 className="font-bold text-base text-[#1D1D1F] tracking-tight">
+              <h3 className="font-extrabold text-base text-slate-900 tracking-tight">
                 Siswa Butuh Perhatian
               </h3>
             </div>
-            <p className="text-xs text-[#6E6E73] mt-1">
+            <p className="text-xs text-slate-500 mt-1 font-medium">
               Top 5 Alpa akumulatif bulan ini
             </p>
           </div>
@@ -173,31 +174,31 @@ export function AnalyticsDashboard({
             {topAbsentees.map((student) => (
               <div
                 key={student.nis}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.06)] hover:bg-[#F2F2F0] transition-colors"
+                className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300/80 transition-all shadow-[0_2px_4px_rgba(15,23,42,0.03)] active:scale-[0.98]"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center font-bold text-xs text-[#1D1D1F] shrink-0 border border-[rgba(60,60,67,0.12)] shadow-[var(--shadow-subtle)]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 shrink-0 border border-slate-200 shadow-sm overflow-hidden">
                     {student.avatar ? (
                       <img
                         src={student.avatar}
                         alt="Avatar"
-                        className="h-full w-full rounded-full object-cover"
+                        className="h-full w-full rounded-xl object-cover"
                       />
                     ) : (
                       student.name.charAt(0)
                     )}
                   </div>
                   <div className="overflow-hidden min-w-0">
-                    <p className="font-semibold text-xs text-[#1D1D1F] truncate">
+                    <p className="font-bold text-xs text-slate-900 truncate">
                       {student.name}
                     </p>
-                    <p className="text-[11px] text-[#8E8E93] tabular">
+                    <p className="text-[11px] text-slate-400 font-medium tabular-nums">
                       NIS: {student.nis}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end shrink-0 pl-2">
-                  <span className="inline-flex items-center justify-center rounded-full bg-[#FF3B30]/10 px-2.5 py-0.5 text-xs font-semibold text-[#FF3B30]">
+                  <span className="inline-flex items-center justify-center rounded-full bg-rose-50 border border-rose-200/60 px-2.5 py-1 text-xs font-bold text-rose-600 shadow-sm">
                     {student.count} Alpa
                   </span>
                 </div>
@@ -205,13 +206,13 @@ export function AnalyticsDashboard({
             ))}
           </div>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-[#34C759] text-xs font-medium bg-[#34C759]/[0.06] rounded-2xl border border-[#34C759]/15">
+          <div className="h-[200px] flex items-center justify-center text-emerald-700 text-xs font-medium bg-emerald-50/60 rounded-2xl border border-emerald-200/50">
             <div className="text-center p-4">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#34C759]/10 text-[#34C759] mb-2">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 mb-2 shadow-sm border border-emerald-200/50">
                 <Users className="h-5 w-5" />
               </div>
-              <p className="font-semibold text-xs text-[#1D1D1F]">Kondisi Kehadiran Prima</p>
-              <p className="text-[11px] text-[#6E6E73] mt-0.5">Semua siswa tertib hadir bulan ini.</p>
+              <p className="font-bold text-xs text-slate-900">Kondisi Kehadiran Prima</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Semua siswa tertib hadir bulan ini.</p>
             </div>
           </div>
         )}

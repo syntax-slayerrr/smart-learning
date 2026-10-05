@@ -343,21 +343,26 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
           return (
             <article
               key={student.id}
-              className="rounded-2xl border border-[rgba(60,60,67,0.12)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-3"
+              className="card-3d-ceramic p-4 sm:p-5 space-y-3.5 transition-all duration-200"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-[#1D1D1F]">{studentName}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono text-[#8E8E93]">{student.nis || "—"}</span>
-                    <span className="text-xs text-[#8E8E93]">•</span>
-                    <span className="text-xs font-medium text-[#6E6E73]">{className}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 shrink-0 border border-slate-200 shadow-sm">
+                    {studentName.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 truncate">{studentName}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-mono text-slate-400 tabular-nums">{student.nis || "—"}</span>
+                      <span className="text-xs text-slate-300">•</span>
+                      <span className="text-xs font-semibold text-blue-600">{className}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* JP Status Grid */}
-              <div className="pt-2 border-t border-[rgba(60,60,67,0.06)] grid grid-cols-2 gap-2">
+              {/* JP Status Grid - Tactile Pods */}
+              <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                 {Array.from({ length: maxJP }).map((_, i) => {
                   const session = mySessions[i];
                   if (!session) return null;
@@ -368,11 +373,11 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-2 rounded-xl bg-[#F7F7F5] border border-[rgba(60,60,67,0.06)]"
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 shadow-inner"
                     >
-                      <span className="text-[11px] font-semibold text-[#6E6E73]">JP {i + 1}</span>
+                      <span className="text-[11px] font-bold text-slate-600">JP {i + 1}</span>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadgeClass(
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-sm ${getStatusBadgeClass(
                           status.type
                         )}`}
                       >

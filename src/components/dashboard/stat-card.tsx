@@ -24,20 +24,20 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-[18px] border border-[rgba(60,60,67,0.12)] bg-white p-5 apple-card shadow-[var(--shadow-subtle)] group",
+        "card-3d-ceramic p-5 group",
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1.5 min-w-0">
-          <p className="text-xs font-semibold text-[#6E6E73] truncate">
+          <p className="text-xs font-semibold text-slate-500 truncate">
             {title}
           </p>
-          <p className="text-3xl font-bold tracking-tight text-[#1D1D1F] tabular">
+          <p className="text-3xl font-extrabold tracking-tight text-slate-900 tabular">
             {value}
           </p>
           {description && (
-            <p className="text-xs text-[#8E8E93] truncate">{description}</p>
+            <p className="text-xs text-slate-400 truncate">{description}</p>
           )}
           {trend && (
             <div className="pt-0.5">
@@ -45,21 +45,21 @@ export function StatCard({
                 className={cn(
                   "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
                   trend.positive
-                    ? "bg-[#34C759]/10 text-[#34C759]"
-                    : "bg-[#FF3B30]/10 text-[#FF3B30]"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                    : "bg-rose-50 text-rose-700 border border-rose-200/60"
                 )}
               >
                 <span>{trend.positive ? "↑" : "↓"}</span>
                 <span className="font-semibold">{Math.abs(trend.value)}%</span>
-                <span className="text-[#8E8E93] text-[11px] ml-0.5">
+                <span className="text-slate-400 text-[11px] ml-0.5">
                   vs periode lalu
                 </span>
               </span>
             </div>
           )}
         </div>
-        <div className="rounded-xl bg-[#F2F2F0] p-2.5 text-[#1D1D1F] shrink-0 transition-transform duration-200 group-hover:scale-105">
-          <Icon className="h-5 w-5 text-[#1D1D1F]" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60 shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-sm">
+          <Icon className="h-5 w-5 stroke-[1.8]" />
         </div>
       </div>
     </div>

@@ -57,7 +57,7 @@ export function BottomSheet({
         aria-modal="true"
         aria-labelledby="modal-title"
         className={cn(
-          "relative z-10 flex w-full max-h-[90vh] flex-col rounded-t-[28px] sm:rounded-[24px] bg-white text-[#1D1D1F] shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:max-w-lg border border-[rgba(60,60,67,0.12)] animate-in slide-in-from-bottom duration-250 ease-out overflow-hidden",
+          "relative z-10 flex w-full max-h-[90vh] flex-col rounded-t-[28px] sm:rounded-[24px] bg-white text-[#1D1D1F] shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:max-w-lg border border-[rgba(60,60,67,0.12)] border-t-white animate-sheet-in overflow-hidden",
           className
         )}
       >

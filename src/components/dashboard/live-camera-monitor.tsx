@@ -424,10 +424,7 @@ export function LiveCameraMonitor() {
             const timeObj = new Date(pt.timestamp_bucket || Date.now());
             const timeLabel = isNaN(timeObj.getTime())
               ? `T-${data.history.length - idx}`
-              : timeObj.toLocaleTimeString("id-ID", {
-                  minute: "2-digit",
-                  second: "2-digit",
-                });
+              : `${String(timeObj.getHours()).padStart(2, "0")}:${String(timeObj.getMinutes()).padStart(2, "0")}`;
             return {
               time: timeLabel,
               attentive: pt.desk_focused_count || pt.sitting_count || 0,
