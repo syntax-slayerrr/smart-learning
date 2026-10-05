@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Sparkles,
   X,
@@ -77,8 +79,21 @@ export function HermesCopilotWidget() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyMessage = (id: string, text: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedMessageId(id);
+      setTimeout(() => {
+        setCopiedMessageId((prev) => (prev === id ? null : prev));
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -201,25 +216,112 @@ export function HermesCopilotWidget() {
     }
   };
 
-  const renderMessageContent = (text: string) => {
-    const lines = text.split("\n");
-    return lines.map((line, lIdx) => {
-      const parts = line.split(/(\*\*[^*]+\*\*)/g);
-      return (
-        <p key={lIdx} className="leading-relaxed">
-          {parts.map((part, pIdx) => {
-            if (part.startsWith("**") && part.endsWith("**")) {
+  const renderTableCellContent = (content: React.ReactNode) => {
+    if (typeof content === "string") {
+      const trimmed = content.trim();
+      if (/^\d+([.,]\d+)?%$/.test(trimmed)) {
+        const num = parseFloat(trimmed.replace("%", "").replace(",", "."));
+        const isHigh = num >= 90;
+        const isMid = num >= 75;
+        return (
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded-md font-mono text-[10px] font-semibold ${
+              isHigh
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/70"
+                : isMid
+                ? "bg-sky-50 text-sky-700 border border-sky-200/70"
+                : "bg-amber-50 text-amber-700 border border-amber-200/70"
+            }`}
+          >
+            {trimmed}
+          </span>
+        );
+      }
+    }
+    return content;
+  };
+
+  const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ ...props }) => (
+            <h1 className="text-sm sm:text-base font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5" {...props} />
+          ),
+          h2: ({ ...props }) => (
+            <h2 className="text-[13px] sm:text-sm font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5" {...props} />
+          ),
+          h3: ({ ...props }) => (
+            <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 mt-2.5 mb-1 pb-1 border-b border-slate-100 flex items-center gap-1.5 tracking-tight" {...props} />
+          ),
+          p: ({ ...props }) => (
+            <p className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 my-1" {...props} />
+          ),
+          strong: ({ ...props }) => (
+            <strong className="font-semibold text-slate-900" {...props} />
+          ),
+          ul: ({ ...props }) => (
+            <ul className="my-1.5 space-y-1 pl-0.5 list-none" {...props} />
+          ),
+          ol: ({ ...props }) => (
+            <ol className="my-1.5 space-y-1 pl-4 list-decimal text-[11.5px] text-slate-700" {...props} />
+          ),
+          li: ({ children, ...props }) => (
+            <li className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 flex items-start gap-1.5" {...props}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+              <div className="flex-1">{children}</div>
+            </li>
+          ),
+          blockquote: ({ ...props }) => (
+            <blockquote className="border-l-3 border-blue-500 bg-blue-50/60 rounded-r-xl px-3 py-1.5 my-2 text-[11.5px] text-slate-700 font-medium italic" {...props} />
+          ),
+          code: ({ className, children, ...props }: any) => {
+            const isInline = !className?.includes("language-");
+            if (isInline) {
               return (
-                <strong key={pIdx} className="font-semibold text-slate-900">
-                  {part.slice(2, -2)}
-                </strong>
+                <code className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-blue-700 font-semibold border border-slate-200/60" {...props}>
+                  {children}
+                </code>
               );
             }
-            return part;
-          })}
-        </p>
-      );
-    });
+            return (
+              <div className="my-2 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 text-slate-100 text-[10.5px] shadow-sm">
+                <pre className="p-3 overflow-x-auto font-mono">
+                  <code {...props}>{children}</code>
+                </pre>
+              </div>
+            );
+          },
+          table: ({ ...props }) => (
+            <div className="my-2.5 w-full overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
+                <table className="w-full border-collapse text-left text-[11px]" {...props} />
+              </div>
+            </div>
+          ),
+          thead: ({ ...props }) => (
+            <thead className="bg-slate-50/90 text-slate-700 border-b border-slate-200/90 font-semibold tracking-wide text-[10px] uppercase" {...props} />
+          ),
+          tbody: ({ ...props }) => (
+            <tbody className="divide-y divide-slate-100 text-slate-700" {...props} />
+          ),
+          tr: ({ ...props }) => (
+            <tr className="transition-colors hover:bg-blue-50/40 even:bg-slate-50/40" {...props} />
+          ),
+          th: ({ ...props }) => (
+            <th className="px-2.5 py-2 whitespace-nowrap font-semibold text-slate-800 tracking-tight" {...props} />
+          ),
+          td: ({ children, ...props }) => (
+            <td className="px-2.5 py-2 text-slate-700 whitespace-nowrap font-medium" {...props}>
+              {renderTableCellContent(children)}
+            </td>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
   };
 
   return (
@@ -377,21 +479,49 @@ export function HermesCopilotWidget() {
                     )}
 
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed ${
+                      className={`leading-relaxed transition-all duration-200 ${
                         isUser
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-xs shadow-xs"
-                          : "bg-white text-slate-800 border border-slate-200/90 rounded-tl-xs shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+                          ? "max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tr-xs px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs"
+                          : "max-w-[96%] sm:max-w-[88%] w-full sm:w-auto rounded-2xl rounded-tl-xs px-3.5 sm:px-4 py-3 bg-white text-slate-800 border border-slate-200/90 shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
                       }`}
                     >
-                      <div className="space-y-1 font-sans">
-                        {renderMessageContent(m.content)}
-                      </div>
+                      {isUser ? (
+                        <div className="text-[12px] sm:text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans">
+                          {m.content}
+                        </div>
+                      ) : (
+                        <div className="font-sans">
+                          <MarkdownRenderer content={m.content} />
+                        </div>
+                      )}
+
                       <div
-                        className={`text-[9.5px] font-mono mt-1 ${
-                          isUser ? "text-blue-100/70 text-right" : "text-slate-400 text-left"
+                        className={`mt-2 flex items-center justify-between gap-2 border-t pt-1.5 ${
+                          isUser ? "border-white/10 text-blue-100/70" : "border-slate-100 text-slate-400"
                         }`}
                       >
-                        {m.timestamp}
+                        <span className="text-[9.5px] font-mono">
+                          {m.timestamp}
+                        </span>
+                        {!isUser && (
+                          <button
+                            onClick={() => handleCopyMessage(m.id, m.content)}
+                            className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-blue-600 transition-colors py-0.5 px-1 rounded hover:bg-slate-50"
+                            title="Salin isi pesan"
+                          >
+                            {copiedMessageId === m.id ? (
+                              <>
+                                <Check className="h-3 w-3 text-emerald-500" />
+                                <span className="text-[9.5px] text-emerald-600 font-medium">Tersalin</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span className="text-[9.5px]">Salin</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 

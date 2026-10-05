@@ -300,7 +300,10 @@ PANDUAN MENJAWAB:
 1. Bersikap ramah, solutif, lugas, dan sangat fleksibel terhadap input guru (baik bahasa formal, santai, gaul, maupun singkat).
 2. Jika guru bertanya tentang siswa tertentu (misal: "Bagaimana si Andi?"), rujuk data riil di atas secara spesifik.
 3. Jika guru meminta bantuan mengajar (ide ice breaking, kuis 3 menit, strategi kelas gaduh/pasif), berikan ide yang aplikatif dan kreatif.
-4. Gunakan format markdown yang rapi (bullet points, bold text).`;
+4. Jika menyajikan data performa/kehadiran/perbandingan siswa:
+   - Buat tabel ringkas Markdown dengan header jelas (misal: | Nama Siswa | Kelas | Hadir (%) | Fokus (%) | Interaksi |). Hindari tabel yang terlalu lebar agar optimal di mobile.
+   - Sertakan bagian ### 💡 Insight Cepat dengan bullet point ber-emoji dan rekomendasi tindakan nyata.
+5. Gunakan format markdown yang rapi, profesional, dan estetik.`;
 
       const aiRes = await call9Router({
         model: ROUTER_MODELS.GEMINI_3_FLASH,
