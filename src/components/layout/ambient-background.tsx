@@ -30,7 +30,7 @@ export function AmbientBackground({
         className={`absolute inset-0 transition-opacity duration-700 ease-out ${opacityMap[intensity]} mix-blend-multiply contrast-[1.02] saturate-[1.05]`}
       >
         <Image
-          src="/bg-atmosphere.jpg"
+          src="/assets/backgrounds/academic-atmosphere.jpg"
           alt=""
           fill
           priority
