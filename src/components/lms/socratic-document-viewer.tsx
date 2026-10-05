@@ -394,50 +394,25 @@ export function SocraticDocumentViewer({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl rounded-none sm:rounded-3xl border-0 sm:border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden ${className}`}
+      className={`relative flex flex-col h-full w-full bg-transparent overflow-hidden ${className}`}
     >
-      {/* 1. TOP HEADER: Clean Glass Bar */}
-      <header className="shrink-0 h-16 px-4 sm:px-6 bg-white/75 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/60 dark:border-white/10 flex items-center justify-between gap-3 z-10">
-        {/* Left: Branding & Grounded Context */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative flex items-center justify-center h-9 w-9 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/20 shrink-0">
-            <Sparkles className="h-4.5 w-4.5" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight truncate">
-                Smart AI Studio
-              </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                <Lock className="h-2.5 w-2.5" />
-                Terkunci Pada Materi
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              Bab {activeChapter.chapterNumber}: {activeChapter.title}
-            </p>
-          </div>
-        </div>
-
-        {/* Right: Controls (Chapter Switcher, Audio, Reset) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Chapter Selector Dropdown */}
+      {/* 1. SLIM CONTEXT SUB-TOOLBAR (Eliminates clashing double-header) */}
+      <div className="shrink-0 px-3.5 sm:px-6 py-1.5 bg-white/40 backdrop-blur-xl border-b border-white/50 flex items-center justify-between gap-2 z-10">
+        {/* Left: Active Chapter Selector & Strict Grounding Badge */}
+        <div className="flex items-center gap-2 min-w-0">
           <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={() => setShowChapterMenu(!showChapterMenu)}
-              className="h-8 px-2.5 rounded-xl text-xs font-medium bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white flex items-center gap-1.5"
+              className="h-7 px-2.5 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white border border-slate-200/80 text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors"
             >
-              <span className="max-w-[100px] sm:max-w-[140px] truncate">
-                Bab {activeChapter.chapterNumber}
+              <span className="max-w-[130px] sm:max-w-[220px] truncate">
+                Bab {activeChapter.chapterNumber}: {activeChapter.title}
               </span>
               <ChevronDown className="h-3 w-3 text-slate-400" />
-            </Button>
+            </button>
 
             {showChapterMenu && (
-              <div className="absolute right-0 mt-1.5 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-white/95 backdrop-blur-2xl border border-white/70 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95">
                 <div className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Fokus Pembahasan Bab
                 </div>
@@ -447,8 +422,8 @@ export function SocraticDocumentViewer({
                     onClick={() => handleSelectChapter(idx)}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${
                       idx === activeChapterIndex
-                        ? "bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-white/5"
+                        ? "bg-blue-50 text-blue-600 font-medium"
+                        : "text-slate-700 hover:bg-slate-100/70"
                     }`}
                   >
                     <span className="truncate pr-2">
@@ -461,34 +436,40 @@ export function SocraticDocumentViewer({
             )}
           </div>
 
-          {/* Audio Overview Button */}
-          <Button
-            variant="outline"
-            size="sm"
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/70 shrink-0">
+            <Lock className="h-2.5 w-2.5 text-emerald-600" />
+            <span className="hidden sm:inline">Terkunci Pada Materi</span>
+            <span className="sm:hidden">Terkunci</span>
+          </span>
+        </div>
+
+        {/* Right: Audio Summary & Reset Chat */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
             onClick={toggleAudioSummary}
-            className={`h-8 w-8 p-0 rounded-xl bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 ${
-              isAudioSummaryPlaying ? "text-blue-600 border-blue-300 bg-blue-50" : "text-slate-600"
+            className={`h-7 px-2 sm:px-2.5 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-colors shadow-2xs ${
+              isAudioSummaryPlaying
+                ? "text-[#007AFF] border-blue-300 bg-blue-50"
+                : "text-slate-600 border-slate-200/80 bg-white/80 hover:bg-white"
             }`}
             title="Dengarkan Ringkasan Bab"
           >
-            <Headphones className="h-3.5 w-3.5" />
-          </Button>
+            <Headphones className="h-3.5 w-3.5 text-[#007AFF]" />
+            <span className="hidden sm:inline">Audio Ringkasan</span>
+          </button>
 
-          {/* Reset Dialogue */}
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={handleResetChat}
-            className="h-8 w-8 p-0 rounded-xl bg-white/80 dark:bg-white/10 border-slate-200/80 dark:border-white/10 text-slate-500 hover:text-slate-700"
+            className="h-7 w-7 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors shadow-2xs"
             title="Reset Percakapan"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
+            <RotateCcw className="h-3 w-3" />
+          </button>
         </div>
-      </header>
+      </div>
 
-      {/* 2. CHAT FEED: Dedicated Clean Socratic Stream */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
+      {/* 2. CHAT FEED: Dedicated Native Scroll Container */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-3.5 py-4 sm:px-6 space-y-4">
         {chatMessages.map((msg) => {
           const isStudent = msg.sender === "student";
           const isSpeaking = activeSpeakingId === msg.id;
@@ -500,7 +481,7 @@ export function SocraticDocumentViewer({
             >
               {/* Highlight Ref Tag */}
               {msg.highlightRef && (
-                <div className="mb-1.5 px-3 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-900/30 text-[11px] text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-700/30 max-w-[85%] truncate italic">
+                <div className="mb-1.5 px-3 py-1 rounded-xl bg-blue-50 text-[11px] text-blue-700 border border-blue-200/60 max-w-[85%] truncate italic">
                   &ldquo;{msg.highlightRef}&rdquo;
                 </div>
               )}
@@ -509,16 +490,16 @@ export function SocraticDocumentViewer({
               <div
                 className={`group relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 transition-all ${
                   isStudent
-                    ? "bg-[#007AFF] text-white shadow-sm max-w-[85%] sm:max-w-[75%]"
-                    : "bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/70 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-[90%] sm:max-w-[82%]"
+                    ? "bg-[#007AFF] text-white shadow-xs max-w-[85%] sm:max-w-[75%]"
+                    : "bg-white/85 backdrop-blur-xl border border-white/80 text-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.03)] max-w-[92%] sm:max-w-[82%]"
                 }`}
               >
                 {/* Assistant Label */}
                 {!isStudent && (
-                  <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-white/10">
+                  <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight">
+                      <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+                      <span className="text-[11px] font-bold text-slate-700 tracking-tight">
                         Smart AI Mentor
                       </span>
                     </div>
@@ -526,7 +507,7 @@ export function SocraticDocumentViewer({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => toggleSpeakMessage(msg.id, msg.text)}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
                         title={isSpeaking ? "Hentikan Suara" : "Dengarkan Jawaban"}
                       >
                         {isSpeaking ? (
@@ -546,13 +527,13 @@ export function SocraticDocumentViewer({
 
                 {/* Grounding Citation Pill */}
                 {!isStudent && msg.citations && msg.citations.length > 0 && (
-                  <div className="mt-3 pt-2 flex flex-wrap gap-1.5 items-center border-t border-slate-100 dark:border-white/10">
-                    <span className="text-[10px] text-slate-400 dark:text-slate-400">Rujukan:</span>
+                  <div className="mt-3 pt-2 flex flex-wrap gap-1.5 items-center border-t border-slate-100">
+                    <span className="text-[10px] text-slate-400">Rujukan:</span>
                     {msg.citations.map((c, i) => (
                       <button
                         key={i}
                         onClick={() => setActiveCitationPeek(c)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50/80 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100/80 border border-blue-200/50 dark:border-blue-500/20 transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100/80 border border-blue-200/60 transition-colors"
                       >
                         <BookOpen className="h-2.5 w-2.5" />
                         Hal {c.page} • {c.chapterTitle || activeChapter.title}
@@ -563,18 +544,18 @@ export function SocraticDocumentViewer({
 
                 {/* Checkpoint Passed Card */}
                 {msg.checkpointPassed && (
-                  <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/25 flex flex-col gap-2">
+                  <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold text-xs">
+                      <div className="flex items-center gap-1.5 text-emerald-800 font-semibold text-xs">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         Checkpoint Pemahaman Terverifikasi
                       </div>
-                      <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0 text-[10px]">
+                      <Badge variant="outline" className="bg-emerald-500/15 text-emerald-800 border-0 text-[10px]">
                         Tuntas
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-slate-700 dark:text-slate-300 italic">
+                    <p className="text-xs text-slate-700 italic">
                       &ldquo;{msg.checkpointPassed.summary}&rdquo;
                     </p>
 
@@ -589,7 +570,7 @@ export function SocraticDocumentViewer({
                         )
                       }
                       disabled={savedCheckpoints[msg.id]}
-                      className="self-start h-7 px-2.5 text-[11px] rounded-xl font-medium bg-white/80 dark:bg-white/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 flex items-center gap-1.5 mt-0.5"
+                      className="self-start h-7 px-2.5 text-[11px] rounded-xl font-medium bg-white/90 border-emerald-500/30 text-emerald-800 hover:bg-white flex items-center gap-1.5 mt-0.5"
                     >
                       {savedCheckpoints[msg.id] ? (
                         <>
@@ -616,31 +597,31 @@ export function SocraticDocumentViewer({
         {/* AI Typing Indicator */}
         {isAiThinking && (
           <div className="flex flex-col items-start">
-            <div className="rounded-2xl sm:rounded-3xl p-4 bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-sm flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-blue-600 animate-spin" />
+            <div className="rounded-2xl sm:rounded-3xl p-4 bg-white/85 backdrop-blur-xl border border-white/80 shadow-xs flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#007AFF] animate-spin" />
               <span className="text-xs text-slate-500 font-medium">
                 Smart AI sedang menganalisis materi bab...
               </span>
               <div className="flex items-center gap-1 ml-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-bounce" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#007AFF] animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#007AFF] animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#007AFF] animate-bounce" />
               </div>
             </div>
           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-1" />
       </div>
 
       {/* 3. CONTEXT SUGGESTIONS PILLS */}
-      <div className="shrink-0 px-4 sm:px-6 py-2 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border-t border-white/50 dark:border-white/10 overflow-x-auto no-scrollbar flex items-center gap-2">
+      <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/50 backdrop-blur-md border-t border-white/60 overflow-x-auto no-scrollbar flex items-center gap-2">
         {suggestions.map((promptText, idx) => (
           <button
             key={idx}
             onClick={() => handleSendPrompt(promptText)}
             disabled={isAiThinking}
-            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/80 dark:bg-white/10 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20 hover:text-blue-600 dark:hover:text-blue-400 shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-40"
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/80 hover:bg-white border border-slate-200/80 text-slate-700 hover:text-[#007AFF] shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-40"
           >
             <Lightbulb className="h-3 w-3 text-amber-500" />
             <span className="truncate max-w-[220px]">{promptText}</span>
@@ -649,13 +630,13 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 4. DOCKED INPUT CAPSULE */}
-      <footer className="shrink-0 p-3 sm:p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-white/60 dark:border-white/10 z-20">
+      <footer className="shrink-0 p-3 sm:p-4 bg-white/75 backdrop-blur-2xl border-t border-white/60 z-20">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendPrompt();
           }}
-          className="relative flex items-center gap-2 rounded-full bg-white/95 dark:bg-white/10 border border-slate-200/90 dark:border-white/15 px-3 sm:px-4 py-2 shadow-xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
+          className="relative flex items-center gap-2 rounded-full bg-white/95 border border-slate-200/90 px-3 sm:px-4 py-1.5 sm:py-2 shadow-xs focus-within:ring-2 focus-within:ring-[#007AFF]/20 focus-within:border-[#007AFF] transition-all"
         >
           <input
             ref={inputRef}
@@ -664,7 +645,7 @@ export function SocraticDocumentViewer({
             onChange={(e) => setPromptInput(e.target.value)}
             placeholder={`Tanyakan konsep seputar ${activeChapter.title}...`}
             disabled={isAiThinking}
-            className="flex-1 bg-transparent text-sm sm:text-base text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm sm:text-base text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
           />
 
           <Button
@@ -686,26 +667,26 @@ export function SocraticDocumentViewer({
       {/* 5. CITATION PEEK DRAWER / SHEET */}
       {activeCitationPeek && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-xs z-50 flex flex-col justify-end animate-in fade-in">
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/70 dark:border-white/10 p-5 sm:p-6 shadow-2xl space-y-4 max-h-[80%] overflow-y-auto">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/70 p-5 sm:p-6 shadow-2xl space-y-4 max-h-[80%] overflow-y-auto">
             {/* Sheet Handle */}
-            <div className="w-10 h-1 bg-slate-200 dark:bg-white/20 rounded-full mx-auto" />
+            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto" />
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <BookOpen className="h-4 w-4 text-[#007AFF]" />
+                <h3 className="text-sm font-semibold text-slate-800">
                   Rujukan Modul: Halaman {activeCitationPeek.page}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveCitationPeek(null)}
-                className="h-7 w-7 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500"
+                className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-500/10 border border-blue-200/60 dark:border-blue-500/20 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-mono">
+            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/60 text-xs text-slate-700 leading-relaxed font-mono">
               &ldquo;{activeCitationPeek.quoteSnippet}&rdquo;
             </div>
 
@@ -723,7 +704,7 @@ export function SocraticDocumentViewer({
                   });
                   setActiveCitationPeek(null);
                 }}
-                className="rounded-xl text-xs bg-white dark:bg-white/10"
+                className="rounded-xl text-xs bg-white border-slate-200"
               >
                 <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
                 Simpan Kutipan

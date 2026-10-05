@@ -517,18 +517,18 @@ export default function StudentNotebookPage() {
   // VIEW B: LEVEL 2 — RUANG BELAJAR MATERI (FOCUS WORKSPACE)
   // =========================================================================
   return (
-    <div className="min-h-full bg-transparent text-[#1D1D1F] flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden bg-transparent text-[#1D1D1F]">
       {/* 1. TOP BAR MINIMALIS DENGAN TOMBOL BACK PANAH */}
-      <header className="sticky top-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-3.5 sm:px-6 py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+      <header className="shrink-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-3.5 sm:px-6 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Tombol Back Panah Minimalist */}
             <button
               onClick={() => setSelectedMaterial(null)}
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)] shrink-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)] shrink-0"
               title="Kembali ke Daftar Materi & Tugas"
             >
-              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
 
             <div className="min-w-0">
@@ -540,7 +540,7 @@ export default function StudentNotebookPage() {
                   Bab 2 • 15 Mnt
                 </span>
               </div>
-              <p className="text-[11px] text-[#6E6E73] truncate">
+              <p className="text-[10px] text-[#6E6E73] truncate">
                 {activeSubject?.name || "Jaringan Komputer"} • Ekstraksi AI
               </p>
             </div>
@@ -550,7 +550,7 @@ export default function StudentNotebookPage() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setIsAnalogyModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-xl text-[#007AFF] text-xs font-semibold border border-white/70 active:scale-95 transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/60 hover:bg-white/80 backdrop-blur-xl text-[#007AFF] text-xs font-semibold border border-white/70 active:scale-95 transition-all shadow-2xs"
             >
               <Lightbulb className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Pop-up Analogi</span>
@@ -559,8 +559,8 @@ export default function StudentNotebookPage() {
         </div>
 
         {/* 2. SEGMENTED SWITCHER (APPLE GLASS CAPSULE) */}
-        <div className="max-w-5xl mx-auto mt-2.5 flex items-center justify-start sm:justify-center overflow-x-auto pb-1 scrollbar-none">
-          <div className="inline-flex items-center p-1 rounded-2xl bg-white/50 backdrop-blur-2xl border border-white/60 gap-1 shadow-sm">
+        <div className="max-w-5xl mx-auto mt-2 flex items-center justify-start sm:justify-center overflow-x-auto pb-0.5 scrollbar-none">
+          <div className="inline-flex items-center p-0.5 sm:p-1 rounded-2xl bg-white/50 backdrop-blur-2xl border border-white/60 gap-1 shadow-xs">
             <button
               onClick={() => setStudyMode("reader")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
@@ -625,7 +625,13 @@ export default function StudentNotebookPage() {
       </header>
 
       {/* 3. DYNAMIC WORKSPACE VIEW CONTENT */}
-      <main className="flex-1 flex flex-col min-h-0 max-w-5xl mx-auto w-full p-3 sm:p-6">
+      <main
+        className={`flex-1 flex flex-col min-h-0 w-full max-w-5xl mx-auto ${
+          studyMode === "chat"
+            ? "p-0 sm:p-4 overflow-hidden"
+            : "overflow-y-auto overscroll-contain p-3 sm:p-6"
+        }`}
+      >
         {/* =================================================================== */}
         {/* SUB-MODE 1: TEKS MATERI (CLEAN, EYE-FRIENDLY READER & FEATURE HUB) */}
         {/* =================================================================== */}
@@ -904,7 +910,7 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 4: TANYA SMART AI (SOCRATIC CHAT & DOCK)                  */}
         {/* =================================================================== */}
         {studyMode === "chat" && (
-          <div className="flex-1 flex flex-col min-h-[520px] h-[calc(100dvh-185px)] rounded-3xl overflow-hidden shadow-sm animate-fade-in">
+          <div className="flex-1 flex flex-col min-h-0 h-full w-full overflow-hidden sm:rounded-3xl border-0 sm:border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.04)] animate-fade-in bg-white/40 sm:bg-white/60 backdrop-blur-2xl">
             <SocraticDocumentViewer
               materialId={selectedMaterial.id}
               materialTitle={selectedMaterial.title}
