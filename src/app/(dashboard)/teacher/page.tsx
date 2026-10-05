@@ -360,65 +360,73 @@ export default async function TeacherDashboard() {
           </span>
           <span className="text-[11px] text-slate-400">Akses Cepat</span>
         </div>
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
           <Link
             href="/teacher/attendance/new"
-            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+            className="card-3d-chip flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 group active:scale-95 transition-all"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/60 sm:mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
               <Plus className="h-5 w-5 stroke-[2]" />
             </div>
-            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
-              Buka Sesi
-            </span>
-            <span className="text-[9px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full mt-1 border border-blue-100/60">
-              Baru
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col sm:items-center">
+              <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
+                Buka Sesi
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-blue-100/60 w-fit">
+                Baru
+              </span>
+            </div>
           </Link>
 
           <Link
             href="/teacher/scan"
-            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+            className="card-3d-chip flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 group active:scale-95 transition-all"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60 sm:mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
               <QrCode className="h-5 w-5 stroke-[1.8]" />
             </div>
-            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
-              Scan Siswa
-            </span>
-            <span className="text-[9px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-full mt-1 border border-slate-100">
-              Kamera
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col sm:items-center">
+              <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
+                Scan Siswa
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-slate-100 w-fit">
+                Kamera
+              </span>
+            </div>
           </Link>
 
           <Link
             href="/teacher/schedule"
-            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+            className="card-3d-chip flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 group active:scale-95 transition-all"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100/60 sm:mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
               <Calendar className="h-5 w-5 stroke-[1.8]" />
             </div>
-            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
-              Jadwal Mengajar
-            </span>
-            <span className="text-[9px] font-medium text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full mt-1 border border-sky-100/60">
-              Mingguan
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col sm:items-center">
+              <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
+                Jadwal Mengajar
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-medium text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-sky-100/60 w-fit">
+                Mingguan
+              </span>
+            </div>
           </Link>
 
           <Link
             href="/teacher/history"
-            className="card-3d-chip flex flex-col items-center justify-between p-2.5 sm:p-3 text-center group active:scale-95 transition-transform"
+            className="card-3d-chip flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 group active:scale-95 transition-all"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60 mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60 sm:mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
               <ClipboardCheck className="h-5 w-5 stroke-[1.8]" />
             </div>
-            <span className="text-[11px] font-bold text-slate-900 tracking-tight line-clamp-1">
-              Riwayat Sesi
-            </span>
-            <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1 border border-emerald-100/60">
-              {totalSessionsRes.count || 0}
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col sm:items-center">
+              <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
+                Riwayat Sesi
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-emerald-100/60 w-fit">
+                {totalSessionsRes.count || 0}
+              </span>
+            </div>
           </Link>
         </div>
       </div>
