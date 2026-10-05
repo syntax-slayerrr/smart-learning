@@ -67,10 +67,10 @@ export default function StudentAssignmentsPage() {
 
         <div className="space-y-3">
           {assignments.map((item) => (
-            <GlassCard key={item.id} className="p-5 border-slate-200/80 bg-white/90 space-y-4">
+            <GlassCard key={item.id} className="p-5 border-white/65 bg-white/60 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+                  <div className="h-10 w-10 rounded-2xl bg-[#007AFF]/10 text-[#007AFF] flex items-center justify-center shrink-0 border border-[#007AFF]/20">
                     <ClipboardList className="h-5 w-5" />
                   </div>
                   <div>
@@ -102,7 +102,7 @@ export default function StudentAssignmentsPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <p className="text-xs text-slate-600 bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-white/60">
                 {item.description}
               </p>
 

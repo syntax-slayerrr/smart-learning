@@ -254,9 +254,31 @@ export function OralDefenseModal({
     return `${mins.toString().padStart(2, "0")}:${remaining.toString().padStart(2, "0")}`;
   };
 
+  // Keyboard stability: track mobile virtual viewport
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+      setKeyboardOffset(offset > 60 ? offset : 0);
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-      <div className="w-full max-w-xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[92dvh] bg-[#F8FAFC] text-slate-900 border-0 sm:border border-slate-200/90 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden overscroll-contain">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-0 sm:p-4 animate-fade-in">
+      <div className="w-full max-w-xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[92dvh] bg-[#F8FAFC]/90 backdrop-blur-2xl text-slate-900 border-0 sm:border border-white/60 sm:rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden overscroll-contain">
         
         {/* Top Floating App Bar (Ella Reference Style) */}
         <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 pt-5 pb-2">
@@ -294,10 +316,10 @@ export function OralDefenseModal({
             </div>
 
             {/* 2. Featured Notification Card (Ella Reference: Announcement Card) */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden group">
+            <div className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden group">
               <div className="flex items-center justify-between gap-2 mb-2.5">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
-                  <Sparkles className="w-3 h-3 text-blue-600" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20">
+                  <Sparkles className="w-3 h-3 text-[#007AFF]" />
                   Pertanyaan {activeQuestionIdx + 1} dari {defenseQuestions.length}
                 </span>
                 <span className="text-[11px] font-medium text-slate-400">
@@ -306,16 +328,16 @@ export function OralDefenseModal({
               </div>
 
               {/* Progress Line */}
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mb-3 overflow-hidden">
+              <div className="w-full bg-slate-200/60 h-1.5 rounded-full mb-3 overflow-hidden">
                 <div 
-                  className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                  className="bg-[#007AFF] h-full rounded-full transition-all duration-300"
                   style={{ width: `${((activeQuestionIdx + 1) / defenseQuestions.length) * 100}%` }}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                  <FileCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <FileCheck className="w-3.5 h-3.5 text-[#007AFF]" />
                   <span>Naskah Tugas ({submissionFilename}):</span>
                 </div>
                 <p className="text-sm sm:text-[15px] font-bold text-slate-900 leading-snug">
@@ -344,13 +366,13 @@ export function OralDefenseModal({
                       key={sIdx}
                       type="button"
                       onClick={() => handleApplyThoughtStarter(starter)}
-                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/90 hover:border-blue-300 text-left transition-all shadow-xs active:scale-[0.98] group"
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/80 hover:border-[#007AFF]/40 text-left transition-all shadow-xs active:scale-[0.98] group backdrop-blur-md"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center text-sm shrink-0 transition-colors">
+                      <div className="w-8 h-8 rounded-xl bg-white/80 group-hover:bg-[#007AFF]/10 flex items-center justify-center text-sm shrink-0 transition-colors">
                         {icon}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-800 group-hover:text-blue-700 truncate">
+                        <div className="text-xs font-bold text-slate-800 group-hover:text-[#007AFF] truncate">
                           {starter.split("(")[0]?.trim() || starter}
                         </div>
                         <div className="text-[10px] text-slate-400 truncate mt-0.5">
@@ -455,16 +477,26 @@ export function OralDefenseModal({
         )}
 
         {/* Bottom Floating Prompt Dock (Ella Reference Style: Sleek Pill Bar) */}
-        <div className="shrink-0 p-3.5 sm:p-4 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl">
+        <div 
+          style={{
+            transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+            transition: "transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+          className="shrink-0 p-3.5 sm:p-4 border-t border-white/60 bg-white/75 backdrop-blur-2xl"
+        >
           {step === "questioning" && (
             <div className="flex items-center gap-2">
               
               {/* Input Capsule (Ella Style) */}
-              <div className="flex-1 flex items-center bg-slate-100 hover:bg-slate-100/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-slate-200/80 rounded-full px-4 py-1.5 sm:py-2 transition-all shadow-inner">
+              <div className="flex-1 flex items-center bg-white/80 hover:bg-white/95 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#007AFF]/25 focus-within:border-[#007AFF] border border-white/80 rounded-full px-4 py-1.5 sm:py-2 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                 <input
                   type="text"
                   value={currentInput}
                   onChange={(e) => setCurrentInput(e.target.value)}
+                  onFocus={(e) => {
+                    // Prevent layout jump on mobile keyboard trigger
+                    e.target.scrollIntoView = () => {};
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && currentInput.trim() && !isRecording) {
                       handleNextQuestion();
@@ -481,7 +513,7 @@ export function OralDefenseModal({
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ml-1.5 shrink-0 ${
                     isRecording
                       ? "bg-red-500 text-white animate-pulse shadow-xs"
-                      : "bg-white text-slate-600 hover:text-blue-600 border border-slate-200/80 shadow-xs active:scale-95"
+                      : "bg-white text-slate-600 hover:text-[#007AFF] border border-white/80 shadow-xs active:scale-95"
                   }`}
                   title={isRecording ? "Hentikan rekaman" : "Mulai bicara (Voice)"}
                 >
@@ -494,7 +526,7 @@ export function OralDefenseModal({
                 type="button"
                 disabled={!currentInput.trim() || isRecording}
                 onClick={handleNextQuestion}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 disabled:hover:bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#007AFF] hover:bg-[#0062CC] disabled:opacity-30 disabled:hover:bg-[#007AFF] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#007AFF]/20 transition-all active:scale-95"
                 title="Kirim & Lanjut"
               >
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
