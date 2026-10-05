@@ -32,7 +32,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-dvh h-dvh overflow-hidden bg-background">
+    <div className="flex min-h-dvh h-dvh overflow-hidden bg-transparent">
       {/* Sidebar navigation for desktop and slide drawer for mobile menu */}
       <Sidebar
         role={role}
@@ -43,15 +43,8 @@ export function DashboardLayout({
         onLogout={handleLogout}
       />
 
-      {/* Main App Canvas with 3D Spatial Ambient Depth */}
-      <div className="flex flex-1 flex-col overflow-hidden relative bg-[#F8FAFC]">
-        {/* Ambient 3D Spatial Background Blooms (Subtle blur mesh, non-blocking) */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-blue-500/[0.07] blur-[120px]" />
-          <div className="absolute top-1/3 -left-32 w-80 h-80 rounded-full bg-slate-500/[0.05] blur-[100px]" />
-          <div className="absolute -bottom-20 right-1/4 w-96 h-96 rounded-full bg-indigo-500/[0.04] blur-[130px]" />
-        </div>
-
+      {/* Main App Canvas with Integrated Atmospheric Depth */}
+      <div className="flex flex-1 flex-col overflow-hidden relative bg-transparent">
         <Header role={role} onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 overflow-y-auto pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10">

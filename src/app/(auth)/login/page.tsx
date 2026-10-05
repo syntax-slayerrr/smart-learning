@@ -12,14 +12,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] px-4 py-8 sm:py-12 selection:bg-blue-600/20 selection:text-blue-700 overflow-x-hidden">
-      {/* Ambient 3D Spatial Luminous Blooms */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-blue-500/10 blur-[100px]" />
-        <div className="absolute top-1/2 -left-32 w-96 h-96 rounded-full bg-indigo-500/10 blur-[110px]" />
-        <div className="absolute -bottom-32 left-1/3 w-80 h-80 rounded-full bg-slate-300/40 blur-[90px]" />
-      </div>
-
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-transparent px-4 py-8 sm:py-12 selection:bg-blue-600/20 selection:text-blue-700 overflow-x-hidden">
       <div className="relative z-10 w-full max-w-md animate-fade-in space-y-6">
         {/* Brand & Team Header with 3D Tactile Pod */}
         <div className="text-center space-y-3">
@@ -102,7 +95,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info & Security Guarantee */}
-        <div className="pt-2 flex flex-col items-center gap-1.5 text-center">
+        <div className="pt-2 pb-10 sm:pb-4 flex flex-col items-center gap-1.5 text-center">
           <div className="inline-flex items-center gap-1.5 text-xs text-slate-500">
             <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
             <span>Keamanan data & privasi terenkripsi standar institusi</span>

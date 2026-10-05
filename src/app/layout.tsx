@@ -6,6 +6,7 @@ export const viewport: Viewport = {
 };
 import { Suspense } from "react";
 import { PushManager } from "@/components/shared/push-manager";
+import { AmbientBackground } from "@/components/layout/ambient-background";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,7 +42,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={inter.variable}>
-      <body className="min-h-screen font-sans">
+      <body className="min-h-screen font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
+        <AmbientBackground intensity="medium" />
         <Suspense fallback={null}>
           <PushManager />
         </Suspense>
