@@ -50,6 +50,8 @@ export const NAV_ITEMS = {
   ],
   teacher: [
     { label: "Dashboard", href: "/teacher", icon: "LayoutDashboard", group: "AKTIVITAS" },
+    { label: "LMS & Modul AI", href: "/teacher/materials", icon: "BookOpen", group: "AKADEMIK & AI" },
+    { label: "Tugas & Oral Defense", href: "/teacher/assignments", icon: "ClipboardList", group: "AKADEMIK & AI" },
     { label: "Scan QR Absensi", href: "/teacher/scan", icon: "QrCode", group: "AKTIVITAS" },
     { label: "Riwayat Sesi", href: "/teacher/history", icon: "History", group: "DATA KELAS" },
     { label: "Rekap Kehadiran", href: "/teacher/recap", icon: "BarChart3", group: "DATA KELAS" },
@@ -57,6 +59,8 @@ export const NAV_ITEMS = {
   ],
   student: [
     { label: "Dashboard", href: "/student", icon: "LayoutDashboard", group: "UTAMA" },
+    { label: "Smart Notebook", href: "/student/notebook", icon: "BookOpen", group: "AI LEARNING" },
+    { label: "Tugas & Oral Defense", href: "/student/assignments", icon: "ClipboardList", group: "AI LEARNING" },
     { label: "Scan Kartu / QR", href: "/student/scan", icon: "QrCode", group: "UTAMA" },
     { label: "Riwayat Absensi", href: "/student/history", icon: "History", group: "CATATAN" },
     { label: "Profil Siswa", href: "/student/profile", icon: "UserCircle", group: "AKUN" },

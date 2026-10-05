@@ -17,6 +17,7 @@ import {
   UserCircle,
   Bell,
   Calendar,
+  BookOpen,
 } from "lucide-react";
 
 interface MobileBottomNavProps {
@@ -60,9 +61,9 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
       case "student":
         return [
           { label: "Beranda", href: "/student", icon: LayoutDashboard, asset: "/icons/dashboard.png" },
-          { label: "Jadwal", href: "/student/schedule", icon: Calendar, asset: "/icons/jadwal-pelajaran.png" },
+          { label: "Notebook", href: "/student/notebook", icon: BookOpen, asset: "/icons/mata-pelajaran.png" },
           { label: "Scan QR", href: "/student/scan", icon: QrCode, isCenter: true },
-          { label: "Riwayat", href: "/student/history", icon: History },
+          { label: "Tugas", href: "/student/assignments", icon: ClipboardCheck, asset: "/icons/absensi-siswa.png" },
           { label: "Profil", href: "/student/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
         ];
       case "parent":

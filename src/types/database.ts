@@ -276,3 +276,158 @@ export interface PedagogicalInsight {
   created_at: string;
 }
 
+// ============================================
+// SMART LMS & NOTEBOOKLM TYPES
+// ============================================
+
+export interface CourseMaterial {
+  id: string;
+  subject_id: string;
+  teacher_id: string;
+  class_id?: string | null;
+  title: string;
+  description?: string | null;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size_bytes: number;
+  page_count: number;
+  ai_summary?: string | null;
+  ai_status: "processing" | "ready" | "failed";
+  created_at: string;
+  updated_at: string;
+  subject?: Subject;
+  teacher?: Teacher;
+  topics?: MaterialTopic[];
+}
+
+export interface MaterialTopic {
+  id: string;
+  material_id: string;
+  topic_order: number;
+  title: string;
+  description?: string | null;
+  page_start: number;
+  page_end: number;
+  key_concepts: string[];
+  avg_confusion_score: number;
+  inattention_event_count: number;
+  is_critical_zone: boolean;
+  ai_socratic_prompt?: string | null;
+  created_at: string;
+}
+
+export interface MaterialTelemetryLink {
+  id: string;
+  session_id: string;
+  topic_id: string;
+  recorded_at: string;
+  observed_drop_percentage: number;
+  ai_correlation_notes?: string | null;
+  created_at: string;
+}
+
+export interface Assignment {
+  id: string;
+  subject_id: string;
+  teacher_id: string;
+  class_id: string;
+  material_id?: string | null;
+  title: string;
+  instructions: string;
+  due_date: string;
+  max_score: number;
+  submission_format: "pdf" | "text" | "any";
+  rubric_guidelines?: string[];
+  is_oral_defense_required: boolean;
+  created_at: string;
+  updated_at: string;
+  subject?: Subject;
+  material?: CourseMaterial;
+  submission?: AssignmentSubmission | null;
+}
+
+export interface AssignmentSubmission {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  file_url?: string | null;
+  text_content?: string | null;
+  status: "draft" | "defense_passed" | "submitted" | "graded" | "returned";
+  oral_defense_passed: boolean;
+  oral_defense_score: number;
+  ai_pre_score?: number | null;
+  ai_feedback?: string | null;
+  teacher_score?: number | null;
+  teacher_notes?: string | null;
+  submitted_at?: string | null;
+  graded_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  assignment?: Assignment;
+  student?: Student;
+}
+
+export interface OralDefenseQuestion {
+  id: string;
+  question: string;
+  target_claim: string;
+  expected_keywords: string[];
+}
+
+export interface OralDefenseResponse {
+  question_id: string;
+  student_answer: string;
+  audio_url?: string | null;
+  evaluation: string;
+  score: number;
+}
+
+export interface OralDefenseSession {
+  id: string;
+  submission_id: string;
+  student_id: string;
+  questions: OralDefenseQuestion[];
+  responses: OralDefenseResponse[];
+  overall_understanding_score: number;
+  integrity_verdict: "high_understanding" | "assisted_learning" | "inconsistent_logic" | "suspected_copy_paste";
+  defense_summary?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+}
+
+export interface ConceptNode {
+  id: string;
+  subject_id: string;
+  material_id?: string | null;
+  label: string;
+  category: "chapter" | "concept" | "formula" | "methodology";
+  summary?: string | null;
+  difficulty_level: number;
+  reference_page: number;
+  coordinates_hint?: { x: number; y: number };
+  created_at: string;
+}
+
+export interface ConceptEdge {
+  id: string;
+  source_node_id: string;
+  target_node_id: string;
+  relation_type: "prerequisite_of" | "relates_to" | "part_of" | "applies_to";
+  strength: number;
+  created_at: string;
+}
+
+export interface StudentConceptMastery {
+  id: string;
+  student_id: string;
+  concept_id: string;
+  mastery_score: number;
+  practice_count: number;
+  last_evaluated_at: string;
+  needs_remediation: boolean;
+  recommended_action?: string | null;
+  concept?: ConceptNode;
+}
+
+
