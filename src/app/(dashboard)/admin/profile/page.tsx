@@ -17,7 +17,7 @@ export default async function AdminProfilePage() {
   if (!profile) return <div>Profil tidak ditemukan.</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-container max-w-4xl space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Profil Saya</h1>
         <p className="text-muted-foreground">

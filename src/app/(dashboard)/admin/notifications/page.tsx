@@ -61,7 +61,7 @@ export default async function NotificationsPage() {
   }));
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="dashboard-container space-y-6 animate-fade-in">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Log Notifikasi WhatsApp</h1>
         <p className="text-sm text-muted-foreground">
