@@ -1,14 +1,12 @@
-"use client";
-
 import React from "react";
-import { CheckCircle2, AlertCircle, Video, LucideIcon } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Video, LucideIcon, Sparkles } from "lucide-react";
 
 export interface TriMetricItem {
   id: string;
   label: string;
   value: string | number;
   sublabel: string;
-  icon: LucideIcon;
+  icon?: LucideIcon | "check" | "warning" | "video" | "sparkles";
   variant: "success" | "warning" | "primary";
 }
 
@@ -23,7 +21,7 @@ const DEFAULT_METRICS: TriMetricItem[] = [
     label: "Tepat Waktu",
     value: "94%",
     sublabel: "Kehadiran",
-    icon: CheckCircle2,
+    icon: "check",
     variant: "success",
   },
   {
@@ -31,7 +29,7 @@ const DEFAULT_METRICS: TriMetricItem[] = [
     label: "Perlu Atensi",
     value: "2",
     sublabel: "Siswa Alpa",
-    icon: AlertCircle,
+    icon: "warning",
     variant: "warning",
   },
   {
@@ -39,7 +37,7 @@ const DEFAULT_METRICS: TriMetricItem[] = [
     label: "Kamera AI",
     value: "100%",
     sublabel: "Aktif Normal",
-    icon: Video,
+    icon: "video",
     variant: "primary",
   },
 ];
@@ -51,7 +49,17 @@ export function TriMetricMatrix({
   return (
     <div className={`grid grid-cols-3 gap-2.5 sm:gap-3.5 ${className}`}>
       {metrics.map((m) => {
-        const Icon = m.icon;
+        let IconComponent = CheckCircle2;
+        if (typeof m.icon === "function" || (typeof m.icon === "object" && m.icon !== null)) {
+          IconComponent = m.icon as LucideIcon;
+        } else if (m.icon === "warning" || m.variant === "warning") {
+          IconComponent = AlertTriangle;
+        } else if (m.icon === "video") {
+          IconComponent = Video;
+        } else if (m.icon === "sparkles") {
+          IconComponent = Sparkles;
+        }
+
         const colorStyles =
           m.variant === "success"
             ? {
@@ -77,7 +85,7 @@ export function TriMetricMatrix({
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-xl ${colorStyles.podBg} mb-1.5`}
             >
-              <Icon className="h-4 w-4 stroke-[2]" />
+              <IconComponent className="h-4 w-4 stroke-[2]" />
             </div>
 
             {/* Value */}

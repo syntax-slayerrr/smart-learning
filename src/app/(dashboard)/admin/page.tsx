@@ -147,7 +147,7 @@ export default async function AdminDashboardPage() {
       label: "Tepat Waktu",
       value: `${Math.round(attendanceRate)}%`,
       sublabel: "Kehadiran",
-      icon: CheckCircle2,
+      icon: "check",
       variant: "success",
     },
     {
@@ -158,7 +158,7 @@ export default async function AdminDashboardPage() {
         topAbsentees?.length ||
         0,
       sublabel: "Siswa Pantau",
-      icon: AlertTriangle,
+      icon: "warning",
       variant: "warning",
     },
     {
@@ -168,7 +168,7 @@ export default async function AdminDashboardPage() {
         ? `${schoolOverview.total_sessions_with_telemetry} Sesi`
         : "Aktif",
       sublabel: "Monitoring",
-      icon: Video,
+      icon: "video",
       variant: "primary",
     },
   ];
