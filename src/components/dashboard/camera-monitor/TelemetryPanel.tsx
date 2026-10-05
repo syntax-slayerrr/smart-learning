@@ -18,10 +18,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { DetectedSubject } from "./types";
+import { AiAttendanceDraftView } from "./AiAttendanceDraftView";
 
 interface TelemetryPanelProps {
-  rightTab: "digital_twin" | "analytics";
-  setRightTab: (tab: "digital_twin" | "analytics") => void;
+  rightTab: "digital_twin" | "analytics" | "attendance";
+  setRightTab: (tab: "digital_twin" | "analytics" | "attendance") => void;
+  sessionId?: string;
   focusIndex: number;
   totalDetected: number;
   counts: {
@@ -53,6 +55,7 @@ interface TelemetryPanelProps {
 export function TelemetryPanel({
   rightTab,
   setRightTab,
+  sessionId,
   focusIndex,
   totalDetected,
   counts,
@@ -99,6 +102,17 @@ export function TelemetryPanel({
               }`}
             >
               Tren Fokus
+            </button>
+            <button
+              onClick={() => setRightTab("attendance")}
+              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all touch-manipulation flex items-center gap-1 ${
+                rightTab === "attendance"
+                  ? "bg-white text-emerald-800 shadow-sm font-semibold"
+                  : "text-[#6E6E73] hover:text-[#1D1D1F]"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Presensi AI
             </button>
           </div>
         </div>
@@ -149,8 +163,10 @@ export function TelemetryPanel({
           </div>
         </div>
 
-        {/* TAB 1: DETECTED SUBJECTS LIST */}
-        {rightTab === "digital_twin" ? (
+        {/* TAB RENDERING */}
+        {rightTab === "attendance" ? (
+          <AiAttendanceDraftView sessionId={sessionId} />
+        ) : rightTab === "digital_twin" ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-medium text-[#6E6E73] px-1">
               <span>STATUS INTERAKSI SISWA</span>

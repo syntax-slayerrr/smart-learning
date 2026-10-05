@@ -85,7 +85,7 @@ const LATEST_API_URL = "/api/telemetry/latest?sessionId=00000000-0000-0000-0000-
 
 export function LiveCameraMonitor() {
   const [viewMode, setViewMode] = useState<"single" | "quad">("single");
-  const [rightTab, setRightTab] = useState<"digital_twin" | "analytics">("digital_twin");
+  const [rightTab, setRightTab] = useState<"digital_twin" | "analytics" | "attendance">("digital_twin");
   const [activeCamIndex, setActiveCamIndex] = useState<number>(0);
   const [streamOnline, setStreamOnline] = useState<boolean>(false);
   const [actualFps, setActualFps] = useState<number>(30);
@@ -631,6 +631,7 @@ export function LiveCameraMonitor() {
           <TelemetryPanel
             rightTab={rightTab}
             setRightTab={setRightTab}
+            sessionId="00000000-0000-0000-0000-000000000001"
             focusIndex={focusIndex}
             totalDetected={totalDetected}
             counts={counts}

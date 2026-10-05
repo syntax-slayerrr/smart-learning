@@ -21,14 +21,19 @@ const telemetryIngestSchema = z.object({
   anonymized_tracks: z.array(z.record(z.unknown())).optional(),
 });
 
-// In-memory buffer for real-time live dashboard sync
+// In-memory buffer for real-time live dashboard sync & human-in-the-loop attendance drafts
 declare global {
   // eslint-disable-next-line no-var
   var __LATEST_TELEMETRY__: Record<string, any[]> | undefined;
+  // eslint-disable-next-line no-var
+  var __ATTENDANCE_DRAFT__: Record<string, Record<string, any>> | undefined;
 }
 
 if (!globalThis.__LATEST_TELEMETRY__) {
   globalThis.__LATEST_TELEMETRY__ = {};
+}
+if (!globalThis.__ATTENDANCE_DRAFT__) {
+  globalThis.__ATTENDANCE_DRAFT__ = {};
 }
 
 export async function POST(request: NextRequest) {
@@ -169,6 +174,34 @@ export async function POST(request: NextRequest) {
     });
     if (buffer.length > 50) buffer.shift();
     globalThis.__LATEST_TELEMETRY__![session_id] = buffer;
+
+    // Multi-Frame Dwell Gate & AI Attendance Draft Aggregator
+    if (anonymized_tracks && Array.isArray(anonymized_tracks)) {
+      if (!globalThis.__ATTENDANCE_DRAFT__![session_id]) {
+        globalThis.__ATTENDANCE_DRAFT__![session_id] = {};
+      }
+      const draftMap = globalThis.__ATTENDANCE_DRAFT__![session_id];
+      for (const rawTrack of anonymized_tracks) {
+        const track = rawTrack as Record<string, any>;
+        const studentName = track.student_name as string;
+        const isRec = Boolean(track.is_recognized);
+        const isQual = Boolean(track.attendance_qualified);
+        const dwell = Number(track.dwell_seconds || 0);
+
+        if (isRec && studentName && !studentName.startsWith("Siswa #")) {
+          const prev = draftMap[studentName];
+          const bestDwell = Math.max(dwell, prev?.dwell_seconds || 0);
+          draftMap[studentName] = {
+            student_name: studentName,
+            seat_id: track.seat_id || prev?.seat_id || "SEAT_UNKNOWN",
+            confidence: track.confidence || prev?.confidence || 0.95,
+            dwell_seconds: bestDwell,
+            attendance_qualified: isQual || bestDwell >= 45.0 || (prev?.attendance_qualified ?? false),
+            last_seen: new Date().toISOString(),
+          };
+        }
+      }
+    }
 
     // 5. Automated Insight Trigger: If sleeping students detected, generate prompt
     if (summary.sleep_detected && summary.sleep_detected > 0) {

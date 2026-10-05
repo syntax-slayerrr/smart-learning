@@ -34,7 +34,9 @@ from cv_engine.config import (
     TOLERANSI_TRACK_HILANG_DETIK,
     SEAT_ANCHOR_MAX_RADIUS_PX,
     SEAT_ANCHOR_TTL_SEC,
-    MINIMAL_VOTING_IDENTITAS
+    MINIMAL_VOTING_IDENTITAS,
+    DURASI_MINIMAL_DUDUK_PRESENSI_DETIK,
+    MINIMAL_KONSENSUS_FRAME_PRESENSI
 )
 from cv_engine.core.kinematics import (
     hitung_sudut_tiga_titik,
@@ -576,18 +578,43 @@ class PelacakSubjekKelas:
 
                 # Pondasi 2: Latch Jangkar Kursi Spasial jika subjek terkonfirmasi duduk stabil
                 if track_lama.get("is_confirmed", False) and track_lama.get("hits", 0) >= 5 and postur == "sitting":
+                    if track_lama.get("first_latched_time") is None:
+                        track_lama["first_latched_time"] = waktu_sekarang
+                    
+                    durasi_duduk = waktu_sekarang - track_lama["first_latched_time"]
+                    track_lama["dwell_seconds"] = round(durasi_duduk, 1)
+
+                    # Gate Presensi: Verifikasi Waktu Duduk + Multi-Frame Consensus
+                    nama_siswa = track_lama.get("student_name", "")
+                    suara_identitas = track_lama.get("identity_votes", {}).get(nama_siswa, 0) if nama_siswa else 0
+                    is_rec = track_lama.get("is_recognized", False)
+
+                    if durasi_duduk >= DURASI_MINIMAL_DUDUK_PRESENSI_DETIK and is_rec and suara_identitas >= MINIMAL_KONSENSUS_FRAME_PRESENSI:
+                        track_lama["attendance_qualified"] = True
+                    else:
+                        track_lama["attendance_qualified"] = False
+
                     self.jangkar_kursi[id_terbaik] = {
                         "id": id_terbaik,
                         "center": (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0),
                         "box": (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h))),
                         "student_name": track_lama.get("student_name", f"Siswa #{id_terbaik}"),
-                        "is_recognized": track_lama.get("is_recognized", False),
+                        "is_recognized": is_rec,
                         "identity_votes": track_lama.get("identity_votes", {}),
                         "seat_id": f"SEAT_{id_terbaik}",
-                        "waktu_terakhir_aktif": waktu_sekarang
+                        "waktu_terakhir_aktif": waktu_sekarang,
+                        "dwell_seconds": track_lama["dwell_seconds"],
+                        "attendance_qualified": track_lama["attendance_qualified"]
                     }
                     track_lama["seat_latched"] = True
                     track_lama["seat_id"] = f"SEAT_{id_terbaik}"
+                else:
+                    if postur != "sitting" and track_lama.get("first_latched_time") is not None:
+                        # Reset timer jika berdiri lebih lama dari toleransi
+                        if waktu_sekarang - track_lama.get("last_seen", waktu_sekarang) > 5.0:
+                            track_lama["first_latched_time"] = None
+                            track_lama["dwell_seconds"] = 0.0
+                            track_lama["attendance_qualified"] = False
 
                 id_tercocokkan.add(id_terbaik)
             else:
@@ -606,6 +633,10 @@ class PelacakSubjekKelas:
                     "student_name": f"Siswa #{id_baru}",
                     "is_recognized": False,
                     "seat_latched": False,
+                    "seat_id": None,
+                    "first_latched_time": None,
+                    "dwell_seconds": 0.0,
+                    "attendance_qualified": False,
                     "identity_votes": {},
                     "box": (px, py, pw, ph),
                     "smooth_box": (float(px), float(py), float(pw), float(ph)),

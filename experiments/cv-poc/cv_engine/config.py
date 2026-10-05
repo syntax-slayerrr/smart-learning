@@ -116,6 +116,8 @@ AMBANG_BIAYA_ASOSIASI_MAKSIMAL      = 0.80   # Ambang batas gabungan IoU + Jarak
 INTERVAL_INFERENSI_WAJAH_DETIK     = 2.0    # Frekuensi inferensi pengenalan wajah asinkron (detik)
 SEAT_ANCHOR_MAX_RADIUS_PX           = 140.0  # Radius jangkar spasial kursi meja siswa (anti swap ID)
 SEAT_ANCHOR_TTL_SEC                 = 15.0   # Toleransi retensi kursi saat siswa tertutup guru atau teman sekelas
+DURASI_MINIMAL_DUDUK_PRESENSI_DETIK = 45.0   # Gate waktu minimal duduk stabil di kursi sebelum draf presensi aktif
+MINIMAL_KONSENSUS_FRAME_PRESENSI    = 5      # Jumlah frame berturut-turut terverifikasi identitas sebelum memenuhi syarat presensi
 
 # Alias kompatibilitas
 GUARDRAIL_ELBOW_ANGLE_THRESH        = AMBANG_SUDUT_SIKU_DERAJAT

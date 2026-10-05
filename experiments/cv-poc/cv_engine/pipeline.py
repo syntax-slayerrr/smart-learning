@@ -386,6 +386,10 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     "head_tilt_deg": subjek.get("head_tilt", 0.0),
                     "gaze_direction": subjek.get("gaze_dir", "Depan"),
                     "attention_score": subjek.get("attention_score", 95),
+                    "seat_latched": subjek.get("seat_latched", False),
+                    "seat_id": subjek.get("seat_id", "SEAT_UNKNOWN"),
+                    "dwell_seconds": subjek.get("dwell_seconds", 0.0),
+                    "attendance_qualified": subjek.get("attendance_qualified", False),
                     "box": [bx, by, bw, bh]
                 })
 
