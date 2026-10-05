@@ -12,9 +12,9 @@ export function AmbientBackground({
   className = "",
 }: AmbientBackgroundProps) {
   const opacityMap = {
-    subtle: "opacity-60",
-    medium: "opacity-80",
-    vivid: "opacity-95",
+    subtle: "opacity-70",
+    medium: "opacity-88",
+    vivid: "opacity-100",
   };
 
   return (
@@ -41,8 +41,8 @@ export function AmbientBackground({
       </div>
 
       {/* 3. Central Luminous Mask / Radial Diffuse Gradient
-          Creates high-contrast, calm negative space in the center for cards while preserving the books & desk at the bottom */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,255,255,0.85)_0%,rgba(255,255,255,0.45)_50%,rgba(255,255,255,0.05)_85%,transparent_100%)] pointer-events-none" />
+          Provides soft breathing room for readability while preserving rich color saturation & depth */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(255,255,255,0.30)_0%,rgba(255,255,255,0.10)_60%,transparent_100%)] pointer-events-none" />
 
       {/* 4. Spatial Depth Ambient Blooms
           Soft optical blooms matching the lavender, indigo, and periwinkle ribbons of the artwork */}

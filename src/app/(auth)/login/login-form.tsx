@@ -38,7 +38,7 @@ export function LoginForm() {
             </label>
             <span className="text-[10px] text-slate-400">Demo auto-fill</span>
           </div>
-          <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 shadow-[inset_0_2px_4px_rgba(15,23,42,0.05)]">
+          <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-slate-200/40 backdrop-blur-md border border-slate-200/50 shadow-[inset_0_2px_4px_rgba(15,23,42,0.05)]">
             {[
               { id: "admin", label: "Admin" },
               { id: "guru", label: "Guru" },
@@ -53,7 +53,7 @@ export function LoginForm() {
                   onClick={() => handleRoleSelect(r.id)}
                   className={`py-2 rounded-xl text-xs font-semibold transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer text-center active:scale-[0.93] touch-manipulation select-none ${
                     active
-                      ? "bg-white text-blue-600 shadow-[0_2px_8px_-1px_rgba(15,23,42,0.1),0_1px_2px_rgba(15,23,42,0.06)] border border-slate-200/80 border-t-white scale-[1.02]"
+                      ? "bg-white/95 backdrop-blur-md text-blue-600 shadow-[0_4px_12px_-2px_rgba(15,23,42,0.12),0_1px_3px_rgba(15,23,42,0.08)] border border-white font-bold scale-[1.02]"
                       : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                   }`}
                 >
@@ -88,7 +88,7 @@ export function LoginForm() {
                 setSelectedRole(null);
               }}
               placeholder="admin, guru, siswa, atau ortu"
-              className="w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 py-3 pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 font-sans tracking-tight shadow-[inset_0_2px_4px_rgba(15,23,42,0.04)] focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              className="w-full rounded-2xl border border-slate-200/70 bg-white/60 backdrop-blur-md py-3 pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 font-sans tracking-tight shadow-[inset_0_2px_4px_rgba(15,23,42,0.03)] focus:bg-white/95 focus:backdrop-blur-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
             />
           </div>
         </div>
@@ -116,7 +116,7 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 py-3 pl-12 pr-11 text-sm font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 font-sans shadow-[inset_0_2px_4px_rgba(15,23,42,0.04)] focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+              className="w-full rounded-2xl border border-slate-200/70 bg-white/60 backdrop-blur-md py-3 pl-12 pr-11 text-sm font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 font-sans shadow-[inset_0_2px_4px_rgba(15,23,42,0.03)] focus:bg-white/95 focus:backdrop-blur-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
             />
             <button
               type="button"
@@ -133,7 +133,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={pending}
-          className="group relative flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 px-5 py-3.5 text-sm font-bold text-white shadow-[0_10px_20px_-5px_rgba(37,99,235,0.4)] border-t border-white/25 transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-6px_rgba(37,99,235,0.5)] active:scale-[0.965] active:translate-y-0 active:shadow-[0_4px_10px_-2px_rgba(37,99,235,0.4)] disabled:opacity-50 cursor-pointer touch-manipulation select-none"
+          className="group relative flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 px-5 py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_-6px_rgba(37,99,235,0.45),0_4px_12px_-2px_rgba(37,99,235,0.2)] border-t border-white/35 transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-6px_rgba(37,99,235,0.55)] active:scale-[0.965] active:translate-y-0 active:shadow-[0_4px_10px_-2px_rgba(37,99,235,0.4)] disabled:opacity-50 cursor-pointer touch-manipulation select-none"
         >
           {pending ? (
             <>
