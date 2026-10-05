@@ -15,6 +15,7 @@ import {
   Zap,
   Check,
 } from "lucide-react";
+import { getFaceDetector, evaluateVideoFace } from "@/lib/face-detection";
 
 interface FaceIdEnrollmentModalProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export function FaceIdEnrollmentModal({
 
   const [quality, setQuality] = useState<QualityChecks>({
     lighting: "checking",
-    centered: true,
+    centered: false,
     sharpness: "good",
     stability: true,
   });
@@ -98,6 +99,8 @@ export function FaceIdEnrollmentModal({
   const autoProgressRef = useRef(0);
   const stepRef = useRef<StepType>("frontal");
   const isCapturingRef = useRef(false);
+  const detectorRef = useRef<unknown>(null);
+  const isDetectorLoadingRef = useRef<boolean>(false);
 
   // Sync refs to avoid stale closure in requestAnimationFrame loop
   stepRef.current = step;
@@ -280,35 +283,61 @@ export function FaceIdEnrollmentModal({
       }
       prevFrameDataRef.current = new Uint8ClampedArray(data);
 
-      const isStable = motionDelta < 18; // Stabil jika gerakan tidak blur
+      const isStable = motionDelta < 22; // Stabil jika gerakan wajar
       const isLightingGood = lightingStatus === "optimal";
+
+      // 3. Face Detection & Oval Gating Riil (BlazeFace Engine)
+      const faceEval = evaluateVideoFace(
+        detectorRef.current,
+        video,
+        performance.now(),
+        stepRef.current
+      );
+
+      const isFaceValid = faceEval.detected && faceEval.isCentered && faceEval.isGoodSize;
 
       setQuality({
         lighting: lightingStatus,
-        centered: true,
+        centered: isFaceValid,
         sharpness: "good",
         stability: isStable,
       });
 
-      // 3. Fintech Auto-Progress Timer Logic
-      // Jika kondisi optimal & stabil, otomatis naikkan progress auto-capture
+      // Perbarui panduan teks sesuai evaluasi biometrik
+      setInstruction(faceEval.statusMessage);
+
+      // 4. Fintech Auto-Progress Timer Logic
       if (
         isLightingGood &&
+        isFaceValid &&
         !isCapturingRef.current &&
         stepRef.current !== "processing" &&
         stepRef.current !== "success"
       ) {
-        setAutoProgress((prev) => {
-          const next = Math.min(prev + 2.5, 100); // ~40 frames = 0.8-1 detik hold
-          if (next >= 100) {
-            executeCapture();
-            return 100;
-          }
-          return next;
-        });
-      } else if (!isLightingGood) {
-        // Reduksi perlahan jika pencahayaan tiba-tiba turun
-        setAutoProgress((prev) => Math.max(prev - 2, 0));
+        // Cek kecocokan pose tiap tahap
+        const isPoseCorrect =
+          stepRef.current === "frontal"
+            ? faceEval.headPose === "center"
+            : stepRef.current === "angle"
+            ? faceEval.headPose === "tilted"
+            : true;
+
+        if (isPoseCorrect) {
+          setAutoProgress((prev) => {
+            const next = Math.min(prev + 0.95, 100); // ~1.8 detik tahan posisi stabil (standar Fintech)
+            if (next >= 100) {
+              executeCapture();
+              return 100;
+            }
+            return next;
+          });
+        } else {
+          // Jika belum menoleh/miring di tahap angle, tahan atau decay sangat perlahan
+          setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+        }
+      } else {
+        // Jika tidak ada wajah atau keluar dari oval, turunkan progress dengan cepat
+        setAutoProgress((prev) => Math.max(prev - 3.5, 0));
       }
     } catch {
       // Ignored for performance
@@ -325,7 +354,16 @@ export function FaceIdEnrollmentModal({
       setAutoProgress(0);
       setTotalProgress(0);
       setCapturedFrames([]);
-      setInstruction("Posisikan wajah Anda di dalam oval dan tatap lurus");
+      setInstruction("Menyiapkan sensor biometrik AI...");
+
+      if (!detectorRef.current && !isDetectorLoadingRef.current) {
+        isDetectorLoadingRef.current = true;
+        getFaceDetector().then((detector) => {
+          detectorRef.current = detector;
+          isDetectorLoadingRef.current = false;
+        });
+      }
+
       startCamera();
     } else {
       stopCamera();
@@ -450,7 +488,7 @@ export function FaceIdEnrollmentModal({
                         rx="90"
                         ry="115"
                         fill="none"
-                        stroke="rgba(255, 255, 255, 0.25)"
+                        stroke={quality.centered ? "rgba(52, 199, 89, 0.45)" : "rgba(255, 255, 255, 0.25)"}
                         strokeWidth="2.5"
                         strokeDasharray="6 6"
                       />
@@ -476,12 +514,30 @@ export function FaceIdEnrollmentModal({
 
                     {/* Persentase Auto-Capture Ring Center Counter */}
                     <div className="absolute bottom-6 flex items-center justify-center">
-                      <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-primary/30 text-[11px] font-mono font-bold text-primary flex items-center gap-1.5 shadow-lg">
+                      <div
+                        className={`backdrop-blur-md px-3 py-1 rounded-full border text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-lg transition-colors ${
+                          quality.centered
+                            ? "bg-black/80 border-primary/30 text-primary"
+                            : "bg-black/80 border-amber-500/30 text-amber-400"
+                        }`}
+                      >
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                          <span
+                            className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                              quality.centered ? "bg-primary" : "bg-amber-400"
+                            }`}
+                          ></span>
+                          <span
+                            className={`relative inline-flex rounded-full h-2 w-2 ${
+                              quality.centered ? "bg-primary" : "bg-amber-400"
+                            }`}
+                          ></span>
                         </span>
-                        <span>Merekam Otomatis: {Math.round(autoProgress)}%</span>
+                        <span>
+                          {quality.centered
+                            ? `Merekam Otomatis: ${Math.round(autoProgress)}%`
+                            : "Arahkan Wajah ke Oval"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -579,9 +635,15 @@ export function FaceIdEnrollmentModal({
                 <Sun className="h-3 w-3" />
                 <span>Cahaya: {quality.lighting === "optimal" ? "Optimal" : "Kurang"}</span>
               </div>
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+              <div
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-colors ${
+                  quality.centered
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                }`}
+              >
                 <Focus className="h-3 w-3" />
-                <span>Posisi: Pas</span>
+                <span>Posisi: {quality.centered ? "Pas" : "Belum Pas"}</span>
               </div>
               <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-primary/10 text-primary border-primary/20">
                 <Zap className="h-3 w-3" />
