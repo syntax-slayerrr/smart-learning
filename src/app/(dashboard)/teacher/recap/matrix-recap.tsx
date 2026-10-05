@@ -3,12 +3,7 @@
 import { useState, useMemo } from "react";
 import { 
   Search, 
-  Calendar, 
-  Download, 
   FileSpreadsheet, 
-  ChevronRight, 
-  ChevronLeft,
-  Filter
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
@@ -77,19 +72,21 @@ export default function MatrixRecapClient({
     return map;
   }, [records]);
 
-  const filteredStudents = students.filter(s => 
-    s.class_id === selectedClass && 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => 
+      s.class_id === selectedClass && 
+      s.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [students, selectedClass, searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "present": return "bg-emerald-100 text-emerald-700 font-bold";
-      case "late": return "bg-amber-100 text-amber-700 font-bold";
-      case "sick": return "bg-blue-100 text-blue-700 font-bold";
-      case "excused": return "bg-purple-100 text-purple-700 font-bold";
-      case "absent": return "bg-red-100 text-red-700 font-bold";
-      default: return "bg-muted/30 text-muted-foreground text-xs";
+      case "present": return "bg-emerald-50 text-emerald-700 border border-emerald-300/80";
+      case "late": return "bg-amber-50 text-amber-700 border border-amber-300/80";
+      case "sick": return "bg-sky-50 text-sky-700 border border-sky-300/80";
+      case "excused": return "bg-purple-50 text-purple-700 border border-purple-300/80";
+      case "absent": return "bg-rose-50 text-rose-700 border border-rose-300/80";
+      default: return "bg-slate-50 text-slate-300 border border-slate-200/50";
     }
   };
 
@@ -140,7 +137,7 @@ export default function MatrixRecapClient({
         key.length,
         ...exportData.map(row => (row[key] ? row[key].toString().length : 0))
       );
-      return { wch: maxContentLength + 2 }; // Add padding
+      return { wch: maxContentLength + 2 };
     });
     worksheet["!cols"] = colWidths;
 
@@ -152,142 +149,208 @@ export default function MatrixRecapClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between p-4 bg-card border rounded-xl shadow-sm">
-        <div className="flex flex-wrap gap-3">
+    <div className="space-y-5">
+      {/* 1. Filter Bar with Apple-style Glass Inset */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-[var(--shadow-3d-card)] backdrop-blur-xl space-y-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Kelas</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Kelas</label>
             <select 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             >
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Mata Pelajaran</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Mata Pelajaran</label>
             <select 
               value={selectedSubject} 
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             >
               {subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Dari Tanggal</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Dari Tanggal</label>
             <input 
               type="date" 
               value={startDate} 
               onChange={(e) => setStartDate(e.target.value)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Sampai Tanggal</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Sampai Tanggal</label>
             <input 
               type="date" 
               value={endDate} 
               onChange={(e) => setEndDate(e.target.value)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-slate-100">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Cari siswa..."
+              placeholder="Cari nama siswa..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-10 w-full lg:w-64 rounded-lg border bg-background pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             />
           </div>
           <button 
             onClick={handleExport}
-            className="flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+            className="flex h-9 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-4 text-xs font-semibold text-white shadow-xs transition-all"
           >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>Export</span>
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Export Excel</span>
           </button>
         </div>
       </div>
 
-      {/* Matrix Table */}
-      <div className="relative overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* 2. Matrix Table Card */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white/95 shadow-[var(--shadow-3d-card)] backdrop-blur-xl overflow-hidden">
+        {/* Mobile scroll hint */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-slate-50/50 sm:hidden">
+          <span className="text-[11px] font-medium text-slate-500">
+            Total {filteredStudents.length} siswa • {filteredSessions.length} sesi pertemuan
+          </span>
+          <span className="text-[10px] font-semibold text-blue-600">
+            Geser tabel →
+          </span>
+        </div>
+
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-max min-w-full text-left border-collapse">
             <thead>
-              <tr className="bg-muted/50">
-                <th className="sticky left-0 z-20 bg-muted/50 px-4 py-3 text-sm font-bold border-r border-b min-w-[200px]">
+              <tr className="border-b border-slate-200/80">
+                {/* Fixed Sticky Student Column */}
+                <th className="sticky left-0 z-20 w-44 min-w-[176px] max-w-[176px] sm:w-60 sm:min-w-[240px] sm:max-w-[240px] bg-slate-50/95 backdrop-blur-md px-4 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200/80 shadow-[3px_0_8px_-2px_rgba(0,0,0,0.05)]">
                   Nama Siswa
                 </th>
+
+                {/* Fixed-Width Uniform Session Columns */}
                 {filteredSessions.map((session, idx) => (
-                  <th key={session.id} className="px-2 py-3 text-[10px] font-bold text-center border-b border-r min-w-[40px] uppercase">
-                    <div className="flex flex-col">
-                      <span>P{idx + 1}</span>
-                      <span className="text-[8px] font-medium text-muted-foreground">
+                  <th 
+                    key={session.id} 
+                    className="w-14 min-w-[56px] max-w-[56px] px-1 py-2.5 text-center border-r border-slate-200/70 bg-slate-50/90"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-0.5">
+                      <span className="text-[11px] font-extrabold text-slate-700">P{idx + 1}</span>
+                      <span className="text-[9px] font-medium text-slate-400 font-mono tracking-tight">
                         {new Date(session.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-3 text-sm font-bold text-center border-b min-w-[80px] bg-primary/5">
+
+                {/* Summary Attendance Column */}
+                <th className="w-20 min-w-[80px] max-w-[80px] px-2 py-3 text-center text-[11px] font-bold text-blue-950 uppercase tracking-wider bg-blue-50/60 border-l border-slate-200/80">
                   % Hadir
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {filteredStudents.map((student) => {
-                let presentCount = 0;
-                const totalSessions = filteredSessions.length;
+            <tbody className="divide-y divide-slate-100">
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td 
+                    colSpan={filteredSessions.length + 2} 
+                    className="px-6 py-12 text-center text-xs text-slate-400 font-medium"
+                  >
+                    Tidak ada data siswa ditemukan untuk kriteria ini.
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((student) => {
+                  let presentCount = 0;
+                  const totalSessions = filteredSessions.length;
 
-                return (
-                  <tr key={student.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="sticky left-0 z-10 bg-card px-4 py-2.5 text-sm font-medium border-r border-b group-hover:bg-muted/30">
-                      {student.full_name}
-                    </td>
-                    {filteredSessions.map((session) => {
-                      const status = recordMap[student.id]?.[session.id];
-                      if (status === "present" || status === "late") presentCount++;
-                      
-                      return (
-                        <td key={session.id} className={cn(
-                          "p-0 border-r border-b text-center align-middle",
-                        )}>
-                          <div className={cn(
-                            "mx-auto flex h-7 w-7 items-center justify-center rounded text-[10px] transition-all",
-                            getStatusColor(status || "")
-                          )}>
-                            {getStatusCode(status || "")}
-                          </div>
-                        </td>
-                      );
-                    })}
-                    <td className="px-4 py-2.5 text-sm font-bold text-center border-b bg-primary/5">
-                      {totalSessions > 0 
-                        ? Math.round((presentCount / totalSessions) * 100) 
-                        : 0}%
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={student.id} className="hover:bg-slate-50/60 transition-colors group">
+                      {/* Sticky Student Name with subtle shadow */}
+                      <td className="sticky left-0 z-10 w-44 min-w-[176px] max-w-[176px] sm:w-60 sm:min-w-[240px] sm:max-w-[240px] bg-white group-hover:bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-900 border-r border-slate-100 shadow-[3px_0_8px_-2px_rgba(0,0,0,0.05)] transition-colors">
+                        <div className="truncate" title={student.full_name}>
+                          {student.full_name}
+                        </div>
+                      </td>
+
+                      {/* Session Status Chips */}
+                      {filteredSessions.map((session) => {
+                        const status = recordMap[student.id]?.[session.id];
+                        if (status === "present" || status === "late") presentCount++;
+                        
+                        return (
+                          <td 
+                            key={session.id} 
+                            className="w-14 min-w-[56px] max-w-[56px] p-1.5 border-r border-slate-100 text-center align-middle"
+                          >
+                            <div className={cn(
+                              "mx-auto flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-xs font-bold transition-all shadow-xs",
+                              getStatusColor(status || "")
+                            )}>
+                              {getStatusCode(status || "")}
+                            </div>
+                          </td>
+                        );
+                      })}
+
+                      {/* Percentage Badge */}
+                      {(() => {
+                        const percentage = totalSessions > 0 
+                          ? Math.round((presentCount / totalSessions) * 100) 
+                          : 0;
+
+                        return (
+                          <td className="w-20 min-w-[80px] max-w-[80px] px-2 py-2.5 text-center align-middle bg-blue-50/20 border-l border-slate-100">
+                            <span className={cn(
+                              "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold",
+                              percentage >= 85 ? "bg-emerald-100 text-emerald-800" :
+                              percentage >= 70 ? "bg-amber-100 text-amber-800" :
+                              "bg-rose-100 text-rose-800"
+                            )}>
+                              {percentage}%
+                            </span>
+                          </td>
+                        );
+                      })()}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground p-2">
-        <div className="flex items-center gap-1.5"><span className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100 text-emerald-700 font-bold">H</span> Hadir</div>
-        <div className="flex items-center gap-1.5"><span className="flex h-4 w-4 items-center justify-center rounded bg-amber-100 text-amber-700 font-bold">T</span> Terlambat</div>
-        <div className="flex items-center gap-1.5"><span className="flex h-4 w-4 items-center justify-center rounded bg-blue-100 text-blue-700 font-bold">S</span> Sakit</div>
-        <div className="flex items-center gap-1.5"><span className="flex h-4 w-4 items-center justify-center rounded bg-purple-100 text-purple-700 font-bold">I</span> Izin</div>
-        <div className="flex items-center gap-1.5"><span className="flex h-4 w-4 items-center justify-center rounded bg-red-100 text-red-700 font-bold">A</span> Alpa</div>
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/60 text-[11px] text-slate-600">
+          <span className="font-bold text-slate-700">Keterangan:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-300/80 text-[10px]">H</span>
+            <span>Hadir</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-700 font-bold border border-amber-300/80 text-[10px]">T</span>
+            <span>Terlambat</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-700 font-bold border border-sky-300/80 text-[10px]">S</span>
+            <span>Sakit</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-50 text-purple-700 font-bold border border-purple-300/80 text-[10px]">I</span>
+            <span>Izin</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-300/80 text-[10px]">A</span>
+            <span>Alpa</span>
+          </div>
+        </div>
       </div>
     </div>
   );

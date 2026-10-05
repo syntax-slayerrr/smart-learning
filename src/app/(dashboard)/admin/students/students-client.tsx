@@ -566,7 +566,7 @@ export function StudentsClient({
             Akun dibuat otomatis. Kredensial awal tersedia setelah siswa tersimpan.
           </div>
 
-          <div className="flex gap-2.5 pt-2">
+          <div className="flex gap-2.5 pt-3 pb-6 sm:pb-2">
             <Button
               type="button"
               variant="outline"
@@ -659,7 +659,7 @@ export function StudentsClient({
               )}
             </div>
 
-            <div className="flex gap-2.5 pt-2">
+            <div className="flex gap-2.5 pt-3 pb-6 sm:pb-2">
               <Button
                 type="button"
                 variant="outline"
