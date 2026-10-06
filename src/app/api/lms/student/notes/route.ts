@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Map flexible payload (support snake_case from offline sync and camelCase)
     const normalizedBody = {
-      studentId: rawBody.studentId || rawBody.student_id || "student-mock-zaldy",
+      studentId: rawBody.studentId || rawBody.student_id || "51d15a3b-f681-425d-81a9-ca177b8f77ce",
       materialId: rawBody.materialId || rawBody.material_id || null,
       topicId: rawBody.topicId || rawBody.topic_id || rawBody.chapter_id || null,
       noteContent: rawBody.noteContent || rawBody.note_content || rawBody.my_note,
@@ -72,10 +72,17 @@ export async function POST(req: NextRequest) {
     const { studentId, materialId, topicId, noteContent, highlightedText, socraticContext } =
       parseResult.data;
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let validStudentId = studentId;
+    if (!validStudentId || !uuidRegex.test(validStudentId)) {
+      const { data: s } = await admin.from("students").select("id").limit(1).maybeSingle();
+      validStudentId = s?.id || "51d15a3b-f681-425d-81a9-ca177b8f77ce";
+    }
+
     const { data, error } = await admin
       .from("student_study_notes")
       .insert({
-        student_id: studentId,
+        student_id: validStudentId,
         material_id: materialId || null,
         topic_id: topicId || null,
         note_content: noteContent,

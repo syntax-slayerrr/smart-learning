@@ -704,7 +704,7 @@ export default function StudentAssignmentsPage() {
                 </span>
                 <p className="text-indigo-950/80 leading-relaxed text-xs">
                   {viewingSubmission.submission.ai_feedback ||
-                    "Pemahaman konseptual sangat baik. Struktur dan penyelesaian kalkulasi subnetting sesuai dengan standar jaringan komputer."}
+                    "Pemahaman konseptual sangat baik. Berkas terstruktur rapi dan argumentasi logis sesuai dengan kriteria penugasan."}
                 </p>
               </div>
 

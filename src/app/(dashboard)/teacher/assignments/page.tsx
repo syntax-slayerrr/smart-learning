@@ -567,7 +567,9 @@ export default function TeacherAssignmentsPage() {
                           <FileText className="h-4 w-4" />
                         </div>
                         <span className="font-medium text-slate-700 truncate max-w-xs">
-                          Laporan_Tugas_Subnetting.pdf
+                          {sub.file_url
+                            ? decodeURIComponent(sub.file_url.split("/").pop() || "Laporan_Tugas.pdf")
+                            : "Laporan_Tugas.pdf"}
                         </span>
                         <a
                           href={sub.file_url}

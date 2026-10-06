@@ -216,7 +216,7 @@ export async function syncPendingOfflineNotes(): Promise<{ synced: number }> {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            student_id: "student-mock-zaldy",
+            student_id: (note as any).student_id || "51d15a3b-f681-425d-81a9-ca177b8f77ce",
             material_id: note.material_id,
             chapter_id: note.chapter_id,
             quote: note.quote,

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     let finalStudentId = studentId;
     if (!finalStudentId) {
       const { data: s } = await admin.from("students").select("id").limit(1).maybeSingle();
-      finalStudentId = s?.id || "f36e5ee6-786b-4974-be34-93183cd69095";
+      finalStudentId = s?.id || "51d15a3b-f681-425d-81a9-ca177b8f77ce";
     }
 
     // Ambil info assignment untuk referensi evaluasi AI

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.json();
 
     const normalizedBody = {
-      studentId: rawBody.studentId || rawBody.student_id || "student-mock-zaldy",
+      studentId: rawBody.studentId || rawBody.student_id || "51d15a3b-f681-425d-81a9-ca177b8f77ce",
       materialId: rawBody.materialId || rawBody.material_id || null,
       subjectId: rawBody.subjectId || rawBody.subject_id || null,
       quizTitle: rawBody.quizTitle || rawBody.quiz_title || "Kuis Konseptual Subnetting & Jaringan",
@@ -58,6 +58,13 @@ export async function POST(req: NextRequest) {
       completedDurationSeconds,
     } = parseResult.data;
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let validStudentId = studentId;
+    if (!validStudentId || !uuidRegex.test(validStudentId)) {
+      const { data: s } = await admin.from("students").select("id").limit(1).maybeSingle();
+      validStudentId = s?.id || "51d15a3b-f681-425d-81a9-ca177b8f77ce";
+    }
+
     const durationText = completedDurationSeconds
       ? `\n- **Waktu Pengerjaan**: ${Math.floor(completedDurationSeconds / 60)}m ${completedDurationSeconds % 60}s`
       : "";
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
       const { data: noteRecord, error: noteError } = await admin
         .from("student_study_notes")
         .insert({
-          student_id: studentId,
+          student_id: validStudentId,
           material_id: materialId || null,
           note_content: noteContent,
           socratic_context: {

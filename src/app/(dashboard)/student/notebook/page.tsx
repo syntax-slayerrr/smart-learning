@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ const SocraticDocumentViewer = dynamic(
     loading: () => (
       <div className="w-full h-[600px] rounded-3xl bg-white/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/60 animate-pulse text-xs text-[#86868B] gap-2">
         <div className="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
-        <span>Menyiapkan Socratic Document Viewer...</span>
+        <span>Menyiapkan Lembar Diskusi Smart AI...</span>
       </div>
     ),
   }
@@ -209,41 +210,70 @@ export default function StudentNotebookPage() {
     }
   };
 
-  useEffect(() => {
-    async function fetchNotebookData() {
-      try {
-        setIsLoading(true);
-        if (!navigator.onLine) {
-          const cached = await getCachedActiveMaterial();
-          if (cached) {
-            setNotebookData(cached);
-            setIsLoading(false);
-            return;
-          }
-        }
+  // Student ID resolved from Auth session
+  const [currentStudentId, setCurrentStudentId] = useState<string>("51d15a3b-f681-425d-81a9-ca177b8f77ce");
 
-        const res = await fetch("/api/lms/student/notebook-data");
-        const json = await res.json();
-        if (json.success && json.data) {
-          setNotebookData(json.data);
-          cacheActiveMaterial(json.data);
-          if (json.data.subjects && json.data.subjects.length > 0) {
-            setSelectedSubjectId(json.data.subjects[0].id);
+  useEffect(() => {
+    async function loadAuthStudent() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: student } = await supabase
+            .from("students")
+            .select("id")
+            .eq("profile_id", user.id)
+            .maybeSingle();
+          if (student?.id) {
+            setCurrentStudentId(student.id);
           }
-        } else {
-          const cached = await getCachedActiveMaterial();
-          if (cached) setNotebookData(cached);
         }
       } catch (err) {
-        console.warn("Jaringan offline atau lambat, memuat dari cache:", err);
-        const cached = await getCachedActiveMaterial();
-        if (cached) setNotebookData(cached);
-      } finally {
-        setIsLoading(false);
+        console.warn("Gagal resolve auth student:", err);
       }
     }
-    fetchNotebookData();
-  }, [isOnline]);
+    loadAuthStudent();
+  }, []);
+
+  const loadNotebookData = useCallback(async (materialId?: string) => {
+    try {
+      setIsLoading(true);
+      const url = materialId
+        ? `/api/lms/student/notebook-data?materialId=${materialId}&studentId=${currentStudentId}`
+        : `/api/lms/student/notebook-data?studentId=${currentStudentId}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setNotebookData(json.data);
+        cacheActiveMaterial(json.data);
+        if (json.data.material && !selectedMaterial) {
+          setSelectedMaterial(json.data.material);
+        }
+        if (json.data.subjects && json.data.subjects.length > 0 && !selectedSubjectId) {
+          setSelectedSubjectId(json.data.subjects[0].id);
+        }
+      } else {
+        const cached = await getCachedActiveMaterial();
+        if (cached) setNotebookData(cached);
+      }
+    } catch (err) {
+      console.warn("Jaringan offline atau lambat, memuat dari cache:", err);
+      const cached = await getCachedActiveMaterial();
+      if (cached) setNotebookData(cached);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentStudentId, selectedMaterial, selectedSubjectId]);
+
+  useEffect(() => {
+    loadNotebookData();
+  }, [loadNotebookData]);
+
+  const handleSelectMaterial = (mat: any) => {
+    setSelectedMaterial(mat);
+    loadNotebookData(mat.id);
+    setStudyMode("reader");
+  };
 
   // Derived Active Subject
   const activeSubject: SubjectItem | undefined = useMemo(() => {
@@ -260,38 +290,34 @@ export default function StudentNotebookPage() {
   const conceptGraph = notebookData?.conceptGraph || { nodes: [], edges: [] };
   const examReadiness = notebookData?.examReadiness || { axes: [], averageScore: 75 };
 
-  // Sample Interactive Quiz Questions (Derived from Extracted Material)
-  const quizQuestions = [
-    {
-      id: 1,
-      question: "Mengapa pada perhitungan usable host selalu dikurangi 2 (2ⁿ - 2)?",
-      options: [
-        "Karena 1 alamat untuk gateway dan 1 alamat untuk DNS server",
-        "Karena alamat pertama untuk Network ID dan alamat terakhir untuk Broadcast ID",
-        "Karena dialokasikan untuk protokol routing dinamis OSPF dan BGP",
-        "Hanya standar formalitas IEEE tanpa fungsi teknis spesifik",
-      ],
-      correctIndex: 1,
-      explanation:
-        "Tepat! Alamat biner semua 0 dicadangkan sebagai Network ID (alamat jaringan), sedangkan semua 1 adalah Broadcast ID untuk mengirim paket ke seluruh host dalam subnet.",
-    },
-    {
-      id: 2,
-      question: "Jika sebuah divisi membutuhkan 14 host, prefix CIDR manakah yang paling efisien?",
-      options: ["/27 (Maks 30 host)", "/28 (Maks 14 host)", "/29 (Maks 6 host)", "/26 (Maks 62 host)"],
-      correctIndex: 1,
-      explanation:
-        "Tepat! /28 memiliki 4 host bit (2⁴ - 2 = 14 host). Ini adalah alokasi 100% presisi tanpa membuang IP address secara sia-sia.",
-    },
-    {
-      id: 3,
-      question: "Berapa Broadcast Address dari subnet 192.168.10.0/28?",
-      options: ["192.168.10.14", "192.168.10.15", "192.168.10.16", "192.168.10.31"],
-      correctIndex: 1,
-      explanation:
-        "Tepat! Blok ukuran /28 adalah 16 IP (0-15). Network ID = 192.168.10.0, usable host = .1 s/d .14, dan Broadcast ID = 192.168.10.15.",
-    },
-  ];
+interface QuizQuestionItem {
+  id: number | string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+  // Real Interactive Quiz Questions (Derived from Extracted Material / API)
+  const quizQuestions: QuizQuestionItem[] = useMemo(() => {
+    if (notebookData?.quizQuestions && notebookData.quizQuestions.length > 0) {
+      return notebookData.quizQuestions;
+    }
+    return [
+      {
+        id: 1,
+        question: `Berdasarkan materi ${selectedMaterial?.title || "ini"}, fokus utama yang dibahas adalah...`,
+        options: [
+          chapters[0]?.title || "Konsep Dasar & Fondasi",
+          chapters[1]?.title || "Analisis Arsitektur & Perancangan",
+          chapters[2]?.title || "Implementasi Praktis",
+          "Semua pilihan di atas benar",
+        ],
+        correctIndex: 3,
+        explanation: "Modul pembelajaran ini mencakup penguasaan konsep, analisis rancangan, hingga implementasi terapan.",
+      },
+    ];
+  }, [notebookData, selectedMaterial, chapters]);
 
   // Restore quiz answers from localStorage when material changes
   useEffect(() => {
@@ -360,9 +386,9 @@ export default function StudentNotebookPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          studentId: "student-mock-zaldy",
+          studentId: currentStudentId,
           materialId: selectedMaterial?.id,
-          quizTitle: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+          quizTitle: selectedMaterial?.title ? `Kuis ${selectedMaterial.title}` : "Kuis Pemahaman Modul",
           score: calculatedScore,
           totalQuestions: quizQuestions.length,
           correctCount,
@@ -373,9 +399,9 @@ export default function StudentNotebookPage() {
         setQuizSyncStatus("synced");
       } else {
         await saveOfflineQuiz({
-          student_id: "student-mock-zaldy",
+          student_id: currentStudentId,
           material_id: selectedMaterial?.id,
-          quiz_title: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+          quiz_title: selectedMaterial?.title ? `Kuis ${selectedMaterial.title}` : "Kuis Pemahaman Modul",
           score: calculatedScore,
           total_questions: quizQuestions.length,
           correct_count: correctCount,
@@ -385,9 +411,9 @@ export default function StudentNotebookPage() {
       }
     } catch {
       await saveOfflineQuiz({
-        student_id: "student-mock-zaldy",
+        student_id: currentStudentId,
         material_id: selectedMaterial?.id,
-        quiz_title: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+        quiz_title: selectedMaterial?.title ? `Kuis ${selectedMaterial.title}` : "Kuis Pemahaman Modul",
         score: calculatedScore,
         total_questions: quizQuestions.length,
         correct_count: correctCount,
@@ -738,10 +764,7 @@ export default function StudentNotebookPage() {
 
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       <button
-                        onClick={() => {
-                          setSelectedMaterial(mat);
-                          setStudyMode("reader");
-                        }}
+                        onClick={() => handleSelectMaterial(mat)}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
                       >
                         <Play className="h-3.5 w-3.5 fill-current" />
@@ -1618,10 +1641,10 @@ export default function StudentNotebookPage() {
             <SocraticDocumentViewer
               materialId={selectedMaterial.id}
               materialTitle={selectedMaterial.title}
-              fileName={activeMaterialDetails?.fileName || "Modul_Subnetting_IPv4.pdf"}
+              fileName={activeMaterialDetails?.fileName || "Modul_Pembelajaran.pdf"}
               fileUrl={activeMaterialDetails?.fileUrl || ""}
               chapters={chapters}
-              studentId="student-mock-zaldy"
+              studentId={currentStudentId}
               onNavigateToReader={() => setStudyMode("reader")}
               className="border-0 shadow-none bg-transparent"
             />

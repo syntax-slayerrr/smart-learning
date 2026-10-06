@@ -137,6 +137,28 @@ export async function POST(request: NextRequest) {
       ? new Date(dueDate).toISOString()
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+    // Resolusi attachment PDF jika guru mengunggah berkas lampiran tugas
+    let finalMaterialId = materialId || null;
+    if (!finalMaterialId && body.attachmentUrl) {
+      const { data: createdMat } = await admin
+        .from("course_materials")
+        .insert({
+          title: `${title} (Lampiran)`,
+          description: `Lampiran instruksi penugasan: ${title}`,
+          subject_id: subjectId,
+          teacher_id: finalTeacherId,
+          file_url: body.attachmentUrl,
+          file_name: body.attachmentName || "Lampiran_Tugas.pdf",
+          file_type: "application/pdf",
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (createdMat?.id) {
+        finalMaterialId = createdMat.id;
+      }
+    }
+
     const { data: newAssignment, error: insertError } = await admin
       .from("assignments")
       .insert({
@@ -145,7 +167,7 @@ export async function POST(request: NextRequest) {
         subject_id: subjectId,
         class_id: finalClassId,
         teacher_id: finalTeacherId,
-        material_id: materialId || null,
+        material_id: finalMaterialId,
         due_date: finalDueDate,
         max_score: maxScore,
         submission_format: submissionFormat,

@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const materialIdParam = searchParams.get("materialId");
+    const studentIdParam = searchParams.get("studentId");
+    const validStudentId = (studentIdParam && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentIdParam))
+      ? studentIdParam
+      : "51d15a3b-f681-425d-81a9-ca177b8f77ce";
 
     // 1. Ambil materi aktif
     let material: any = null;
@@ -38,17 +42,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (!material) {
-      const { data } = await admin
-        .from("course_materials")
-        .select("*, subjects(name, code)")
-        .ilike("title", "%Subnetting%")
-        .order("created_at", { ascending: false })
-        .limit(1);
-      material = data && data.length > 0 ? data[0] : null;
-    }
-
-    // Fallback jika belum ada yang bertopik, ambil materi terakhir
     if (!material) {
       const { data } = await admin
         .from("course_materials")
@@ -231,9 +224,33 @@ export async function GET(request: NextRequest) {
       .select("id, title, description, subject_id, page_count, created_at")
       .order("created_at", { ascending: false });
 
+    // Fetch all assignments from database
+    const { data: dbAssignments } = await admin
+      .from("assignments")
+      .select("id, title, due_date, subject_id, max_score, submission_format, is_oral_defense_required, assignment_submissions(id, student_id, status, grade)")
+      .order("due_date", { ascending: true });
+
     // Format subject shelf data
     const formattedSubjects = (allSubjects || []).map((sub: any) => {
       const subMaterials = (allMaterials || []).filter((m: any) => m.subject_id === sub.id);
+      const subAssignments = (dbAssignments || [])
+        .filter((a: any) => a.subject_id === sub.id)
+        .map((a: any) => {
+          const studentSub = (a.assignment_submissions || []).find((s: any) => s.student_id === validStudentId);
+          const deadlineDate = a.due_date ? new Date(a.due_date) : null;
+          const deadlineStr = deadlineDate
+            ? deadlineDate.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + " WIB"
+            : "Sesuai Jadwal";
+          return {
+            id: a.id,
+            title: a.title,
+            deadline: deadlineStr,
+            status: studentSub ? (studentSub.status === "graded" ? "graded" : "submitted") : "pending",
+            score: studentSub?.grade ?? undefined,
+            isDefenseRequired: a.is_oral_defense_required,
+          };
+        });
+
       return {
         id: sub.id,
         name: sub.name,
@@ -248,17 +265,114 @@ export async function GET(request: NextRequest) {
           status: idx === 0 ? "in_progress" : idx === 1 ? "completed" : "locked",
           topicsCount: idx === 0 ? (formattedChapters.length || 3) : 2,
         })),
-        assignments: [
+        assignments: subAssignments.length > 0 ? subAssignments : [
           {
             id: `task-${sub.id}-1`,
-            title: `Tugas Analisis & Implementasi ${sub.name}`,
-            deadline: "Jumat, 23:59 WIB",
-            status: sub.code === "TKJ" ? "need_defense" : "submitted",
-            score: sub.code === "TKJ" ? undefined : 92,
+            title: `Tugas Implementasi & Laporan ${sub.name}`,
+            deadline: "Minggu ini",
+            status: "pending",
           }
         ]
       };
     });
+
+    // Generate real conceptual quiz questions tailored to the active material
+    let quizQuestions: any[] = [];
+    const matTitleLower = (material.title || "").toLowerCase();
+    
+    if (matTitleLower.includes("agroscope") || matTitleLower.includes("pertanian")) {
+      quizQuestions = [
+        {
+          id: 1,
+          question: "Apa fungsi utama indeks NDVI (Normalized Difference Vegetation Index) dalam arsitektur AgroScope?",
+          options: [
+            "Menghitung konsumsi bandwidth transmisi sensor IoT di lahan",
+            "Mendeteksi tingkat klorofil dan anomali kesehatan vegetasi melalui citra multispektral",
+            "Mengontrol durasi pengairan pompa air secara mekanis tanpa mikroprosesor",
+            "Menyimpan cadangan log telemetri ke server penyimpanan dingin",
+          ],
+          correctIndex: 1,
+          explanation: "NDVI memanfaatkan pantulan cahaya merah dan inframerah-dekat (NIR) untuk mengukur kerapatan biomassa dan tingkat kehijauan tanaman secara presisi.",
+        },
+        {
+          id: 2,
+          question: "Protokol transmisi apa yang paling optimal digunakan untuk pengiriman telemetri sensor kelembapan tanah AgroScope dengan daya rendah?",
+          options: [
+            "MQTT / LoRaWAN",
+            "FTP over TLS",
+            "BGP Anycast Routing",
+            "SNMPv3 Trap Broadcast",
+          ],
+          correctIndex: 0,
+          explanation: "LoRaWAN dan MQTT dirancang untuk konsumsi daya ultra-rendah dan payload data telemetri ringkas di lingkungan pertanian luar ruangan.",
+        },
+        {
+          id: 3,
+          question: "Bagaimana model prediktif AI AgroScope memanfaatkan data cuaca historis dan sensor kelembapan?",
+          options: [
+            "Mematikan seluruh sistem node saat terjadi perubahan suhu 1 derajat Celsius",
+            "Mengestimasi kebutuhan irigasi dan rekomendasi waktu pemupukan presisi untuk mencegah pencucian nutrisi",
+            "Mengganti seluruh firmware sensor secara otomatis tanpa izin pengguna",
+            "Menghapus riwayat telemetri untuk menghemat kapasitas basis data",
+          ],
+          correctIndex: 1,
+          explanation: "AI prediktif memadukan kelembapan tanah aktual dan forecast cuaca guna menentukan jadwal irigasi dan pupuk yang paling efektif bagi imbal hasil panen.",
+        },
+      ];
+    } else if (matTitleLower.includes("himatif") || matTitleLower.includes("grafik") || matTitleLower.includes("grafika")) {
+      quizQuestions = [
+        {
+          id: 1,
+          question: "Mengapa Algoritma Bresenham jauh lebih efisien dibandingkan DDA dalam rasterisasi garis?",
+          options: [
+            "Hanya menggunakan aritmatika penjumlahan dan pengurangan integer tanpa operasi floating point",
+            "Membutuhkan GPU khusus dengan dukungan shader presisi ganda",
+            "Menghitung koordinat piksel secara acak (probabilistik)",
+            "Mengabaikan kemiringan gradien garis (m)",
+          ],
+          correctIndex: 0,
+          explanation: "Bresenham mengeliminasi pembagian dan perkalian pecahan dengan memanfaatkan variabel keputusan bilangan bulat inkremental.",
+        },
+        {
+          id: 2,
+          question: "Dalam transformasi geometri 2D, mengapa sistem koordinat homogen 3x3 digunakan?",
+          options: [
+            "Untuk mempercepat waktu kompilasi berkas OpenGL",
+            "Memungkinkan operasi translasi, rotasi, dan penskalaan digabungkan dalam satu perkalian matriks terpadu",
+            "Mengubah format piksel RGB menjadi format grayscale",
+            "Membatasi resolusi kanvas grafis agar tidak overflow",
+          ],
+          correctIndex: 1,
+          explanation: "Koordinat homogen menyatukan operasi translasi (yang aslinya penjumlahan vektor) menjadi perkalian matriks, sehingga seluruh transformasi dapat dikomposisikan.",
+        },
+        {
+          id: 3,
+          question: "Pada algoritma Cohen-Sutherland, bagaimana garis dapat langsung ditolak (trivial reject) tanpa perhitungan potong?",
+          options: [
+            "Jika hasil operasi bitwise AND antara outcode kedua titik ujung bernilai bukan nol (≠ 0000)",
+            "Jika hasil operasi bitwise OR bernilai 1111",
+            "Jika gradien garis bernilai negatif tak hingga",
+            "Jika kedua titik berada tepat pada garis batas viewport",
+          ],
+          correctIndex: 0,
+          explanation: "Jika bitwise AND outcode titik awal dan akhir ≠ 0, berarti kedua titik berada di sisi luar viewport yang sama (misal sama-sama di atas atau sama-sama di kiri), sehingga garis pasti berada di luar area pandang.",
+        },
+      ];
+    } else {
+      // Dynamic questions derived from active topics
+      quizQuestions = (formattedChapters || []).slice(0, 3).map((ch: any, idx: number) => ({
+        id: idx + 1,
+        question: `Berdasarkan bab "${ch.title}", apa fokus utama analisis yang dipelajari?`,
+        options: [
+          `Pemahaman mendalam mengenai ${ch.summary || ch.title}`,
+          `Penyelesaian kasus implementasi terapan pada bab ${ch.title}`,
+          `Evaluasi kritis dan perbandingan metodologi`,
+          `Semua poin analisis di atas tercakup dalam bab ini`,
+        ],
+        correctIndex: 3,
+        explanation: `Bab "${ch.title}" membahas konsep fundamental hingga penerapan praktis sesuai silabus pembelajaran.`,
+      }));
+    }
 
     return NextResponse.json({
       success: true,
@@ -288,6 +402,7 @@ export async function GET(request: NextRequest) {
               )
             : 70,
         },
+        quizQuestions,
       },
     });
   } catch (error: any) {
