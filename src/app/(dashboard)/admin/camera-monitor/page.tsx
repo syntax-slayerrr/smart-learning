@@ -14,16 +14,16 @@ export default async function CameraMonitorPage() {
   const schoolOverview = await getSchoolOverview();
 
   return (
-    <div className="dashboard-container max-w-7xl space-y-5 sm:space-y-6 animate-fade-in">
+    <div className="dashboard-container max-w-7xl space-y-6 animate-fade-in">
       <PageHeader
-        title="AI Classroom Vision & Live Monitor"
-        description="Pusat pemantauan visual kelas real-time berbasis computer vision AI dan telemetri kehadiran cerdas."
+        title="AI Classroom Vision"
+        description="Monitoring visual aktivitas kelas real-time berbasis AI Edge dan presensi otomatis."
       />
 
-      {/* AI Live Command Center */}
+      {/* Main AI Live Monitoring Command Center */}
       <LiveCameraMonitor />
 
-      {/* AI Classroom Dynamics & Early Warning */}
+      {/* Classroom Behavior Intelligence & Early Warning */}
       <ClassroomIntelligenceOverview data={schoolOverview} />
     </div>
   );

@@ -565,7 +565,7 @@ export function LiveCameraMonitor() {
   return (
     <div
       ref={containerRef}
-      className={`rounded-2xl border border-border bg-white shadow-2xs overflow-hidden transition-all duration-300 ${
+      className={`rounded-2xl border border-border bg-card shadow-2xs overflow-hidden transition-all duration-300 ${
         isFullscreen ? "p-6 bg-background fixed inset-0 z-50 overflow-y-auto" : ""
       }`}
     >
@@ -599,7 +599,7 @@ export function LiveCameraMonitor() {
         />
       ) : (
         /* VIEW MODE 2: SINGLE FOCUS DEEP MONITORING */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#E7E2DA]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-border">
           <StreamViewport
             activeChannel={activeChannel}
             activeCamIndex={activeCamIndex}

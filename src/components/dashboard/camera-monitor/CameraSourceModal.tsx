@@ -69,449 +69,450 @@ export function CameraSourceModal({
   if (!showCameraModal) return null;
 
   return (
-    <>
-{/* MODAL / DIALOG: PENGATURAN SUMBER KAMERA & WEBCAM EKSTERNAL                */}
-      {/* ========================================================================= */}
-      {showCameraModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg rounded-2xl border border-stone-200 bg-background p-5 shadow-2xl space-y-4">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-stone-200/80 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-primary">
-                  <Camera className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-5 shadow-2xl space-y-4">
+        {/* Modal Header */}
+        <div className="flex items-start justify-between border-b border-border pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Camera className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                Pengaturan Sumber Kamera & Webcam
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Alihkan sumber video langsung dari UI tanpa restart engine
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCameraModal(false)}
+            aria-label="Tutup modal"
+            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Notification / Feedback Banner */}
+        {cameraSwitchNotice && (
+          <div className="rounded-xl border border-primary/20 bg-primary/10 p-2.5 flex items-center gap-2 text-xs text-primary animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span className="text-xs font-medium flex-1">{cameraSwitchNotice}</span>
+          </div>
+        )}
+
+        {/* Current Active Source Pill */}
+        <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isCameraHardwareConnected ? "bg-emerald-500 animate-pulse" : "bg-destructive"
+              }`}
+            />
+            <span className="font-medium text-muted-foreground">Sumber Aktif:</span>
+            <span className="font-mono font-semibold text-foreground bg-background px-2 py-0.5 rounded border border-border">
+              {typeof currentCameraSource === "number" ? `Webcam #${currentCameraSource}` : currentCameraSource}
+            </span>
+          </div>
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
+              isCameraHardwareConnected
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                : "bg-destructive/10 text-destructive border-destructive/20"
+            }`}
+          >
+            {isCameraHardwareConnected ? "Terhubung" : "Menghubungkan..."}
+          </span>
+        </div>
+
+        {/* Tab Navigation (Segmented Pill) */}
+        <div className="flex rounded-xl bg-muted/60 p-1 border border-border text-xs font-medium gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setCameraModalTab("ip");
+              if (!hasScannedNetwork && !isScanningNetwork) {
+                scanNetworkCameras();
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+              cameraModalTab === "ip"
+                ? "bg-background text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Smartphone className="h-3.5 w-3.5 text-primary" />
+            <span>Kamera HP (Wi-Fi)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCameraModalTab("webcam")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+              cameraModalTab === "webcam"
+                ? "bg-background text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Usb className="h-3.5 w-3.5 text-primary" />
+            <span>Webcam Laptop</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCameraModalTab("cloud")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+              cameraModalTab === "cloud"
+                ? "bg-background text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Globe className="h-3.5 w-3.5 text-primary" />
+            <span>Server Edge</span>
+          </button>
+        </div>
+
+        {/* Tab Content: IP Webcam (Phone / Wireless) */}
+        {cameraModalTab === "ip" && (
+          <div className="space-y-3">
+            {/* Clean Visual Guide */}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
+                <Wifi className="h-3.5 w-3.5 text-primary" />
+                <span>Panduan Menghubungkan Kamera HP (IP Webcam):</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="rounded-lg bg-card p-2 border border-border shadow-2xs">
+                  <span className="font-semibold text-primary block text-[11px] mb-0.5">1. Buka Aplikasi</span>
+                  <span className="text-muted-foreground text-[11px] leading-tight block">Buka aplikasi <strong>IP Webcam</strong> di HP Android.</span>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-stone-900 tracking-tight">
-                    Pengaturan Sumber Kamera & Webcam
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Alihkan sumber video langsung dari UI tanpa restart engine Python
-                  </p>
+                <div className="rounded-lg bg-card p-2 border border-border shadow-2xs">
+                  <span className="font-semibold text-primary block text-[11px] mb-0.5">2. Jalankan Server</span>
+                  <span className="text-muted-foreground text-[11px] leading-tight block">Ketuk tombol <strong>Start Server</strong> di bagian bawah.</span>
+                </div>
+                <div className="rounded-lg bg-card p-2 border border-border shadow-2xs">
+                  <span className="font-semibold text-primary block text-[11px] mb-0.5">3. Sambungkan</span>
+                  <span className="text-muted-foreground text-[11px] leading-tight block">Pindai otomatis atau masukkan IP HP di bawah.</span>
                 </div>
               </div>
-              <button
-                onClick={() => setShowCameraModal(false)}
-                className="rounded-lg p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
 
-            {/* Notification / Feedback Banner */}
-            {cameraSwitchNotice && (
-              <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-2.5 flex items-center gap-2 text-xs text-orange-900 animate-in fade-in">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs font-medium flex-1">{cameraSwitchNotice}</span>
-              </div>
-            )}
+            {/* Network Scanner Button */}
+            <button
+              type="button"
+              onClick={scanNetworkCameras}
+              disabled={isScanningNetwork}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground py-2.5 px-4 text-xs font-semibold transition-all shadow-xs disabled:opacity-60 cursor-pointer min-h-[40px]"
+            >
+              {isScanningNetwork ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  <span>Mencari Kamera di Wi-Fi...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="h-3.5 w-3.5" />
+                  <span>Pindai Kamera di Jaringan Wi-Fi Otomatis</span>
+                </>
+              )}
+            </button>
 
-            {/* Current Active Source Pill */}
-            <div className="rounded-xl border border-stone-200 bg-white p-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    isCameraHardwareConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"
-                  }`}
-                />
-                <span className="font-semibold text-stone-700">Sumber Aktif:</span>
-                <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-                  {typeof currentCameraSource === "number" ? `Webcam Device #${currentCameraSource}` : currentCameraSource}
-                </span>
-              </div>
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  isCameraHardwareConnected
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {isCameraHardwareConnected ? "Kamera Terhubung" : "Menghubungkan..."}
-              </span>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="flex rounded-lg bg-stone-200/60 p-1 text-xs font-semibold gap-1">
-              <button
-                onClick={() => {
-                  setCameraModalTab("ip");
-                  if (!hasScannedNetwork && !isScanningNetwork) {
-                    scanNetworkCameras();
-                  }
-                }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
-                  cameraModalTab === "ip"
-                    ? "bg-white text-stone-900 shadow-2xs font-bold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                <Smartphone className="h-3.5 w-3.5 text-primary" />
-                <span>Kamera HP (Wi-Fi)</span>
-              </button>
-              <button
-                onClick={() => setCameraModalTab("webcam")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
-                  cameraModalTab === "webcam"
-                    ? "bg-white text-stone-900 shadow-2xs font-bold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                <Usb className="h-3.5 w-3.5 text-primary" />
-                <span>Webcam Laptop / USB</span>
-              </button>
-              <button
-                onClick={() => setCameraModalTab("cloud")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all ${
-                  cameraModalTab === "cloud"
-                    ? "bg-white text-stone-900 shadow-2xs font-bold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                <Globe className="h-3.5 w-3.5 text-primary" />
-                <span>Server AI (Lanjutan)</span>
-              </button>
-            </div>
-
-            {/* Tab Content: IP Webcam (Phone / Wireless) */}
-            {cameraModalTab === "ip" && (
-              <div className="space-y-3.5">
-                {/* 3-Step Visual Guide */}
-                <div className="rounded-xl border border-orange-200/80 bg-orange-50/50 p-3.5 space-y-2.5">
-                  <div className="flex items-center gap-1.5 font-bold text-stone-900 text-xs">
-                    <Wifi className="h-4 w-4 text-primary" />
-                    <span>Panduan Cepat Menghubungkan Kamera HP (IP Webcam):</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="rounded-lg bg-white p-2.5 border border-orange-100 shadow-2xs">
-                      <span className="font-bold text-primary block mb-0.5">1. Buka Aplikasi</span>
-                      <span className="text-stone-600 text-[11px] leading-tight block">Buka aplikasi <strong>IP Webcam</strong> di HP Android.</span>
-                    </div>
-                    <div className="rounded-lg bg-white p-2.5 border border-orange-100 shadow-2xs">
-                      <span className="font-bold text-primary block mb-0.5">2. Jalankan Server</span>
-                      <span className="text-stone-600 text-[11px] leading-tight block">Gulir ke paling bawah, ketuk tombol <strong>Start Server</strong>.</span>
-                    </div>
-                    <div className="rounded-lg bg-white p-2.5 border border-orange-100 shadow-2xs">
-                      <span className="font-bold text-primary block mb-0.5">3. Sambungkan</span>
-                      <span className="text-stone-600 text-[11px] leading-tight block">Pindai Wi-Fi otomatis di bawah atau ketik nomor IP HP.</span>
-                    </div>
-                  </div>
+            {/* Scan Results */}
+            {hasScannedNetwork && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                  <span>Subnet: <code className="font-mono text-foreground">{networkScanSubnet}</code></span>
+                  <span className="font-semibold text-foreground">{detectedNetworkCameras.length} Ditemukan</span>
                 </div>
 
-                {/* Network Scanner Button */}
-                <button
-                  type="button"
-                  onClick={scanNetworkCameras}
-                  disabled={isScanningNetwork}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-orange-700 active:scale-[0.98] text-white py-2.5 px-4 text-xs font-bold transition-all shadow-xs disabled:opacity-60 cursor-pointer"
-                >
-                  {isScanningNetwork ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin text-white" />
-                      <span>Mencari Kamera di Wi-Fi Sekolah...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 text-white" />
-                      <span>Pindai Kamera di Jaringan Wi-Fi Otomatis</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Scan Results */}
-                {hasScannedNetwork && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
-                      <span>Hasil Pindaian Subnet: <code className="font-mono text-stone-800">{networkScanSubnet}</code></span>
-                      <span className="font-bold text-stone-700">{detectedNetworkCameras.length} Kamera Ditemukan</span>
-                    </div>
-
-                    {detectedNetworkCameras.length > 0 ? (
-                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                        {detectedNetworkCameras.map((cam, idx) => {
-                          const isCurrentActive = String(currentCameraSource) === cam.url;
-                          return (
-                            <div
-                              key={`${cam.ip}-${cam.port}-${idx}`}
-                              className={`rounded-xl border p-2.5 flex items-center justify-between transition-all ${
-                                isCurrentActive
-                                  ? "border-emerald-500/50 bg-emerald-50/50"
-                                  : "border-stone-200 bg-white hover:border-orange-200 hover:bg-orange-50/30"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="h-8 w-8 rounded-lg bg-orange-100 text-primary flex items-center justify-center shrink-0">
-                                  <Smartphone className="h-4 w-4" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-stone-900 truncate flex items-center gap-1.5">
-                                    <span>{cam.name}</span>
-                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  </p>
-                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                    <span className="text-xs font-mono text-stone-500 truncate">
-                                      {cam.url}
-                                    </span>
-                                    {cam.battery !== undefined && cam.battery !== null && (
-                                      <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-xs font-bold font-mono">
-                                        🔋 {cam.battery}%
-                                      </span>
-                                    )}
-                                    {cam.resolution && (
-                                      <span className="rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-xs font-mono">
-                                        📐 {cam.resolution}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomIpUrl(cam.url);
-                                  switchCameraSource(cam.url);
-                                }}
-                                disabled={isCurrentActive || isSwitchingCamera}
-                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all active:scale-[0.98] shrink-0 ${
-                                  isCurrentActive
-                                    ? "bg-emerald-600 text-white cursor-default"
-                                    : "bg-stone-900 hover:bg-stone-800 text-white shadow-2xs cursor-pointer"
-                                }`}
-                              >
-                                <Zap className="h-3.5 w-3.5 text-orange-400" />
-                                <span>{isCurrentActive ? "✓ Aktif" : isSwitchingCamera ? "Menyambung..." : "Hubungkan Kamera Ini"}</span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-stone-200 bg-stone-50/80 p-3 text-xs text-stone-600 space-y-1.5">
-                        <div className="flex items-center gap-1.5 font-bold text-stone-800">
-                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                          <span>Belum Ada Kamera Ditemukan di Subnet {networkScanSubnet}</span>
-                        </div>
-                        <p className="text-xs text-stone-500 leading-relaxed">
-                          1. Pastikan aplikasi <strong>IP Webcam</strong> di HP Anda sudah ditekan tombol <em>Start Server</em>.<br />
-                          2. Pastikan HP dan laptop terhubung ke WiFi atau Hotspot yang sama.<br />
-                          3. Klik tombol pindai di atas lagi, atau masukkan alamat IP secara manual di bawah.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Manual Input Fallback */}
-                <div className="border-t border-stone-200/80 pt-2.5">
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">
-                    Atau Masukkan URL Stream Secara Manual:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customIpUrl}
-                      onChange={(e) => setCustomIpUrl(e.target.value)}
-                      id="custom-ip-stream-url" aria-label="URL Stream Manual" placeholder="http://192.168.1.15:8080/video"
-                      className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        let url = customIpUrl.trim();
-                        if (!url) return;
-                        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                          url = `http://${url}`;
-                        }
-                        if (!url.includes("/video") && !url.includes("/video_feed")) {
-                          url = `${url.replace(/\/+$/, "")}/video`;
-                        }
-                        setCustomIpUrl(url);
-                        switchCameraSource(url);
-                      }}
-                      disabled={isSwitchingCamera || !customIpUrl.trim()}
-                      className="rounded-xl bg-primary hover:bg-orange-700 text-white px-4 py-2 text-xs font-bold transition-all active:scale-[0.98] shrink-0 disabled:opacity-50 cursor-pointer"
-                    >
-                      {isSwitchingCamera ? "Menyambung..." : "Sambungkan"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Presets */}
-                <div>
-                  <p className="text-xs font-semibold text-stone-500 mb-1">Preset Cepat / Contoh:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setCustomIpUrl("http://192.168.1.15:8080/video")}
-                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-mono hover:bg-stone-100 text-stone-700 cursor-pointer"
-                    >
-                      IP Webcam (:8080/video)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCustomIpUrl("http://192.168.1.15:4747/video")}
-                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-mono hover:bg-stone-100 text-stone-700 cursor-pointer"
-                    >
-                      DroidCam (:4747/video)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => switchCameraSource(0)}
-                      className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-medium hover:bg-stone-100 text-stone-700 cursor-pointer"
-                    >
-                      Webcam Laptop (0)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 2 Content: Local Webcams */}
-            {cameraModalTab === "webcam" && (
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs text-stone-500">
-                  <span>Perangkat Terdeteksi:</span>
-                  <button
-                    onClick={fetchAvailableCameras}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-stone-700 hover:text-orange-600 transition-colors"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    <span>Pindai Ulang Port USB</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {availableWebcams.length > 0 ? (
-                    availableWebcams.map((cam) => {
-                      const isActive = String(currentCameraSource) === String(cam.index);
+                {detectedNetworkCameras.length > 0 ? (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {detectedNetworkCameras.map((cam, idx) => {
+                      const isCurrentActive = String(currentCameraSource) === cam.url;
                       return (
                         <div
-                          key={cam.index}
-                          className={`rounded-xl border p-3 flex items-center justify-between transition-all ${
-                            isActive
-                              ? "border-orange-500/40 bg-orange-50/50 shadow-2xs"
-                              : "border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60"
+                          key={`${cam.ip}-${cam.port}-${idx}`}
+                          className={`rounded-xl border p-2.5 flex items-center justify-between transition-all ${
+                            isCurrentActive
+                              ? "border-emerald-500/30 bg-emerald-500/5"
+                              : "border-border bg-card hover:bg-muted/40"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isActive ? "bg-primary text-white" : "bg-stone-100 text-stone-600"
-                              }`}
-                            >
-                              <Usb className="h-4 w-4" />
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <Smartphone className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-stone-900 truncate">
-                                {cam.name}
+                              <p className="text-xs font-semibold text-foreground truncate flex items-center gap-1.5">
+                                <span>{cam.name}</span>
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               </p>
-                              <p className="text-xs font-mono text-stone-500">
-                                Indeks Device: #{cam.index} {cam.device_path ? `(${cam.device_path})` : ""}
-                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span className="text-xs font-mono text-muted-foreground truncate">
+                                  {cam.url}
+                                </span>
+                                {cam.battery !== undefined && cam.battery !== null && (
+                                  <span className="rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 text-[10px] font-mono">
+                                    🔋 {cam.battery}%
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           <button
-                            onClick={() => switchCameraSource(cam.index)}
-                            disabled={isActive || isSwitchingCamera}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all active:scale-[0.98] shrink-0 ${
-                              isActive
+                            type="button"
+                            onClick={() => {
+                              setCustomIpUrl(cam.url);
+                              switchCameraSource(cam.url);
+                            }}
+                            disabled={isCurrentActive || isSwitchingCamera}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.98] shrink-0 ${
+                              isCurrentActive
                                 ? "bg-emerald-600 text-white cursor-default"
-                                : "bg-stone-900 hover:bg-stone-800 text-white"
+                                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer"
                             }`}
                           >
-                            {isActive ? "✓ Aktif" : isSwitchingCamera ? "Menghubungkan..." : "Pilih Kamera"}
+                            <Zap className="h-3 w-3" />
+                            <span>{isCurrentActive ? "✓ Aktif" : isSwitchingCamera ? "Menyambung..." : "Hubungkan"}</span>
                           </button>
                         </div>
                       );
-                    })
-                  ) : (
-                    <div className="p-4 rounded-xl border border-stone-200 bg-white text-center text-xs text-stone-500">
-                      <p>Tidak ada device tambahan terdeteksi.</p>
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span>Belum Ada Kamera Ditemukan di Subnet {networkScanSubnet}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      Pastikan server IP Webcam aktif dan terhubung ke Wi-Fi yang sama, lalu coba lagi atau masukkan URL manual.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Manual Input Fallback */}
+            <div className="border-t border-border pt-2.5">
+              <label htmlFor="custom-ip-stream-url" className="block text-xs font-medium text-muted-foreground mb-1">
+                Atau Masukkan URL Stream Manual:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customIpUrl}
+                  onChange={(e) => setCustomIpUrl(e.target.value)}
+                  id="custom-ip-stream-url"
+                  aria-label="URL Stream Manual"
+                  placeholder="http://192.168.1.15:8080/video"
+                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    let url = customIpUrl.trim();
+                    if (!url) return;
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                      url = `http://${url}`;
+                    }
+                    if (!url.includes("/video") && !url.includes("/video_feed")) {
+                      url = `${url.replace(/\/+$/, "")}/video`;
+                    }
+                    setCustomIpUrl(url);
+                    switchCameraSource(url);
+                  }}
+                  disabled={isSwitchingCamera || !customIpUrl.trim()}
+                  className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-xs font-medium transition-all active:scale-[0.98] shrink-0 disabled:opacity-50 cursor-pointer min-h-[38px]"
+                >
+                  {isSwitchingCamera ? "Menyambung..." : "Sambungkan"}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Preset Contoh:</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCustomIpUrl("http://192.168.1.15:8080/video")}
+                  className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  IP Webcam (:8080)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomIpUrl("http://192.168.1.15:4747/video")}
+                  className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  DroidCam (:4747)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchCameraSource(0)}
+                  className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Webcam Laptop (0)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2 Content: Local Webcams */}
+        {cameraModalTab === "webcam" && (
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Perangkat Terdeteksi:</span>
+              <button
+                type="button"
+                onClick={fetchAvailableCameras}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer"
+              >
+                <RefreshCw className="h-3 w-3" />
+                <span>Pindai Port USB</span>
+              </button>
+            </div>
+
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {availableWebcams.length > 0 ? (
+                availableWebcams.map((cam) => {
+                  const isActive = String(currentCameraSource) === String(cam.index);
+                  return (
+                    <div
+                      key={cam.index}
+                      className={`rounded-xl border p-3 flex items-center justify-between transition-all ${
+                        isActive
+                          ? "border-primary/40 bg-primary/5 shadow-2xs"
+                          : "border-border bg-card hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Usb className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {cam.name}
+                          </p>
+                          <p className="text-xs font-mono text-muted-foreground">
+                            Indeks #{cam.index} {cam.device_path ? `(${cam.device_path})` : ""}
+                          </p>
+                        </div>
+                      </div>
+
                       <button
-                        onClick={() => switchCameraSource(0)}
-                        className="mt-2 text-primary font-bold hover:underline"
+                        type="button"
+                        onClick={() => switchCameraSource(cam.index)}
+                        disabled={isActive || isSwitchingCamera}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.98] shrink-0 ${
+                          isActive
+                            ? "bg-emerald-600 text-white cursor-default"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
+                        }`}
                       >
-                        Gunakan Webcam Default (Device 0)
+                        {isActive ? "✓ Aktif" : isSwitchingCamera ? "Menghubungkan..." : "Pilih"}
                       </button>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Tab 3 Content: Vercel / Cloud Tunnel Setup */}
-            {cameraModalTab === "cloud" && (
-              <div className="space-y-3">
-                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900">
-                  <div className="flex items-center gap-1.5 font-bold mb-1">
-                    <Globe className="h-4 w-4 text-blue-700" />
-                    <span>Akses Kamera dari Domain Vercel (HTTPS)</span>
-                  </div>
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    Saat membuka dashboard dari <strong>https://smart-learning-black.vercel.app</strong>, browser memblokir <em>http://localhost:5000</em> (Mixed Content). Gunakan URL HTTPS tunnel gratis di bawah ini.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    Alamat Edge Server Kamera (Localhost / HTTPS Tunnel)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customEdgeInput}
-                      onChange={(e) => setCustomEdgeInput(e.target.value)}
-                      id="custom-edge-server-url" aria-label="Alamat Edge Server Kamera" placeholder="https://xxxx.loca.lt atau http://localhost:5000"
-                      className="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                    />
-                    <button
-                      onClick={() => updateEdgeServerUrl(customEdgeInput)}
-                      className="rounded-xl bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 text-xs font-bold transition-all active:scale-[0.98] shrink-0"
-                    >
-                      Simpan Alamat
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-stone-200 bg-stone-100/70 p-3 text-xs text-stone-700 space-y-1.5">
-                  <p className="font-bold text-stone-900">💡 Cara Buat URL HTTPS Tunnel Gratis (1 Menit):</p>
-                  <p className="text-stone-600">Jalankan perintah ini di terminal laptop tempat kamera berada:</p>
-                  <div className="bg-stone-900 text-stone-100 rounded-lg p-2 font-mono text-xs select-all">
-                    npx localtunnel --port 5000
-                  </div>
-                  <p className="text-xs text-stone-500">
-                    Salin link <code>https://xxxx.loca.lt</code> yang muncul di terminal dan tempelkan di kotak di atas.
-                  </p>
-                </div>
-
-                <div className="flex justify-end">
+                  );
+                })
+              ) : (
+                <div className="p-4 rounded-xl border border-dashed border-border bg-muted/20 text-center text-xs text-muted-foreground">
+                  <p>Tidak ada device tambahan terdeteksi.</p>
                   <button
-                    onClick={() => updateEdgeServerUrl("http://localhost:5000")}
-                    className="text-xs text-stone-600 hover:text-stone-900 hover:underline"
+                    type="button"
+                    onClick={() => switchCameraSource(0)}
+                    className="mt-2 text-primary font-medium hover:underline cursor-pointer"
                   >
-                    Reset ke default (http://localhost:5000)
+                    Gunakan Webcam Default (Device 0)
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
+        )}
 
-            {/* Modal Footer */}
-            <div className="border-t border-stone-200/80 pt-3 flex items-center justify-between text-xs text-stone-500">
-              <span className="text-xs font-medium flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Jaringan: Wi-Fi Sekolah • Siap Terhubung
-              </span>
+        {/* Tab 3 Content: Edge Server Setup */}
+        {cameraModalTab === "cloud" && (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-foreground">
+              <div className="flex items-center gap-1.5 font-semibold text-primary mb-1">
+                <Globe className="h-4 w-4" />
+                <span>Akses Kamera dari Vercel (HTTPS)</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Saat membuka dashboard dari Vercel HTTPS, browser memblokir HTTP localhost (Mixed Content). Gunakan HTTPS tunnel jika mengakses jarak jauh.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="custom-edge-server-url" className="block text-xs font-medium text-muted-foreground mb-1">
+                Alamat Edge Server Kamera (Localhost / HTTPS Tunnel)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customEdgeInput}
+                  onChange={(e) => setCustomEdgeInput(e.target.value)}
+                  id="custom-edge-server-url"
+                  aria-label="Alamat Edge Server Kamera"
+                  placeholder="https://xxxx.loca.lt atau http://localhost:5000"
+                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => updateEdgeServerUrl(customEdgeInput)}
+                  className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 text-xs font-medium transition-all active:scale-[0.98] shrink-0 cursor-pointer shadow-2xs"
+                >
+                  Simpan
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
+              <p className="font-semibold text-foreground">💡 Buat HTTPS Tunnel Lokal (Opsional):</p>
+              <div className="bg-muted text-foreground rounded-lg p-2 font-mono text-xs select-all border border-border">
+                npx localtunnel --port 5000
+              </div>
+              <p className="text-[11px]">
+                Salin link yang muncul dan tempelkan di kotak di atas.
+              </p>
+            </div>
+
+            <div className="flex justify-end">
               <button
-                onClick={() => setShowCameraModal(false)}
-                className="rounded-lg bg-stone-200 hover:bg-stone-300/80 text-stone-800 px-3.5 py-1.5 text-xs font-semibold transition-all"
+                type="button"
+                onClick={() => updateEdgeServerUrl("http://localhost:5000")}
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
               >
-                Tutup
+                Reset default (http://localhost:5000)
               </button>
             </div>
           </div>
+        )}
+
+        {/* Modal Footer */}
+        <div className="border-t border-border pt-3 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="text-xs font-medium flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Jaringan Siap Terhubung
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCameraModal(false)}
+            className="rounded-xl bg-muted hover:bg-muted/80 text-foreground px-4 py-2 text-xs font-medium transition-all cursor-pointer"
+          >
+            Tutup
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
