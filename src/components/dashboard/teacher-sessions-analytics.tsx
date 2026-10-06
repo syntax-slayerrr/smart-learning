@@ -8,7 +8,6 @@ import {
   BarChart3,
   ArrowRight,
   Brain,
-  Sparkles,
 } from "lucide-react";
 
 interface SessionItem {
@@ -55,7 +54,7 @@ export function TeacherSessionsAnalytics({ data }: TeacherSessionsAnalyticsProps
                 Analitik Kelas & Telemetri Guru
               </h2>
               <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60">
-                <Sparkles className="h-2.5 w-2.5 text-blue-600" />
+                <Activity className="h-2.5 w-2.5 text-blue-600" />
                 Live V.1
               </span>
             </div>
