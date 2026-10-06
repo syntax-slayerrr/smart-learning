@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Zap,
   Check,
+  Lock,
 } from "lucide-react";
 import { getFaceDetector, evaluateVideoFace } from "@/lib/face-detection";
 
@@ -117,6 +118,9 @@ export function FaceIdEnrollmentModal({
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   }, []);
 
   // Mulai stream kamera depan
@@ -184,19 +188,22 @@ export function FaceIdEnrollmentModal({
       setTotalProgress(33);
       setAutoProgress(0);
       setStep("angle");
+      stepRef.current = "angle";
       setInstruction("Bagus! Sekarang miringkan kepala sedikit (~10°)");
       setIsCapturing(false);
     } else if (currentStep === "angle") {
       setTotalProgress(66);
       setAutoProgress(0);
       setStep("liveness");
+      stepRef.current = "liveness";
       setInstruction("Sempurna! Terakhir, tatap kamera & kedipkan mata");
       setIsCapturing(false);
     } else if (currentStep === "liveness") {
       setTotalProgress(100);
       setAutoProgress(100);
       setStep("processing");
-      setInstruction("Mengekstrak vektor ArcFace 512-D & mengenkripsi biometrik...");
+      stepRef.current = "processing";
+      setInstruction("Mengekstrak biometrik & mengenkripsi data...");
       stopCamera();
 
       try {
@@ -236,7 +243,7 @@ export function FaceIdEnrollmentModal({
     }
   }, [studentName, stopCamera]);
 
-  // Frame Analyzer Realtime + Auto-Capture Fintech Engine
+  // Frame Analyzer Realtime + Auto-Capture Engine
   const analyzeFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) {
       animationFrameRef.current = requestAnimationFrame(analyzeFrame);
@@ -275,7 +282,6 @@ export function FaceIdEnrollmentModal({
       let motionDelta = 0;
       if (prevFrameDataRef.current && prevFrameDataRef.current.length === data.length) {
         let diffSum = 0;
-        // Sample setiap 16 pixel untuk efisiensi CPU 60fps
         for (let i = 0; i < data.length; i += 16) {
           diffSum += Math.abs(data[i] - prevFrameDataRef.current[i]);
         }
@@ -283,10 +289,10 @@ export function FaceIdEnrollmentModal({
       }
       prevFrameDataRef.current = new Uint8ClampedArray(data);
 
-      const isStable = motionDelta < 22; // Stabil jika gerakan wajar
+      const isStable = motionDelta < 26; // Gerakan wajar
       const isLightingGood = lightingStatus === "optimal";
 
-      // 3. Face Detection & Oval Gating Riil (BlazeFace Engine + Instant Canvas CV Fallback)
+      // 3. Face Detection & Oval Gating
       const faceEval = evaluateVideoFace(
         detectorRef.current,
         video,
@@ -305,9 +311,11 @@ export function FaceIdEnrollmentModal({
       });
 
       // Perbarui panduan teks sesuai evaluasi biometrik
-      setInstruction(faceEval.statusMessage);
+      if (faceEval.statusMessage && stepRef.current !== "processing" && stepRef.current !== "success") {
+        setInstruction(faceEval.statusMessage);
+      }
 
-      // 4. Fintech Auto-Progress Timer Logic
+      // 4. Auto-Progress Timer Logic
       if (
         isLightingGood &&
         isFaceValid &&
@@ -325,7 +333,7 @@ export function FaceIdEnrollmentModal({
 
         if (isPoseCorrect) {
           setAutoProgress((prev) => {
-            const next = Math.min(prev + 0.95, 100); // ~1.8 detik tahan posisi stabil (standar Fintech)
+            const next = Math.min(prev + 1.8, 100); // Responsif ~1.2 detik tahan posisi stabil
             if (next >= 100) {
               executeCapture();
               return 100;
@@ -333,12 +341,10 @@ export function FaceIdEnrollmentModal({
             return next;
           });
         } else {
-          // Jika belum menoleh/miring di tahap angle, tahan atau decay sangat perlahan
           setAutoProgress((prev) => Math.max(prev - 0.4, 0));
         }
       } else {
-        // Jika tidak ada wajah atau keluar dari oval, turunkan progress dengan cepat
-        setAutoProgress((prev) => Math.max(prev - 3.5, 0));
+        setAutoProgress((prev) => Math.max(prev - 0.8, 0));
       }
     } catch {
       // Ignored for performance
@@ -385,52 +391,90 @@ export function FaceIdEnrollmentModal({
 
   if (!isOpen) return null;
 
-  // Keliling elips rx=90, ry=115 -> ~646.5px untuk animasi stroke-dashoffset
-  const ovalPerimeter = 646.5;
+  // Keliling elips rx=95, ry=135 -> ~728px untuk animasi stroke-dashoffset melingkar clockwise
+  const ovalPerimeter = 728;
   const strokeOffset = ovalPerimeter - (autoProgress / 100) * ovalPerimeter;
 
+  const currentStepNum =
+    step === "frontal" ? 1 : step === "angle" ? 2 : step === "liveness" ? 3 : 3;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-zinc-950 border border-white/10 text-white shadow-2xl">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/30">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-card border border-border shadow-2xl text-card-foreground flex flex-col transition-all">
+        {/* Header Modal - Apple Glassmorphism Aesthetic */}
+        <div className="flex items-center justify-between border-b border-border/80 px-5 py-4 bg-muted/20">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold leading-tight tracking-tight">
-                  Pendaftaran Face ID Kelas
+                <h2 className="text-sm sm:text-base font-bold leading-tight tracking-tight text-foreground">
+                  Pendaftaran Face ID
                 </h2>
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary border border-primary/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <Zap className="h-2.5 w-2.5" />
-                  Auto-Scan Fintech
+                  Auto-Scan
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 font-mono">
-                {studentName} • Otomatis Tanpa Sentuh
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {studentName} • Presensi Otomatis
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Tutup modal"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Viewport Kamera Interaktif Modern Fintech */}
-        <div className="relative p-6 flex flex-col items-center">
+        {/* Multi-Step Segmented Bar (3 Stages: Frontal, Angle, Liveness) */}
+        {step !== "success" && (
+          <div className="px-5 pt-3 pb-2 border-b border-border/40 bg-muted/10">
+            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground mb-1.5">
+              <span>Tahap {currentStepNum} dari 3</span>
+              <span className="font-semibold text-foreground">
+                {step === "frontal"
+                  ? "Hadap Lurus"
+                  : step === "angle"
+                  ? "Miringkan Kepala"
+                  : "Kedipkan Mata"}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+              {[1, 2, 3].map((sIndex) => {
+                const isCompleted = currentStepNum > sIndex;
+                const isCurrent = currentStepNum === sIndex;
+                return (
+                  <div
+                    key={sIndex}
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isCompleted
+                        ? "bg-emerald-500"
+                        : isCurrent
+                        ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                        : "bg-muted-foreground/20"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Viewport Kamera Interaktif (Portrait Squircle - Ergonomis Layar Smartphone) */}
+        <div className="relative p-5 sm:p-6 flex flex-col items-center">
           <canvas ref={canvasRef} className="hidden" />
 
           {step !== "success" ? (
-            <div className="relative w-full aspect-[4/3] max-w-[380px] overflow-hidden rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center">
+            <div className="relative w-full aspect-[3/4] max-w-[280px] sm:max-w-[300px] overflow-hidden rounded-3xl bg-zinc-950 border border-border shadow-md flex items-center justify-center">
               {cameraError ? (
                 <div className="p-6 text-center space-y-3">
                   <AlertCircle className="mx-auto h-10 w-10 text-amber-500" />
-                  <p className="text-xs text-zinc-300">{cameraError}</p>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{cameraError}</p>
                   <button
                     onClick={startCamera}
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
@@ -453,55 +497,55 @@ export function FaceIdEnrollmentModal({
                     <div className="absolute inset-0 bg-white/70 animate-out fade-out duration-300 pointer-events-none z-20" />
                   )}
 
-                  {/* Laser Scan Line Animasi Otomatis (Fintech Aesthetic) */}
+                  {/* Subtle Laser Scan Line Animasi */}
                   <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
-                    <div className="w-[180px] h-[230px] relative">
-                      <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#007AFF] to-transparent opacity-85 shadow-[0_0_12px_#007AFF] animate-pulse -translate-y-full animate-[scan_2s_ease-in-out_infinite]" />
+                    <div className="w-[190px] h-[270px] relative">
+                      <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-80 shadow-[0_0_12px_rgba(59,130,246,0.8)] animate-pulse -translate-y-full animate-[scan_2.2s_ease-in-out_infinite]" />
                     </div>
                   </div>
 
-                  {/* Masking Oval Apple / Fintech Face ID Guide */}
+                  {/* Masking Oval Apple Face ID Guide (Portrait Aspect 300x400) */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <svg className="w-full h-full" viewBox="0 0 380 285">
+                    <svg className="w-full h-full" viewBox="0 0 300 400">
                       <defs>
-                        <mask id="oval-cutout">
-                          <rect width="380" height="285" fill="white" />
-                          <ellipse cx="190" cy="142" rx="90" ry="115" fill="black" />
+                        <mask id="oval-portrait-cutout">
+                          <rect width="300" height="400" fill="white" />
+                          <ellipse cx="150" cy="190" rx="95" ry="135" fill="black" />
                         </mask>
-                        <linearGradient id="fintechProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#007AFF" />
-                          <stop offset="100%" stopColor="#34C759" />
+                        <linearGradient id="faceRingProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#10b981" />
                         </linearGradient>
                       </defs>
 
                       {/* Vignette gelap di sekeliling oval */}
                       <rect
-                        width="380"
-                        height="285"
-                        fill="rgba(9, 9, 11, 0.72)"
-                        mask="url(#oval-cutout)"
+                        width="300"
+                        height="400"
+                        fill="rgba(9, 9, 11, 0.68)"
+                        mask="url(#oval-portrait-cutout)"
                       />
 
                       {/* Outline Oval Latar Belakang (Dashed Guide) */}
                       <ellipse
-                        cx="190"
-                        cy="142"
-                        rx="90"
-                        ry="115"
+                        cx="150"
+                        cy="190"
+                        rx="95"
+                        ry="135"
                         fill="none"
-                        stroke={quality.centered ? "rgba(52, 199, 89, 0.45)" : "rgba(255, 255, 255, 0.25)"}
+                        stroke={quality.centered ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.3)"}
                         strokeWidth="2.5"
                         strokeDasharray="6 6"
                       />
 
                       {/* Animated Progress Ring (Mengisi Otomatis Mengelilingi Wajah) */}
                       <ellipse
-                        cx="190"
-                        cy="142"
-                        rx="90"
-                        ry="115"
+                        cx="150"
+                        cy="190"
+                        rx="95"
+                        ry="135"
                         fill="none"
-                        stroke="url(#fintechProgressGrad)"
+                        stroke="url(#faceRingProgressGrad)"
                         strokeWidth="4.5"
                         strokeDasharray={ovalPerimeter}
                         strokeDashoffset={strokeOffset}
@@ -509,191 +553,153 @@ export function FaceIdEnrollmentModal({
                         style={{
                           transition: "stroke-dashoffset 0.08s linear",
                         }}
-                        className="filter drop-shadow-[0_0_8px_rgba(0,122,255,0.7)]"
+                        className="filter drop-shadow-[0_0_8px_rgba(59,130,246,0.7)]"
                       />
                     </svg>
 
-                    {/* Persentase Auto-Capture Ring Center Counter */}
-                    <div className="absolute bottom-6 flex items-center justify-center">
+                    {/* Floating Status Ring Badge di dalam Camera Viewport */}
+                    <div className="absolute bottom-4 flex items-center justify-center w-full px-4">
                       <div
-                        className={`backdrop-blur-md px-3 py-1 rounded-full border text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-lg transition-colors ${
+                        className={`backdrop-blur-md px-3.5 py-1.5 rounded-full border text-[11px] font-medium flex items-center gap-1.5 shadow-lg transition-colors ${
                           quality.centered
-                            ? "bg-black/80 border-primary/30 text-primary"
-                            : "bg-black/80 border-amber-500/30 text-amber-400"
+                            ? "bg-black/75 border-emerald-500/40 text-emerald-400"
+                            : "bg-black/75 border-white/15 text-zinc-300"
                         }`}
                       >
                         <span className="relative flex h-2 w-2">
                           <span
                             className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                              quality.centered ? "bg-primary" : "bg-amber-400"
+                              quality.centered ? "bg-emerald-400" : "bg-amber-400"
                             }`}
-                          ></span>
+                          />
                           <span
                             className={`relative inline-flex rounded-full h-2 w-2 ${
-                              quality.centered ? "bg-primary" : "bg-amber-400"
+                              quality.centered ? "bg-emerald-400" : "bg-amber-400"
                             }`}
-                          ></span>
+                          />
                         </span>
                         <span>
                           {quality.centered
-                            ? `Merekam Otomatis: ${Math.round(autoProgress)}%`
+                            ? `Posisi Pas • Menyimpan ${Math.round(autoProgress)}%`
                             : "Arahkan Wajah ke Oval"}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Step Badge Real-Time */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1 text-[11px] font-mono border border-white/10 text-cyan-400">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                    {step === "frontal"
-                      ? "Tahap 1/3: Hadap Lurus"
-                      : step === "angle"
-                      ? "Tahap 2/3: Miringkan Kepala"
-                      : "Tahap 3/3: Kedipkan Mata"}
-                  </div>
-
-                  {/* Step Indicators Top Right */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1">
-                    {[1, 2, 3].map((sIndex) => {
-                      const isDone =
-                        (sIndex === 1 && (step === "angle" || step === "liveness" || step === "processing")) ||
-                        (sIndex === 2 && (step === "liveness" || step === "processing")) ||
-                        (sIndex === 3 && step === "processing");
-                      const isCurrent =
-                        (sIndex === 1 && step === "frontal") ||
-                        (sIndex === 2 && step === "angle") ||
-                        (sIndex === 3 && step === "liveness");
-
-                      return (
-                        <div
-                          key={sIndex}
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            isDone
-                              ? "w-4 bg-emerald-500"
-                              : isCurrent
-                              ? "w-6 bg-primary shadow-[0_0_8px_rgba(0,122,255,0.8)]"
-                              : "w-2 bg-white/20"
-                          }`}
-                        />
-                      );
-                    })}
+                  {/* Badge Tahap di Sudut Kiri Atas Viewport */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-medium border border-white/10 text-white">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    <span>
+                      {step === "frontal"
+                        ? "1/3 Lurus"
+                        : step === "angle"
+                        ? "2/3 Miring"
+                        : "3/3 Kedip"}
+                    </span>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            /* Tampilan Sukses (Apple / Fintech Verified) */
-            <div className="w-full aspect-[4/3] max-w-[380px] rounded-2xl bg-zinc-900/80 border border-emerald-500/30 flex flex-col items-center justify-center p-6 text-center space-y-4">
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-in zoom-in-75">
+            /* Tampilan Sukses (Apple Verified Card) */
+            <div className="w-full aspect-[3/4] max-w-[280px] sm:max-w-[300px] rounded-3xl bg-muted/20 border border-emerald-500/30 flex flex-col items-center justify-center p-6 text-center space-y-4 shadow-sm">
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 animate-in zoom-in-75">
                 <CheckCircle2 className="h-10 w-10" />
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-black font-bold">
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-white font-bold">
                   <Check className="h-3 w-3" />
                 </span>
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Biometrik Terdaftar Sempurna
+                <h3 className="text-base font-bold text-foreground tracking-tight">
+                  Biometrik Terverifikasi
                 </h3>
-                <p className="text-xs text-zinc-400 max-w-[280px]">
-                  Vektor ArcFace 512-D otomatis aktif. Presensi kelas Anda akan terdeteksi otomatis tanpa perlu sentuh tombol.
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
+                  Data profil Face ID tersimpan aman. Presensi otomatis akan langsung mengenali Anda di kelas.
                 </p>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-zinc-950 px-3.5 py-1.5 border border-white/10 text-[11px] font-mono text-zinc-300">
+              <div className="flex items-center gap-2 rounded-xl bg-card px-3.5 py-1.5 border border-border text-[11px] font-medium text-muted-foreground shadow-2xs">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span>3 Pose Auto-Capture • Presisi 99.8%</span>
+                <span>3 Sudut Biometrik Aktif</span>
               </div>
             </div>
           )}
 
-          {/* Instruksi Teks Dinamis */}
-          <div className="mt-4 text-center space-y-1 max-w-sm">
-            <p className="text-sm font-semibold tracking-tight text-white flex items-center justify-center gap-1.5">
+          {/* Dynamic Guidance Banner */}
+          <div className="mt-4 text-center space-y-1 max-w-xs">
+            <p className="text-sm font-semibold tracking-tight text-foreground flex items-center justify-center gap-1.5">
               <span>{instruction}</span>
             </p>
             {quality.lighting === "low" && step !== "success" ? (
-              <p className="text-xs text-amber-400 flex items-center justify-center gap-1">
+              <p className="text-xs text-amber-500 flex items-center justify-center gap-1 font-medium">
                 <Sun className="h-3.5 w-3.5" />
-                Pencahayaan agak gelap, hadapkan wajah ke arah cahaya
+                Ruangan agak gelap, hadapkan wajah ke arah cahaya
               </p>
             ) : step !== "success" ? (
-              <p className="text-[11px] text-zinc-400">
-                Sistem akan merekam otomatis saat posisi wajah sudah pas
+              <p className="text-[11px] text-muted-foreground">
+                Tahan posisi beberapa detik untuk merekam otomatis
               </p>
             ) : null}
           </div>
 
-          {/* Pre-flight Quality Chips */}
+          {/* Clean Quality Chips Strip */}
           {step !== "success" && !cameraError && (
-            <div className="mt-3 flex items-center gap-2 text-[11px] font-mono">
+            <div className="mt-3 flex items-center gap-2 text-[11px]">
               <div
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-colors ${
                   quality.lighting === "optimal"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                 }`}
               >
                 <Sun className="h-3 w-3" />
                 <span>Cahaya: {quality.lighting === "optimal" ? "Optimal" : "Kurang"}</span>
               </div>
               <div
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-colors ${
                   quality.centered
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                 }`}
               >
                 <Focus className="h-3 w-3" />
                 <span>Posisi: {quality.centered ? "Pas" : "Belum Pas"}</span>
               </div>
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-primary/10 text-primary border-primary/20">
-                <Zap className="h-3 w-3" />
-                <span>Total: {totalProgress}%</span>
-              </div>
             </div>
           )}
         </div>
 
-        {/* Footer Aksi Modern (Hands-Free by Default) */}
-        <div className="border-t border-white/10 bg-zinc-900/50 px-6 py-4 flex items-center justify-between">
-          <div className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Enkripsi Biometrik AES-256</span>
+        {/* Footer Actions (Apple HIG & Secure On-Device Badge) */}
+        <div className="border-t border-border/80 bg-muted/20 px-5 py-3.5 flex items-center justify-between">
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-medium">
+            <Lock className="h-3.5 w-3.5 text-emerald-500" />
+            <span>Enkripsi AES-256 On-Device</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div>
             {step === "success" ? (
               <button
                 onClick={() => {
                   onSuccess();
                   onClose();
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span>Selesai & Aktifkan</span>
                 <ChevronRight className="h-4 w-4" />
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                {/* Secondary fallback jika user ingin manual capture cepat */}
+                {/* Secondary manual capture trigger */}
                 <button
                   onClick={executeCapture}
                   disabled={isCapturing || !!cameraError || step === "processing"}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-medium text-zinc-300 hover:bg-white/10 active:scale-95 disabled:opacity-40 transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted active:scale-95 disabled:opacity-40 transition-all shadow-2xs"
                   title="Ambil manual bila kondisi ruangan kurang ideal"
                 >
-                  <Camera className="h-3.5 w-3.5" />
+                  <Camera className="h-3.5 w-3.5 text-primary" />
                   <span>Ambil Manual</span>
                 </button>
-
-                {/* Status hands-free auto-capture */}
-                <div className="hidden sm:flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/25 px-3.5 py-2 text-xs font-medium text-primary">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                  <span>Auto-Scan Berjalan</span>
-                </div>
               </div>
             )}
           </div>

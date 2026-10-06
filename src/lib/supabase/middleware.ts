@@ -45,6 +45,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/ai") || 
     pathname.startsWith("/api/lms") || 
     pathname.startsWith("/brand") || 
+    pathname.startsWith("/wasm") || 
+    pathname.startsWith("/models") || 
     pathname.startsWith("/_next");
 
   if (isPublicRoute && pathname !== "/login") {

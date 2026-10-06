@@ -11,8 +11,8 @@ export const config = {
      * Match all request paths except for static files:
      * - _next/static, _next/image
      * - favicon.ico, manifest.json, sw.js
-     * - images & public static assets
+     * - images, wasm, tflite & public static assets
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|wasm|tflite|bin|data)$).*)",
   ],
 };
