@@ -47,7 +47,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`h-full ${inter.variable}`}>
-      <body className="min-h-full font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
+      <body className="h-full min-h-full font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
         <AmbientBackground intensity="medium" />
         <Suspense fallback={null}>
           <PushManager />

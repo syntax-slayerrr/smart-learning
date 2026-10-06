@@ -218,17 +218,9 @@ export function SocraticDocumentViewer({
     };
   }, []);
 
-  // Visual Viewport tracking for mobile virtual keyboard (strict lock to prevent window scroll)
+  // Visual Viewport tracking for mobile virtual keyboard
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    // Keep window scroll strictly at 0 so page headers are never pushed off-screen
-    const handleWindowScroll = () => {
-      if (window.scrollY > 0) {
-        window.scrollTo(0, 0);
-      }
-    };
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
 
     if (window.visualViewport) {
       const vv = window.visualViewport;
@@ -237,14 +229,9 @@ export function SocraticDocumentViewer({
       };
       vv.addEventListener("resize", handleViewportChange);
       return () => {
-        window.removeEventListener("scroll", handleWindowScroll);
         vv.removeEventListener("resize", handleViewportChange);
       };
     }
-
-    return () => {
-      window.removeEventListener("scroll", handleWindowScroll);
-    };
   }, []);
 
   // Update welcome message if chapter changed and chat is at start
@@ -471,7 +458,7 @@ export function SocraticDocumentViewer({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full bg-transparent overflow-hidden ${className}`}
+      className={`relative flex flex-col flex-1 min-h-0 w-full bg-transparent overflow-hidden ${className}`}
     >
       {/* 1. SLIM CONTEXT SUB-TOOLBAR (Eliminates clashing double-header) */}
       <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/70 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between gap-2 z-10">
@@ -714,7 +701,7 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 4. DOCKED INPUT CAPSULE */}
-      <footer className="shrink-0 sticky bottom-0 p-2.5 sm:p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer className="shrink-0 p-2.5 sm:p-4 bg-white/85 backdrop-blur-xl border-t border-slate-200/50 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <form
           onSubmit={(e) => {
             e.preventDefault();

@@ -35,7 +35,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-transparent">
+    <div className="flex h-full h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-transparent">
       {/* Sidebar navigation for desktop and slide drawer for mobile menu */}
       {!isNotebook && (
         <Sidebar
@@ -49,13 +49,13 @@ export function DashboardLayout({
       )}
 
       {/* Main App Canvas with Integrated Atmospheric Depth */}
-      <div className="flex flex-1 flex-col overflow-hidden relative bg-transparent">
+      <div className="flex flex-1 h-full min-h-0 flex-col overflow-hidden relative bg-transparent">
         {!isNotebook && <Header role={role} onMenuClick={() => setSidebarOpen(true)} />}
 
         <main
           className={
             isNotebook
-              ? "flex-1 overflow-hidden p-0 focus:outline-none relative z-10 h-full w-full flex flex-col min-h-0"
+              ? "flex-1 min-h-0 overflow-hidden p-0 focus:outline-none relative z-10 h-full w-full flex flex-col"
               : "flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-28 sm:pb-32 lg:pb-8 focus:outline-none relative z-10"
           }
         >

@@ -333,7 +333,10 @@ export default function StudentNotebookPage() {
   // =========================================================================
   if (!selectedMaterial) {
     return (
-      <div className="h-full flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-contain bg-transparent text-[#1D1D1F] touch-pan-y">
+      <div
+        className="h-full flex-1 flex flex-col min-h-0 overflow-y-auto bg-transparent text-[#1D1D1F]"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {/* Sticky Header with Integrated Subject Selector Sub-Bar (OPSI A) */}
         <header className="shrink-0 sticky top-0 z-30 bg-white/70 backdrop-blur-2xl border-b border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           {/* Main Top Bar */}
@@ -627,7 +630,7 @@ export default function StudentNotebookPage() {
   // VIEW B: LEVEL 2 — RUANG BELAJAR MATERI (FOCUS WORKSPACE)
   // =========================================================================
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-transparent text-[#1D1D1F]">
+    <div className="h-full h-[100dvh] max-h-[100dvh] flex flex-col min-h-0 overflow-hidden bg-transparent text-[#1D1D1F]">
       {/* 1. TOP BAR MINIMALIS DENGAN TOMBOL BACK PANAH */}
       <header className="shrink-0 z-30 bg-white/50 backdrop-blur-2xl border-b border-white/40 px-3.5 sm:px-6 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
@@ -736,11 +739,12 @@ export default function StudentNotebookPage() {
 
       {/* 3. DYNAMIC WORKSPACE VIEW CONTENT */}
       <main
-        className={`flex-1 flex flex-col min-h-0 w-full max-w-5xl mx-auto ${
+        className={`flex-1 min-h-0 w-full max-w-5xl mx-auto flex flex-col ${
           studyMode === "chat"
-            ? "p-0 sm:p-4 overflow-hidden"
-            : "overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 pb-28 sm:pb-32"
+            ? "p-0 sm:p-3 overflow-hidden"
+            : "overflow-y-auto p-3 sm:p-6 pb-36"
         }`}
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         {/* =================================================================== */}
         {/* SUB-MODE 1: TEKS MATERI (CLEAN, EYE-FRIENDLY READER & FEATURE HUB) */}
@@ -1171,7 +1175,7 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 4: TANYA SMART AI (SOCRATIC CHAT & DOCK)                  */}
         {/* =================================================================== */}
         {studyMode === "chat" && (
-          <div className="flex-1 flex flex-col min-h-0 h-full w-full overflow-hidden sm:rounded-3xl border-0 sm:border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.04)] animate-fade-in bg-white/40 sm:bg-white/60 backdrop-blur-2xl">
+          <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden sm:rounded-3xl border-0 sm:border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.04)] animate-fade-in bg-white/40 sm:bg-white/60 backdrop-blur-2xl">
             <SocraticDocumentViewer
               materialId={selectedMaterial.id}
               materialTitle={selectedMaterial.title}
