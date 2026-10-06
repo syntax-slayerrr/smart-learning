@@ -121,10 +121,8 @@ export default function StudentNotebookPage() {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
-  // Interactive Subnetting Sandbox State
-  const [calcIp, setCalcIp] = useState<string>("192.168.10.0");
-  const [calcCidr, setCalcCidr] = useState<number>(28);
-  const [showSandbox, setShowSandbox] = useState<boolean>(true);
+  // Active Chapter / Topic State
+  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(0);
 
   // Data & Network State
   const [notebookData, setNotebookData] = useState<any>(null);
@@ -133,7 +131,7 @@ export default function StudentNotebookPage() {
 
   // Oral Defense Modal State
   const [isDefenseModalOpen, setIsDefenseModalOpen] = useState<boolean>(false);
-  const [defenseTopic, setDefenseTopic] = useState<string>("Desain Subnetting & VLSM Topologi Hybrid");
+  const [defenseTopic, setDefenseTopic] = useState<string>("Evaluasi Pemahaman Materi");
 
   // Pop-up Explanation Modal State
   const [isAnalogyModalOpen, setIsAnalogyModalOpen] = useState<boolean>(false);
@@ -154,9 +152,9 @@ export default function StudentNotebookPage() {
   const loadingTips = useMemo(
     () => [
       "Tip Belajar: Menjelaskan konsep ke orang lain (atau AI) melatih pemahaman hingga 90%.",
-      "Smart AI Insight: Formula 2ⁿ - 2 memisahkan Network ID dan Broadcast ID untuk efisiensi rute.",
-      "Fokus Aktif: Pembagian segmen VLSM menghemat hingga 80% alamat IP di topologi hybrid.",
-      "Refleksi Cepat: Subnet /30 adalah standar emas untuk koneksi router-ke-router point-to-point.",
+      "Smart AI Insight: Memetakan konsep inti membantu mengingat hierarki materi perkuliahan.",
+      "Fokus Aktif: Hubungkan topik utama dengan studi kasus nyata untuk pemahaman mendalam.",
+      "Refleksi Cepat: Evaluasi pemahaman melalui kuis reflektif setelah membaca intisari materi.",
     ],
     []
   );
@@ -271,6 +269,7 @@ export default function StudentNotebookPage() {
 
   const handleSelectMaterial = (mat: any) => {
     setSelectedMaterial(mat);
+    setActiveChapterIndex(0);
     loadNotebookData(mat.id);
     setStudyMode("reader");
   };
@@ -285,8 +284,9 @@ export default function StudentNotebookPage() {
   }, [notebookData, selectedSubjectId]);
 
   // Fallback active material details
-  const activeMaterialDetails = notebookData?.material;
+  const activeMaterialDetails = notebookData?.material || selectedMaterial;
   const chapters = notebookData?.chapters || [];
+  const activeChapter = chapters[activeChapterIndex] || chapters[0] || null;
   const conceptGraph = notebookData?.conceptGraph || { nodes: [], edges: [] };
   const examReadiness = notebookData?.examReadiness || { axes: [], averageScore: 75 };
 
@@ -352,17 +352,8 @@ interface QuizQuestionItem {
     });
   };
 
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
   const [quizSyncStatus, setQuizSyncStatus] = useState<"synced" | "offline" | null>(null);
-
-  const handleCopyValue = (text: string, label: string) => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      setCopiedField(label);
-      setTimeout(() => setCopiedField(null), 1800);
-    }
-  };
 
   const handleCalculateScore = async () => {
     setQuizSubmitted(true);
@@ -434,56 +425,6 @@ interface QuizQuestionItem {
       localStorage.removeItem(`smart-learning:quiz:${matKey}`);
     } catch {}
   };
-
-  // Live Subnetting Calculator Calculation
-  const calculatedSubnet = useMemo(() => {
-    const parts = calcIp.trim().split(".").map((p) => parseInt(p, 10));
-    if (parts.length !== 4 || parts.some((n) => isNaN(n) || n < 0 || n > 255)) {
-      return null;
-    }
-    const cidr = Math.min(32, Math.max(0, calcCidr));
-    const ipNum =
-      ((parts[0] << 24) >>> 0) +
-      ((parts[1] << 16) >>> 0) +
-      ((parts[2] << 8) >>> 0) +
-      (parts[3] >>> 0);
-    const maskNum = cidr === 0 ? 0 : ((0xffffffff << (32 - cidr)) >>> 0);
-    const netNum = (ipNum & maskNum) >>> 0;
-    const bcastNum = (netNum | (~maskNum >>> 0)) >>> 0;
-    const wildcardNum = (~maskNum >>> 0);
-
-    const toIpStr = (num: number) =>
-      [
-        (num >>> 24) & 255,
-        (num >>> 16) & 255,
-        (num >>> 8) & 255,
-        num & 255,
-      ].join(".");
-
-    const toBinStr = (num: number) =>
-      [
-        ((num >>> 24) & 255).toString(2).padStart(8, "0"),
-        ((num >>> 16) & 255).toString(2).padStart(8, "0"),
-        ((num >>> 8) & 255).toString(2).padStart(8, "0"),
-        (num & 255).toString(2).padStart(8, "0"),
-      ].join(" . ");
-
-    const totalIps = Math.pow(2, 32 - cidr);
-    const usable =
-      cidr >= 31 ? (cidr === 31 ? 2 : 1) : Math.max(0, totalIps - 2);
-
-    return {
-      netmask: toIpStr(maskNum),
-      wildcardMask: toIpStr(wildcardNum),
-      networkId: toIpStr(netNum),
-      broadcastId: toIpStr(bcastNum),
-      usableHosts: usable,
-      totalIps,
-      binaryMask: toBinStr(maskNum),
-      firstHost: cidr >= 31 ? toIpStr(netNum) : toIpStr(netNum + 1),
-      lastHost: cidr >= 31 ? toIpStr(bcastNum) : toIpStr(bcastNum - 1),
-    };
-  }, [calcIp, calcCidr]);
 
   const quizScore = useMemo(() => {
     let correct = 0;
@@ -966,18 +907,27 @@ interface QuizQuestionItem {
               {/* Header Bab with Apple-grade Action Badges */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-black/[0.06] pb-4">
                 <div className="space-y-1.5 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF]">
-                      Bab 2 • Subnetting IPv4 & VLSM
+                      {activeChapter
+                        ? `Bab ${activeChapter.chapterNumber} • ${activeChapter.title}`
+                        : `${activeMaterialDetails?.subjectName || "Materi Perkuliahan"}`}
                     </span>
                     <span className="inline-block h-1 w-1 rounded-full bg-neutral-300" />
-                    <span className="text-[11px] text-[#86868B]">Estimasi baca: 4 menit</span>
+                    <span className="text-[11px] text-[#86868B]">
+                      {activeMaterialDetails?.pageCount
+                        ? `Estimasi baca: ${Math.max(3, Math.round(activeMaterialDetails.pageCount * 1.5))} menit`
+                        : "Estimasi baca: 4 menit"}
+                    </span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
-                    Implementasi Alokasi VLSM pada Topologi Router Bertingkat
+                    {activeChapter?.title || activeMaterialDetails?.title || "Materi Pembelajaran"}
                   </h2>
                   <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">
-                    Hasil ekstraksi cerdas dari modul ajar resmi. Menyajikan intisari teknis, rumus matematis alokasi bit host, dan efisiensi pengalamatan IP.
+                    {activeChapter?.summary ||
+                      activeMaterialDetails?.aiSummary ||
+                      activeMaterialDetails?.description ||
+                      "Intisari materi terstruktur yang diekstrak langsung dari modul resmi."}
                   </p>
                 </div>
 
@@ -1008,6 +958,25 @@ interface QuizQuestionItem {
                 </div>
               </div>
 
+              {/* Chapter Navigation Selector if Multiple Chapters Exist */}
+              {chapters.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+                  {chapters.map((ch: any, idx: number) => (
+                    <button
+                      key={ch.id || idx}
+                      onClick={() => setActiveChapterIndex(idx)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                        activeChapterIndex === idx
+                          ? "bg-[#007AFF] text-white shadow-xs font-semibold"
+                          : "bg-slate-100/80 hover:bg-slate-200/80 text-slate-700"
+                      }`}
+                    >
+                      Bab {ch.chapterNumber}: {ch.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Apple-grade Mini Audio Podcast Bar (60s Summary) */}
               {showAudioBar && (
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 backdrop-blur-xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -1024,15 +993,15 @@ interface QuizQuestionItem {
                     </button>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#1D1D1F]">
-                          Podcast Intisari Bab: Efisiensi VLSM
+                        <span className="text-xs font-bold text-[#1D1D1F] truncate">
+                          Podcast Intisari: {activeChapter?.title || activeMaterialDetails?.title}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-[#007AFF]/10 text-[#007AFF] text-[9px] font-bold">
+                        <span className="px-1.5 py-0.5 rounded-md bg-[#007AFF]/10 text-[#007AFF] text-[9px] font-bold shrink-0">
                           AI Voice
                         </span>
                       </div>
                       <p className="text-[11px] text-[#6E6E73] truncate">
-                        Narasi Smart AI • Pembahasan praktis usable host dan rumus 2ⁿ - 2
+                        Narasi Smart AI • Ringkasan audio materi perkuliahan terstruktur
                       </p>
                     </div>
                   </div>
@@ -1052,49 +1021,78 @@ interface QuizQuestionItem {
                 </div>
               )}
 
-              {/* Paragraf Materi Inti */}
+              {/* Dynamic Material Content */}
               <div className="space-y-4 text-sm text-[#1D1D1F] leading-relaxed">
-                <p>
-                  Dalam merancang arsitektur jaringan komputer modern skala kampus atau korporat, pemborosan alamat IPv4 dapat diminimalisir menggunakan metode <strong>Variable Length Subnet Mask (VLSM)</strong>. Berbeda dengan subnetting kelas standar (FLSM) yang membagi ruang alamat sama rata, VLSM memungkinkan seorang administrator jaringan mengalokasikan subnet dengan ukuran mask yang berbeda sesuai kebutuhan riil masing-masing segmen (LAN).
-                </p>
+                {activeChapter?.isCriticalZone && activeChapter?.criticalZoneLabel && (
+                  <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex items-start gap-2.5">
+                    <HelpCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-900">Perhatian Guru & Siswa</p>
+                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                        {activeChapter.criticalZoneLabel}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Box Formula Matematika Elegan & Ramah Mata */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1.5">
-                      <Lightbulb className="h-3.5 w-3.5 text-[#007AFF]" />
-                      Formula Perhitungan Usable Host Subnet
-                    </span>
+                {/* Paragraphs */}
+                {(() => {
+                  const rawContent =
+                    activeChapter?.contentSnippet ||
+                    activeMaterialDetails?.aiSummary ||
+                    activeMaterialDetails?.description ||
+                    "Materi ini siap dieksplorasi. Anda dapat membuka modul resmi atau bertanya kepada Smart AI untuk mempelajari bab ini secara interaktif.";
+                  
+                  return rawContent
+                    .split(/\n\n+/)
+                    .filter((p: string) => p.trim().length > 0)
+                    .map((paragraph: string, pIdx: number) => (
+                      <p key={pIdx} className="leading-relaxed text-[#1D1D1F]">
+                        {paragraph.trim()}
+                      </p>
+                    ));
+                })()}
+
+                {/* Key Concepts / Takeaways */}
+                {activeChapter?.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 space-y-2">
+                    <h4 className="text-xs font-bold text-[#007AFF] uppercase tracking-wide flex items-center gap-1.5">
+                      <Lightbulb className="h-3.5 w-3.5" />
+                      Poin Kunci Pembelajaran ({activeChapter.title}):
+                    </h4>
+                    <ul className="text-xs text-[#1D1D1F] space-y-1.5 list-disc list-inside">
+                      {activeChapter.keyTakeaways.map((item: string, iIdx: number) => (
+                        <li key={iIdx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Direct Document Link if PDF exists */}
+                {activeMaterialDetails?.fileUrl && (
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-200/60">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-[#1D1D1F] truncate">
+                          {activeMaterialDetails.fileName || `${activeMaterialDetails.title}.pdf`}
+                        </h4>
+                        <p className="text-[11px] text-[#6E6E73]">
+                          Modul pembelajaran resmi ({activeMaterialDetails.pageCount || 24} halaman)
+                        </p>
+                      </div>
+                    </div>
                     <button
-                      onClick={() => setIsAnalogyModalOpen(true)}
-                      className="text-[11px] font-semibold text-[#007AFF] hover:underline"
+                      type="button"
+                      onClick={() => setStudyMode("pdf")}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all self-start sm:self-auto shrink-0"
                     >
-                      Bongkar Analogi →
+                      Buka Dokumen Asli →
                     </button>
                   </div>
-                  <div className="py-2 text-center font-mono text-base sm:text-lg font-bold text-[#1D1D1F]">
-                    Jumlah Usable Host = 2ⁿ - 2
-                  </div>
-                  <p className="text-xs text-[#6E6E73] leading-relaxed">
-                    di mana <em>n</em> adalah jumlah bit nol (host bit) yang tersisa setelah peminjaman bit network (CIDR). Nilai 2 dikurangkan karena alamat pertama adalah <strong>Network ID</strong> dan alamat terakhir adalah <strong>Broadcast ID</strong>.
-                  </p>
-                </div>
-
-                <p>
-                  Sebagai contoh kasus nyata pada segmen laboratorium dengan kebutuhan 14 komputer host: jika dialokasikan menggunakan subnet mask konvensional <code>/24</code> (254 host), maka terjadi pemborosan sebanyak 240 alamat IP. Melalui pendekatan VLSM, administrator memilih subnet <code>/28</code> (yang menyediakan 16 total IP dan tepat 14 usable host), sehingga tingkat efisiensi alokasi IP mencapai <strong>100% presisi</strong>.
-                </p>
-
-                {/* Poin Kunci Belajar */}
-                <div className="p-4 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 space-y-2">
-                  <h4 className="text-xs font-bold text-[#007AFF] uppercase tracking-wide">
-                    Poin Penting untuk Ujian & Defense:
-                  </h4>
-                  <ul className="text-xs text-[#1D1D1F] space-y-1.5 list-disc list-inside">
-                    <li>Alokasikan subnet mulai dari kebutuhan host terbesar ke kebutuhan terkecil.</li>
-                    <li>Untuk sambungan Point-to-Point antar dua router, selalu gunakan subnet <code>/30</code> (2 usable host).</li>
-                    <li>Pastikan tidak ada interval IP yang tumpang tindih (overlapping range).</li>
-                  </ul>
-                </div>
+                )}
               </div>
 
               {/* FEATURE HUB 4 KARTU KACA (SESUAI REFERENSI UI LAYAR 4) */}
@@ -1270,7 +1268,7 @@ interface QuizQuestionItem {
                   Uji Pemahaman Mandiri
                 </span>
                 <h3 className="text-base font-bold text-[#1D1D1F] mt-1">
-                  Kuis Reflektif Materi Subnetting & VLSM
+                  Kuis Reflektif: {activeMaterialDetails?.title || "Bahan Ajar"}
                 </h3>
                 <p className="text-xs text-[#6E6E73]">
                   {quizQuestions.length} Pertanyaan adaptif berdasarkan modul ajar resmi.
@@ -1286,231 +1284,6 @@ interface QuizQuestionItem {
                       {quizScore >= 70 ? "Pemahaman Kuat! Siap Uji Pemahaman." : "Perlu reviu bab ini lagi."}
                     </p>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Interactive Subnetting Sandbox Widget */}
-            <div className="rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-hidden transition-all">
-              <div
-                onClick={() => setShowSandbox((prev) => !prev)}
-                className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-white/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
-                    <Network className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
-                      Kalkulator Subnetting & Biner Siswa
-                      <span className="text-[10px] font-semibold text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/50">
-                        Live Sandbox
-                      </span>
-                    </h4>
-                    <p className="text-[11px] text-[#6E6E73]">
-                      Eksperimen pembagian blok IP langsung saat mengerjakan kuis
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-[#007AFF] hover:underline"
-                >
-                  {showSandbox ? "Sembunyikan" : "Buka Alat"}
-                </button>
-              </div>
-
-              {showSandbox && (
-                <div className="p-4 sm:p-5 pt-0 border-t border-slate-100/80 space-y-4 animate-fade-in">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
-                    {/* IP Input */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-semibold text-[#1D1D1F]">
-                          IP Address
-                        </label>
-                        <span className={`text-[10px] font-medium px-2 py-0.2 rounded-full ${
-                          calculatedSubnet ? "bg-emerald-50 text-emerald-600 border border-emerald-200/50" : "bg-red-50 text-red-600 border border-red-200/50"
-                        }`}>
-                          {calculatedSubnet ? "IPv4 Valid" : "Format Salah"}
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        value={calcIp}
-                        onChange={(e) => setCalcIp(e.target.value)}
-                        placeholder="192.168.10.0"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
-                      />
-                    </div>
-
-                    {/* Prefix CIDR */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-semibold text-[#1D1D1F]">
-                          Prefix Subnet (CIDR)
-                        </label>
-                        <span className="text-xs font-bold font-mono text-[#007AFF]">
-                          /{calcCidr}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="16"
-                        max="30"
-                        value={calcCidr}
-                        onChange={(e) => setCalcCidr(parseInt(e.target.value, 10))}
-                        className="w-full accent-[#007AFF] cursor-pointer"
-                      />
-                      <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
-                        <span>/16</span>
-                        <span>/24</span>
-                        <span>/28</span>
-                        <span>/30</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CIDR Quick Presets */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-slate-400 mr-1">Preset Cepat:</span>
-                    {[
-                      { prefix: 24, label: "/24 (254 H)" },
-                      { prefix: 26, label: "/26 (62 H)" },
-                      { prefix: 27, label: "/27 (30 H)" },
-                      { prefix: 28, label: "/28 (14 H)" },
-                      { prefix: 29, label: "/29 (6 H)" },
-                      { prefix: 30, label: "/30 (P2P)" },
-                    ].map((preset) => (
-                      <button
-                        key={preset.prefix}
-                        type="button"
-                        onClick={() => setCalcCidr(preset.prefix)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-medium font-mono transition-all ${
-                          calcCidr === preset.prefix
-                            ? "bg-[#007AFF] text-white shadow-2xs"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Calculated Metrics Grid */}
-                  {calculatedSubnet ? (
-                    <div className="space-y-2.5">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[10px] text-slate-500">Subnet Mask</p>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyValue(calculatedSubnet.netmask, "mask")}
-                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
-                              title="Salin Mask"
-                            >
-                              {copiedField === "mask" ? (
-                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </button>
-                          </div>
-                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
-                            {calculatedSubnet.netmask}
-                          </p>
-                        </div>
-
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[10px] text-slate-500">Wildcard Mask</p>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyValue(calculatedSubnet.wildcardMask, "wildcard")}
-                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
-                              title="Salin Wildcard"
-                            >
-                              {copiedField === "wildcard" ? (
-                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </button>
-                          </div>
-                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
-                            {calculatedSubnet.wildcardMask}
-                          </p>
-                        </div>
-
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[10px] text-slate-500">Network ID</p>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyValue(calculatedSubnet.networkId, "netid")}
-                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
-                              title="Salin Network ID"
-                            >
-                              {copiedField === "netid" ? (
-                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </button>
-                          </div>
-                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
-                            {calculatedSubnet.networkId}
-                          </p>
-                        </div>
-
-                        <div className="p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100/80">
-                          <p className="text-[10px] text-blue-600 font-medium">Usable Hosts</p>
-                          <p className="text-xs font-bold font-mono text-blue-900 mt-0.5">
-                            {calculatedSubnet.usableHosts} Host
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Usable Range & Binary Mask */}
-                      <div className="p-3 rounded-2xl bg-slate-50/90 border border-slate-100 space-y-1.5 text-[11px]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <div className="flex items-center gap-1.5 text-slate-500">
-                            <span>Rentang Host Valid:</span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleCopyValue(
-                                  `${calculatedSubnet.firstHost} - ${calculatedSubnet.lastHost}`,
-                                  "range"
-                                )
-                              }
-                              className="hover:text-[#007AFF] transition-colors"
-                            >
-                              {copiedField === "range" ? (
-                                <span className="text-[9px] text-[#34C759] font-bold">Tersalin!</span>
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </button>
-                          </div>
-                          <span className="font-mono font-semibold text-slate-800">
-                            {calculatedSubnet.firstHost} — {calculatedSubnet.lastHost}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1 border-t border-slate-200/50">
-                          <span className="text-slate-500">Format Biner Mask:</span>
-                          <span className="font-mono text-[10px] text-blue-700 font-semibold tracking-wider">
-                            {calculatedSubnet.binaryMask}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-red-500 italic">
-                      Format IP tidak valid. Masukkan format IPv4 standar (contoh: 192.168.1.0).
-                    </p>
-                  )}
                 </div>
               )}
             </div>

@@ -382,11 +382,12 @@ export async function GET(request: NextRequest) {
           id: material.id,
           title: material.title,
           description: material.description,
+          aiSummary: material.ai_summary || material.description,
           fileUrl: material.file_url,
           fileName: material.file_name,
           pageCount: material.page_count || 32,
           subjectId: material.subject_id,
-          subjectName: material.subjects?.name || "Jaringan Komputer",
+          subjectName: material.subjects?.name || "Modul Pembelajaran",
         },
         chapters: formattedChapters,
         conceptGraph: {
