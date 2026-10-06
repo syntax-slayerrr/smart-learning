@@ -51,26 +51,26 @@ export default function ProfileClient({
   }
 
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full space-y-4">
       {/* Grouped Card: Informasi Akun */}
-      <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xs">
-        <h3 className="text-sm font-semibold mb-3.5 flex items-center gap-2 text-foreground tracking-tight">
+      <div className="rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-2xs">
+        <h3 className="text-sm font-semibold mb-3.5 flex items-center gap-2 text-slate-900 tracking-tight">
           <User className="h-4 w-4 text-[#007AFF]" />
           Informasi Akun
         </h3>
         
-        <div className="divide-y divide-slate-100 dark:divide-zinc-800 text-xs">
+        <div className="divide-y divide-slate-100 text-xs">
           <div className="flex justify-between items-center py-2.5">
-            <span className="text-slate-500 dark:text-zinc-400 font-medium">Nama Lengkap</span>
-            <span className="font-semibold text-slate-900 dark:text-zinc-100">{cleanFullName}</span>
+            <span className="text-slate-500 font-medium">Nama Lengkap</span>
+            <span className="font-semibold text-slate-900">{cleanFullName}</span>
           </div>
           <div className="flex justify-between items-center py-2.5">
-            <span className="text-slate-500 dark:text-zinc-400 font-medium">Alamat Email</span>
-            <span className="font-mono text-slate-800 dark:text-zinc-200">{userProfile.email}</span>
+            <span className="text-slate-500 font-medium">Alamat Email</span>
+            <span className="font-mono text-slate-800">{userProfile.email}</span>
           </div>
           <div className="flex justify-between items-center py-2.5">
-            <span className="text-slate-500 dark:text-zinc-400 font-medium">Peran Pengguna</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-medium text-xs capitalize border border-slate-200/60 dark:border-zinc-700">
+            <span className="text-slate-500 font-medium">Peran Pengguna</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 font-medium text-xs capitalize border border-slate-200/60">
               {userProfile.role}
             </span>
           </div>
@@ -78,8 +78,8 @@ export default function ProfileClient({
       </div>
 
       {/* Grouped Card: Ubah Kata Sandi */}
-      <div className="rounded-2xl border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-2xs">
-        <h3 className="text-sm font-semibold mb-3.5 flex items-center gap-2 text-foreground tracking-tight">
+      <div className="rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md p-5 sm:p-6 shadow-2xs">
+        <h3 className="text-sm font-semibold mb-3.5 flex items-center gap-2 text-slate-900 tracking-tight">
           <Key className="h-4 w-4 text-[#007AFF]" />
           Ubah Kata Sandi
         </h3>
@@ -100,7 +100,7 @@ export default function ProfileClient({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 dark:text-zinc-300">Kata Sandi Baru</label>
+            <label className="text-xs font-medium text-slate-700">Kata Sandi Baru</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -110,14 +110,14 @@ export default function ProfileClient({
                 id="new-password" 
                 aria-label="Kata Sandi Baru" 
                 placeholder="Minimal 6 karakter"
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 dark:text-zinc-100 outline-none transition-all placeholder:text-slate-400 focus:border-[#007AFF] focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-[#007AFF]/15 font-mono"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#007AFF] focus:bg-white focus:ring-2 focus:ring-[#007AFF]/15 font-mono"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 dark:text-zinc-300">Konfirmasi Kata Sandi Baru</label>
+            <label className="text-xs font-medium text-slate-700">Konfirmasi Kata Sandi Baru</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -127,7 +127,7 @@ export default function ProfileClient({
                 id="confirm-new-password" 
                 aria-label="Konfirmasi Kata Sandi Baru" 
                 placeholder="Ulangi kata sandi baru"
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/50 py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 dark:text-zinc-100 outline-none transition-all placeholder:text-slate-400 focus:border-[#007AFF] focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-[#007AFF]/15 font-mono"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#007AFF] focus:bg-white focus:ring-2 focus:ring-[#007AFF]/15 font-mono"
                 required
               />
             </div>
