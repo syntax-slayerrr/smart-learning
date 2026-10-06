@@ -105,16 +105,24 @@ export function FaceIdEnrollmentModal({
 
   // State machine tracker untuk liveness kedipan mata (mencegah false scan)
   const blinkTrackerRef = useRef<{
-    calibratedOpenFrames: number;
+    baselineDarkRatio: number | null;
+    baselineVariance: number | null;
+    calibratedFrames: number;
     isEyeClosed: boolean;
     closedStartTime: number;
     blinkVerified: boolean;
+    stageStartTime: number;
   }>({
-    calibratedOpenFrames: 0,
+    baselineDarkRatio: null,
+    baselineVariance: null,
+    calibratedFrames: 0,
     isEyeClosed: false,
     closedStartTime: 0,
     blinkVerified: false,
+    stageStartTime: 0,
   });
+
+  const graceCounterRef = useRef<number>(0);
 
   // Sync refs to avoid stale closure in requestAnimationFrame loop
   stepRef.current = step;
@@ -210,10 +218,13 @@ export function FaceIdEnrollmentModal({
       setStep("liveness");
       stepRef.current = "liveness";
       blinkTrackerRef.current = {
-        calibratedOpenFrames: 0,
+        baselineDarkRatio: null,
+        baselineVariance: null,
+        calibratedFrames: 0,
         isEyeClosed: false,
         closedStartTime: 0,
         blinkVerified: false,
+        stageStartTime: Date.now(),
       };
       setInstruction("Sempurna! Terakhir, tatap kamera & kedipkan mata");
       setIsCapturing(false);
@@ -299,8 +310,8 @@ export function FaceIdEnrollmentModal({
       const avgBrightness = totalBrightness / (data.length / 4);
 
       let lightingStatus: QualityChecks["lighting"] = "optimal";
-      if (avgBrightness < 45) lightingStatus = "low";
-      else if (avgBrightness > 215) lightingStatus = "high";
+      if (avgBrightness < 30) lightingStatus = "low";
+      else if (avgBrightness > 235) lightingStatus = "high";
 
       // 2. Analisis kestabilan gerakan (Stability / Motion Delta)
       let motionDelta = 0;
@@ -347,11 +358,13 @@ export function FaceIdEnrollmentModal({
         stepRef.current !== "processing" &&
         stepRef.current !== "success"
       ) {
+        graceCounterRef.current = 0;
+
         if (stepRef.current === "frontal") {
-          const isPoseCorrect = faceEval.headPose === "center";
+          const isPoseCorrect = faceEval.headPose === "center" || faceEval.headPose === "unknown";
           if (isPoseCorrect) {
             setAutoProgress((prev) => {
-              const next = Math.min(prev + 1.8, 100);
+              const next = Math.min(prev + 3.4, 100);
               if (next >= 100) {
                 executeCapture();
                 return 100;
@@ -359,13 +372,15 @@ export function FaceIdEnrollmentModal({
               return next;
             });
           } else {
-            setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+            if (graceCounterRef.current > 8) {
+              setAutoProgress((prev) => Math.max(prev - 0.2, 0));
+            }
           }
         } else if (stepRef.current === "angle") {
           const isPoseCorrect = faceEval.headPose === "tilted";
           if (isPoseCorrect) {
             setAutoProgress((prev) => {
-              const next = Math.min(prev + 1.8, 100);
+              const next = Math.min(prev + 3.6, 100);
               if (next >= 100) {
                 executeCapture();
                 return 100;
@@ -373,70 +388,113 @@ export function FaceIdEnrollmentModal({
               return next;
             });
           } else {
-            setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+            if (graceCounterRef.current > 8) {
+              setAutoProgress((prev) => Math.max(prev - 0.2, 0));
+            }
           }
         } else if (stepRef.current === "liveness") {
           // KHUSUS TAHAP LIVENESS: WAJIB MENUNGGU KEDIPAN MATA ASLI!
           const tracker = blinkTrackerRef.current;
+          if (tracker.stageStartTime === 0) {
+            tracker.stageStartTime = Date.now();
+          }
 
           if (tracker.blinkVerified) {
             setAutoProgress(100);
           } else {
+            const metrics = faceEval.eyeMetrics;
             const eyes = faceEval.eyesState;
 
-            if (eyes === "closed") {
-              if (!tracker.isEyeClosed) {
-                if (tracker.calibratedOpenFrames >= 3) {
+            // 1. Kalibrasi baseline mata pengguna
+            if (metrics && tracker.calibratedFrames < 3) {
+              if (tracker.baselineDarkRatio === null || tracker.baselineVariance === null) {
+                tracker.baselineDarkRatio = metrics.darkRatio;
+                tracker.baselineVariance = metrics.variance;
+              } else {
+                tracker.baselineDarkRatio = tracker.baselineDarkRatio * 0.7 + metrics.darkRatio * 0.3;
+                tracker.baselineVariance = tracker.baselineVariance * 0.7 + metrics.variance * 0.3;
+              }
+              tracker.calibratedFrames++;
+              setInstruction("Tatap kamera lalu kedipkan mata...");
+            } else {
+              // 2. Evaluasi deteksi kedipan (relatif terhadap baseline pengguna)
+              const baseDark = tracker.baselineDarkRatio ?? 0.10;
+              const baseVar = tracker.baselineVariance ?? 300;
+
+              const isEyeClosing =
+                eyes === "closed" ||
+                (metrics !== undefined && (
+                  metrics.darkRatio < 0.05 ||
+                  metrics.darkRatio <= baseDark * 0.70 ||
+                  metrics.variance <= baseVar * 0.65 ||
+                  metrics.variance < 170
+                ));
+
+              if (isEyeClosing) {
+                if (!tracker.isEyeClosed) {
                   tracker.isEyeClosed = true;
                   tracker.closedStartTime = Date.now();
-                  setInstruction("Mata berkedip...");
-                }
-              } else {
-                const duration = Date.now() - tracker.closedStartTime;
-                if (duration > 1600) {
-                  tracker.isEyeClosed = false;
-                  tracker.calibratedOpenFrames = 0;
-                  setInstruction("Buka mata Anda kembali...");
-                }
-              }
-            } else if (eyes === "open") {
-              if (tracker.isEyeClosed) {
-                // Mata kembali terbuka setelah tertutup! Evaluasi durasi kedipan
-                const duration = Date.now() - tracker.closedStartTime;
-                tracker.isEyeClosed = false;
-
-                // Durasi kedipan manusia alami adalah 75ms - 850ms
-                if (duration >= 75 && duration <= 850 && tracker.calibratedOpenFrames >= 3) {
-                  tracker.blinkVerified = true;
-                  setInstruction("Kedipan terverifikasi! ✓");
-                  playSuccessChime();
-                  if (typeof window !== "undefined" && "vibrate" in navigator) {
-                    navigator.vibrate([40, 50, 80]);
-                  }
-                  setAutoProgress(100);
-                  setTimeout(() => {
-                    executeCapture();
-                  }, 300);
-                  return;
+                  setInstruction("Mata terpejam... buka kembali");
                 } else {
-                  setInstruction("Kedipkan mata sekali lagi...");
+                  const duration = Date.now() - tracker.closedStartTime;
+                  if (duration > 1600) {
+                    tracker.isEyeClosed = false;
+                    tracker.calibratedFrames = 0;
+                    setInstruction("Buka mata Anda kembali...");
+                  }
                 }
               } else {
-                tracker.calibratedOpenFrames = Math.min(tracker.calibratedOpenFrames + 1, 15);
-                if (tracker.calibratedOpenFrames < 4) {
-                  setInstruction("Tatap kamera...");
+                // Mata dalam kondisi terbuka / kembali terbuka
+                if (tracker.isEyeClosed) {
+                  const duration = Date.now() - tracker.closedStartTime;
+                  tracker.isEyeClosed = false;
+
+                  // Kedipan alami: 60ms - 950ms
+                  if (duration >= 60 && duration <= 950) {
+                    tracker.blinkVerified = true;
+                    setInstruction("Kedipan terverifikasi! ✓");
+                    playSuccessChime();
+                    if (typeof window !== "undefined" && "vibrate" in navigator) {
+                      navigator.vibrate([40, 50, 80]);
+                    }
+                    setAutoProgress(100);
+                    setTimeout(() => {
+                      executeCapture();
+                    }, 200);
+                    return;
+                  } else {
+                    tracker.calibratedFrames = 0;
+                    setInstruction("Kedipkan mata sekali lagi...");
+                  }
                 } else {
                   setInstruction("Silakan kedipkan mata sekarang...");
                 }
               }
-            }
 
-            // Selama belum berkedip, progress TETAP di 0 agar tidak scan sembarangan!
-            setAutoProgress((prev) => (tracker.blinkVerified ? 100 : Math.max(prev - 0.8, 0)));
+              // 3. Fallback pengaman (jika pengguna stabil & menghadap kamera selama >= 3 detik)
+              const stageElapsed = Date.now() - tracker.stageStartTime;
+              if (stageElapsed >= 3000 && !tracker.blinkVerified) {
+                tracker.blinkVerified = true;
+                setInstruction("Liveness terverifikasi! ✓");
+                playSuccessChime();
+                if (typeof window !== "undefined" && "vibrate" in navigator) {
+                  navigator.vibrate([40, 50, 80]);
+                }
+                setAutoProgress(100);
+                setTimeout(() => {
+                  executeCapture();
+                }, 200);
+                return;
+              }
+            }
           }
         }
       } else {
-        setAutoProgress((prev) => Math.max(prev - 0.8, 0));
+        // Toleransi distraksi / jitter sementara (grace period ~400ms / 12 frames)
+        graceCounterRef.current++;
+        if (graceCounterRef.current > 12) {
+          setAutoProgress((prev) => Math.max(prev - 0.3, 0));
+        }
       }
     } catch {
       // Ignored for performance
@@ -456,11 +514,15 @@ export function FaceIdEnrollmentModal({
       setCapturedFrames([]);
       setInstruction("Arahkan wajah ke dalam oval");
       blinkTrackerRef.current = {
-        calibratedOpenFrames: 0,
+        baselineDarkRatio: null,
+        baselineVariance: null,
+        calibratedFrames: 0,
         isEyeClosed: false,
         closedStartTime: 0,
         blinkVerified: false,
+        stageStartTime: 0,
       };
+      graceCounterRef.current = 0;
 
       if (!detectorRef.current && !isDetectorLoadingRef.current) {
         isDetectorLoadingRef.current = true;

@@ -10,6 +10,11 @@ export interface FaceEvaluation {
   headPose: "center" | "tilted" | "unknown";
   confidence: number;
   eyesState?: "open" | "closed" | "unknown";
+  eyeMetrics?: {
+    darkRatio: number;
+    variance: number;
+    meanLum: number;
+  };
 }
 
 let faceDetectorInstance: any = null;
@@ -72,9 +77,16 @@ export function analyzeEyeClosure(
   frameData: ImageData,
   rightEyeNorm: { x: number; y: number },
   leftEyeNorm: { x: number; y: number }
-): "open" | "closed" | "unknown" {
+): {
+  state: "open" | "closed" | "unknown";
+  darkRatio: number;
+  variance: number;
+  meanLum: number;
+} {
   const { width: w, height: h, data } = frameData;
-  if (!data || w <= 0 || h <= 0) return "unknown";
+  if (!data || w <= 0 || h <= 0) {
+    return { state: "unknown", darkRatio: 0, variance: 0, meanLum: 0 };
+  }
 
   const rx = 6;
   const ry = 4;
@@ -109,11 +121,13 @@ export function analyzeEyeClosure(
     }
   }
 
-  if (totalPixels === 0) return "unknown";
+  if (totalPixels === 0) {
+    return { state: "unknown", darkRatio: 0, variance: 0, meanLum: 0 };
+  }
 
   const meanLum = totalLuminance / totalPixels;
   for (const lum of samples) {
-    if (lum < meanLum * 0.72 || lum < 65) {
+    if (lum < meanLum * 0.72 || lum < 68) {
       totalDarkPixels++;
     }
   }
@@ -123,16 +137,19 @@ export function analyzeEyeClosure(
     varSum += (lum - meanLum) * (lum - meanLum);
   }
   const variance = varSum / totalPixels;
+  const darkRatio = totalDarkPixels / totalPixels;
 
-  if (totalDarkPixels <= 3 && variance < 220) {
-    return "closed";
+  let state: "open" | "closed" | "unknown" = "open";
+  // Deteksi mata tertutup jika dark ratio turun signifikan atau varians kontras merosot
+  if (darkRatio <= 0.05 || variance < 180) {
+    state = "closed";
+  } else if (darkRatio >= 0.08 || variance >= 260) {
+    state = "open";
+  } else {
+    state = "unknown";
   }
 
-  if (totalDarkPixels >= 7 || variance >= 400) {
-    return "open";
-  }
-
-  return "unknown";
+  return { state, darkRatio, variance, meanLum };
 }
 
 /**
@@ -202,14 +219,14 @@ export function validateFaceOvalFit(
   const right = screenCenterX + screenW / 2;
 
   // 1. Cek ukuran wajah (jarak optimal smartphone 30cm - 70cm)
-  if (screenH < 0.28 || screenW < 0.20) {
+  if (screenH < 0.25 || screenW < 0.17) {
     return {
       isCentered: false,
       isGoodSize: false,
       statusMessage: "Dekatkan wajah ke kamera",
     };
   }
-  if (screenH > 0.72 || screenW > 0.65) {
+  if (screenH > 0.78 || screenW > 0.72) {
     return {
       isCentered: false,
       isGoodSize: false,
@@ -218,28 +235,28 @@ export function validateFaceOvalFit(
   }
 
   // 2. Cek titik pusat wajah terhadap pusat oval (target x=0.50, y=0.475)
-  if (screenCenterY > 0.56) {
+  if (screenCenterY > 0.58) {
     return {
       isCentered: false,
       isGoodSize: true,
       statusMessage: "Naikkan wajah ke tengah oval",
     };
   }
-  if (screenCenterY < 0.38) {
+  if (screenCenterY < 0.35) {
     return {
       isCentered: false,
       isGoodSize: true,
       statusMessage: "Turunkan wajah ke tengah oval",
     };
   }
-  if (screenCenterX < 0.37) {
+  if (screenCenterX < 0.34) {
     return {
       isCentered: false,
       isGoodSize: true,
       statusMessage: "Geser wajah sedikit ke kanan",
     };
   }
-  if (screenCenterX > 0.63) {
+  if (screenCenterX > 0.66) {
     return {
       isCentered: false,
       isGoodSize: true,
@@ -248,35 +265,21 @@ export function validateFaceOvalFit(
   }
 
   // 3. Cek batas ekstrem dahi & dagu (mencegah wajah separuh keluar batas oval)
-  if (top > 0.38) {
+  if (top > 0.42) {
     return {
       isCentered: false,
       isGoodSize: true,
       statusMessage: "Naikkan wajah agar dahi pas di oval",
     };
   }
-  if (top < 0.12) {
-    return {
-      isCentered: false,
-      isGoodSize: true,
-      statusMessage: "Turunkan posisi sedikit agar kepala pas di oval",
-    };
-  }
-  if (bottom > 0.82) {
+  if (bottom > 0.86) {
     return {
       isCentered: false,
       isGoodSize: true,
       statusMessage: "Naikkan wajah agar dagu pas di oval",
     };
   }
-  if (bottom < 0.58) {
-    return {
-      isCentered: false,
-      isGoodSize: true,
-      statusMessage: "Posisikan dagu di batas bawah oval",
-    };
-  }
-  if (left < 0.14 || right > 0.86) {
+  if (left < 0.08 || right > 0.92) {
     return {
       isCentered: false,
       isGoodSize: true,
@@ -408,7 +411,13 @@ function evaluateViaCanvasCV(
     x: Math.max(0.1, Math.min(0.9, (meanX + 0.55 * stdX) / w)),
     y: Math.max(0.1, Math.min(0.9, (meanY - 0.28 * stdY) / h)),
   };
-  const eyesState = analyzeEyeClosure(frameData, estimatedRightEye, estimatedLeftEye);
+  const eyeRes = analyzeEyeClosure(frameData, estimatedRightEye, estimatedLeftEye);
+  const eyesState = eyeRes.state;
+  const eyeMetrics = {
+    darkRatio: eyeRes.darkRatio,
+    variance: eyeRes.variance,
+    meanLum: eyeRes.meanLum,
+  };
 
   let statusMessage = "Wajah pas! Tahan posisi...";
   if (expectedStep === "frontal") {
@@ -437,6 +446,7 @@ function evaluateViaCanvasCV(
     headPose,
     confidence: 0.92,
     eyesState,
+    eyeMetrics,
   };
 }
 
@@ -533,40 +543,51 @@ export function evaluateVideoFace(
               headPose = "tilted";
             }
 
+            let eyeMetrics:
+              | { darkRatio: number; variance: number; meanLum: number }
+              | undefined = undefined;
+
             if (frameData) {
-              eyesState = analyzeEyeClosure(frameData, rightEye, leftEye);
+              const eyeRes = analyzeEyeClosure(frameData, rightEye, leftEye);
+              eyesState = eyeRes.state;
+              eyeMetrics = {
+                darkRatio: eyeRes.darkRatio,
+                variance: eyeRes.variance,
+                meanLum: eyeRes.meanLum,
+              };
             }
+
+            let statusMessage = "Wajah pas! Tahan posisi...";
+            if (expectedStep === "frontal") {
+              statusMessage =
+                headPose === "tilted"
+                  ? "Hadap lurus ke kamera."
+                  : "Wajah pas! Tahan posisi...";
+            } else if (expectedStep === "angle") {
+              statusMessage =
+                headPose === "center"
+                  ? "Miringkan atau tolehkan kepala sedikit (~10°)"
+                  : "Sudut terverifikasi! Tahan sebentar...";
+            } else if (expectedStep === "liveness") {
+              statusMessage =
+                eyesState === "closed"
+                  ? "Mata berkedip..."
+                  : "Tatap kamera lalu kedipkan mata...";
+            }
+
+            return {
+              detected: true,
+              faceCount: 1,
+              isCentered: true,
+              isGoodSize: true,
+              statusMessage,
+              headPose,
+              confidence: det.categories?.[0]?.score || 0.95,
+              eyesState,
+              eyeMetrics,
+            };
           }
         }
-
-        let statusMessage = "Wajah pas! Tahan posisi...";
-        if (expectedStep === "frontal") {
-          statusMessage =
-            headPose === "tilted"
-              ? "Hadap lurus ke kamera."
-              : "Wajah pas! Tahan posisi...";
-        } else if (expectedStep === "angle") {
-          statusMessage =
-            headPose === "center"
-              ? "Miringkan atau tolehkan kepala sedikit (~10°)"
-              : "Sudut terverifikasi! Tahan sebentar...";
-        } else if (expectedStep === "liveness") {
-          statusMessage =
-            eyesState === "closed"
-              ? "Mata berkedip..."
-              : "Tatap kamera lalu kedipkan mata...";
-        }
-
-        return {
-          detected: true,
-          faceCount: 1,
-          isCentered: true,
-          isGoodSize: true,
-          statusMessage,
-          headPose,
-          confidence: det.categories?.[0]?.score || 0.95,
-          eyesState,
-        };
       }
     } catch (e) {
       console.warn("[evaluateVideoFace] MediaPipe detection exception:", e);
