@@ -86,9 +86,14 @@ export default function StudentNotebookPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
   const [studyMode, setStudyMode] = useState<StudySubMode>("reader");
 
-  // Interactive Quiz State
+  // Interactive Quiz State & Persistence
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+
+  // Interactive Subnetting Sandbox State
+  const [calcIp, setCalcIp] = useState<string>("192.168.10.0");
+  const [calcCidr, setCalcCidr] = useState<number>(28);
+  const [showSandbox, setShowSandbox] = useState<boolean>(true);
 
   // Data & Network State
   const [notebookData, setNotebookData] = useState<any>(null);
@@ -258,19 +263,106 @@ export default function StudentNotebookPage() {
     },
   ];
 
+  // Restore quiz answers from localStorage when material changes
+  useEffect(() => {
+    const matKey = selectedMaterial?.id || "default";
+    try {
+      const saved = localStorage.getItem(`smart-learning:quiz:${matKey}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.answers) setQuizAnswers(parsed.answers);
+        if (typeof parsed.submitted === "boolean") setQuizSubmitted(parsed.submitted);
+      } else {
+        setQuizAnswers({});
+        setQuizSubmitted(false);
+      }
+    } catch {
+      // Fallback silent
+    }
+  }, [selectedMaterial?.id]);
+
   const handleSelectQuizOption = (qIdx: number, optIdx: number) => {
     if (quizSubmitted) return;
-    setQuizAnswers((prev) => ({ ...prev, [qIdx]: optIdx }));
+    setQuizAnswers((prev) => {
+      const updated = { ...prev, [qIdx]: optIdx };
+      const matKey = selectedMaterial?.id || "default";
+      try {
+        localStorage.setItem(
+          `smart-learning:quiz:${matKey}`,
+          JSON.stringify({ answers: updated, submitted: quizSubmitted })
+        );
+      } catch {}
+      return updated;
+    });
   };
 
   const handleCalculateScore = () => {
     setQuizSubmitted(true);
+    const matKey = selectedMaterial?.id || "default";
+    try {
+      localStorage.setItem(
+        `smart-learning:quiz:${matKey}`,
+        JSON.stringify({ answers: quizAnswers, submitted: true })
+      );
+    } catch {}
   };
 
   const handleResetQuiz = () => {
     setQuizAnswers({});
     setQuizSubmitted(false);
+    const matKey = selectedMaterial?.id || "default";
+    try {
+      localStorage.removeItem(`smart-learning:quiz:${matKey}`);
+    } catch {}
   };
+
+  // Live Subnetting Calculator Calculation
+  const calculatedSubnet = useMemo(() => {
+    const parts = calcIp.trim().split(".").map((p) => parseInt(p, 10));
+    if (parts.length !== 4 || parts.some((n) => isNaN(n) || n < 0 || n > 255)) {
+      return null;
+    }
+    const cidr = Math.min(32, Math.max(0, calcCidr));
+    const ipNum =
+      ((parts[0] << 24) >>> 0) +
+      ((parts[1] << 16) >>> 0) +
+      ((parts[2] << 8) >>> 0) +
+      (parts[3] >>> 0);
+    const maskNum = cidr === 0 ? 0 : ((0xffffffff << (32 - cidr)) >>> 0);
+    const netNum = (ipNum & maskNum) >>> 0;
+    const bcastNum = (netNum | (~maskNum >>> 0)) >>> 0;
+
+    const toIpStr = (num: number) =>
+      [
+        (num >>> 24) & 255,
+        (num >>> 16) & 255,
+        (num >>> 8) & 255,
+        num & 255,
+      ].join(".");
+
+    const toBinStr = (num: number) =>
+      [
+        ((num >>> 24) & 255).toString(2).padStart(8, "0"),
+        ((num >>> 16) & 255).toString(2).padStart(8, "0"),
+        ((num >>> 8) & 255).toString(2).padStart(8, "0"),
+        (num & 255).toString(2).padStart(8, "0"),
+      ].join(" . ");
+
+    const totalIps = Math.pow(2, 32 - cidr);
+    const usable =
+      cidr >= 31 ? (cidr === 31 ? 2 : 1) : Math.max(0, totalIps - 2);
+
+    return {
+      netmask: toIpStr(maskNum),
+      networkId: toIpStr(netNum),
+      broadcastId: toIpStr(bcastNum),
+      usableHosts: usable,
+      totalIps,
+      binaryMask: toBinStr(maskNum),
+      firstHost: cidr >= 31 ? toIpStr(netNum) : toIpStr(netNum + 1),
+      lastHost: cidr >= 31 ? toIpStr(bcastNum) : toIpStr(bcastNum - 1),
+    };
+  }, [calcIp, calcCidr]);
 
   const quizScore = useMemo(() => {
     let correct = 0;
@@ -1076,6 +1168,135 @@ export default function StudentNotebookPage() {
                       {quizScore >= 70 ? "Pemahaman Kuat! Siap Uji Pemahaman." : "Perlu reviu bab ini lagi."}
                     </p>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Interactive Subnetting Sandbox Widget */}
+            <div className="rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(31,38,135,0.04)] overflow-hidden transition-all">
+              <div
+                onClick={() => setShowSandbox((prev) => !prev)}
+                className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-white/40 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
+                      Kalkulator Subnetting & Biner Siswa
+                      <span className="text-[10px] font-semibold text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/50">
+                        Live Sandbox
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-[#6E6E73]">
+                      Eksperimen pembagian blok IP langsung saat mengerjakan kuis
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[#007AFF] hover:underline"
+                >
+                  {showSandbox ? "Sembunyikan" : "Buka Alat"}
+                </button>
+              </div>
+
+              {showSandbox && (
+                <div className="p-4 sm:p-5 pt-0 border-t border-slate-100/80 space-y-4 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                    {/* IP Input */}
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
+                        IP Address
+                      </label>
+                      <input
+                        type="text"
+                        value={calcIp}
+                        onChange={(e) => setCalcIp(e.target.value)}
+                        placeholder="192.168.10.0"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                      />
+                    </div>
+
+                    {/* Prefix CIDR */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-[#1D1D1F]">
+                          Prefix Subnet (CIDR)
+                        </label>
+                        <span className="text-xs font-bold font-mono text-[#007AFF]">
+                          /{calcCidr}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="16"
+                        max="30"
+                        value={calcCidr}
+                        onChange={(e) => setCalcCidr(parseInt(e.target.value, 10))}
+                        className="w-full accent-[#007AFF] cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                        <span>/16</span>
+                        <span>/24</span>
+                        <span>/28</span>
+                        <span>/30</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calculated Metrics Grid */}
+                  {calculatedSubnet ? (
+                    <div className="space-y-2.5">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
+                          <p className="text-[10px] text-slate-500">Subnet Mask</p>
+                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
+                            {calculatedSubnet.netmask}
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100/80">
+                          <p className="text-[10px] text-blue-600 font-medium">Usable Hosts</p>
+                          <p className="text-xs font-bold font-mono text-blue-900 mt-0.5">
+                            {calculatedSubnet.usableHosts} Host
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
+                          <p className="text-[10px] text-slate-500">Network ID</p>
+                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
+                            {calculatedSubnet.networkId}
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
+                          <p className="text-[10px] text-slate-500">Broadcast ID</p>
+                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
+                            {calculatedSubnet.broadcastId}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Usable Range & Binary Mask */}
+                      <div className="p-3 rounded-2xl bg-slate-50/90 border border-slate-100 space-y-1.5 text-[11px]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <span className="text-slate-500">Rentang Host Valid:</span>
+                          <span className="font-mono font-semibold text-slate-800">
+                            {calculatedSubnet.firstHost} — {calculatedSubnet.lastHost}
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1 border-t border-slate-200/50">
+                          <span className="text-slate-500">Format Biner Mask:</span>
+                          <span className="font-mono text-[10px] text-blue-700 font-semibold tracking-wider">
+                            {calculatedSubnet.binaryMask}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-red-500 italic">
+                      Format IP tidak valid. Masukkan format IPv4 standar (contoh: 192.168.1.0).
+                    </p>
+                  )}
                 </div>
               )}
             </div>
