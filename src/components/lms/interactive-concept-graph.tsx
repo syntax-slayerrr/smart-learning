@@ -34,83 +34,8 @@ export interface ConceptEdgeData {
   strength: number;
 }
 
-const DEFAULT_NODES: ConceptNodeData[] = [
-  {
-    id: "node-ipv4",
-    label: "IPv4 Addressing",
-    category: "chapter",
-    summary: "Struktur 32-bit biner yang dibagi menjadi 4 oktet desimal titik untuk pengalamatan perangkat logika di jaringan.",
-    difficultyLevel: 1,
-    referencePage: 12,
-    x: 180,
-    y: 160,
-    masteryScore: 92,
-  },
-  {
-    id: "node-subnetmask",
-    label: "Subnet Mask",
-    category: "concept",
-    summary: "Bitmask 32-bit yang memisahkan Network ID dan Host ID dalam sebuah alamat IP.",
-    difficultyLevel: 2,
-    referencePage: 15,
-    x: 380,
-    y: 90,
-    masteryScore: 84,
-  },
-  {
-    id: "node-cidr",
-    label: "Notasi CIDR (/xx)",
-    category: "formula",
-    summary: "Classless Inter-Domain Routing: representasi prefix bit subnet mask (contoh /24 = 255.255.255.0).",
-    difficultyLevel: 3,
-    referencePage: 18,
-    x: 580,
-    y: 110,
-    masteryScore: 68,
-  },
-  {
-    id: "node-vlsm",
-    label: "VLSM Subnetting",
-    category: "methodology",
-    summary: "Variable Length Subnet Masking: teknik membagi subnet menjadi ukuran bervariasi sesuai kebutuhan host nyata untuk menghemat alamat IP.",
-    difficultyLevel: 5,
-    referencePage: 23,
-    x: 480,
-    y: 270,
-    masteryScore: 42, // Titik lemah
-  },
-  {
-    id: "node-gateway",
-    label: "Default Gateway",
-    category: "concept",
-    summary: "Pintu keluar router yang menghubungkan subnet lokal ke jaringan luar atau internet.",
-    difficultyLevel: 2,
-    referencePage: 29,
-    x: 230,
-    y: 310,
-    masteryScore: 88,
-  },
-  {
-    id: "node-routing",
-    label: "Routing RIP / OSPF",
-    category: "chapter",
-    summary: "Mekanisme penerusan paket antar subnet berbeda menggunakan tabel routing dinamis.",
-    difficultyLevel: 4,
-    referencePage: 34,
-    x: 350,
-    y: 430,
-    masteryScore: 64,
-  },
-];
-
-const DEFAULT_EDGES: ConceptEdgeData[] = [
-  { id: "e1", source: "node-ipv4", target: "node-subnetmask", relationType: "prerequisite_of", strength: 1.0 },
-  { id: "e2", source: "node-subnetmask", target: "node-cidr", relationType: "prerequisite_of", strength: 0.9 },
-  { id: "e3", source: "node-cidr", target: "node-vlsm", relationType: "prerequisite_of", strength: 1.0 },
-  { id: "e4", source: "node-ipv4", target: "node-gateway", relationType: "relates_to", strength: 0.8 },
-  { id: "e5", source: "node-vlsm", target: "node-routing", relationType: "applies_to", strength: 0.9 },
-  { id: "e6", source: "node-gateway", target: "node-routing", relationType: "prerequisite_of", strength: 0.7 },
-];
+const DEFAULT_NODES: ConceptNodeData[] = [];
+const DEFAULT_EDGES: ConceptEdgeData[] = [];
 
 export interface InteractiveConceptGraphProps {
   nodes?: ConceptNodeData[];
@@ -130,7 +55,7 @@ export function InteractiveConceptGraph({
   const activeNodes = useMemo(() => (nodes && nodes.length > 0 ? nodes : DEFAULT_NODES), [nodes]);
   const activeEdges = useMemo(() => (edges && edges.length > 0 ? edges : DEFAULT_EDGES), [edges]);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string>(() => activeNodes[0]?.id || "node-vlsm");
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(() => activeNodes[0]?.id || "");
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   // Sync selectedNodeId if activeNodes updates
@@ -175,6 +100,20 @@ export function InteractiveConceptGraph({
         return { bg: "bg-purple-500", border: "border-purple-600", text: "text-purple-700", ring: "ring-purple-400" };
     }
   };
+
+  if (activeNodes.length === 0) {
+    return (
+      <div className={`p-8 sm:p-12 rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(31,38,135,0.05)] text-center space-y-3 ${className || ""}`}>
+        <div className="mx-auto h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200/60">
+          <BrainCircuit className="h-6 w-6" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-900">Peta Konsep Sedang Diproses</h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+          Peta konsep pengetahuan sedang disintesis dari modul pembelajaran ini. Silakan baca intisari materi di tab Teks Materi atau buka dokumen modul resmi.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>

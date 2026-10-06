@@ -183,8 +183,162 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Jika tidak ada rawNodes manual di DB untuk materi ini, generate graf dinamis dari material & chapters
+    let finalNodes = formattedNodes;
+    let finalEdges = formattedEdges;
+
+    if (finalNodes.length === 0) {
+      const generatedNodes: any[] = [];
+      const generatedEdges: any[] = [];
+
+      // 1. Root Node: Judul Materi Utama
+      const rootId = `node-root-${material.id}`;
+      generatedNodes.push({
+        id: rootId,
+        label: material.title.length > 26 ? material.title.slice(0, 23) + "..." : material.title,
+        category: "chapter",
+        mastery: 85,
+        masteryScore: 85,
+        page: 1,
+        referencePage: 1,
+        difficultyLevel: 1,
+        connectionsCount: 0,
+        summary: material.ai_summary || material.description || `Pondasi materi dan silabus ${material.title}`,
+        criticalZone: false,
+        coordinates: { x: 380, y: 150 },
+        x: 380,
+        y: 150,
+      });
+
+      // 2. Buat nodes dari formattedChapters
+      if (formattedChapters.length > 0) {
+        const positions = [
+          { x: 160, y: 270 },
+          { x: 380, y: 310 },
+          { x: 600, y: 270 },
+          { x: 240, y: 430 },
+          { x: 520, y: 430 },
+          { x: 380, y: 510 },
+        ];
+
+        formattedChapters.slice(0, 6).forEach((ch: any, idx: number) => {
+          const chNodeId = `node-ch-${ch.id || idx}`;
+          const pos = positions[idx] || { x: 160 + (idx % 3) * 220, y: 270 + Math.floor(idx / 3) * 150 };
+          const categoryType: "chapter" | "concept" | "formula" | "methodology" = ch.isCriticalZone
+            ? "formula"
+            : idx % 2 === 0
+            ? "concept"
+            : "methodology";
+
+          generatedNodes.push({
+            id: chNodeId,
+            label: ch.title.length > 25 ? ch.title.slice(0, 22) + "..." : ch.title,
+            category: categoryType,
+            mastery: ch.isCriticalZone ? 52 : (75 + (idx * 5) % 20),
+            masteryScore: ch.isCriticalZone ? 52 : (75 + (idx * 5) % 20),
+            page: ch.pageStart || (idx * 4 + 1),
+            referencePage: ch.pageStart || (idx * 4 + 1),
+            difficultyLevel: Math.min(5, idx + 2),
+            connectionsCount: 0,
+            summary: ch.summary || ch.contentSnippet || `Intisari pembahasan ${ch.title}`,
+            criticalZone: !!ch.isCriticalZone,
+            coordinates: pos,
+            x: pos.x,
+            y: pos.y,
+          });
+
+          // Edge dari root ke chapter
+          generatedEdges.push({
+            id: `edge-root-${idx}`,
+            source: rootId,
+            target: chNodeId,
+            label: "Bagian Dari",
+            relationType: "part_of",
+            strength: 1.0,
+          });
+
+          // Edge sekuensial antar chapter jika ada
+          if (idx > 0) {
+            const prevChNodeId = `node-ch-${formattedChapters[idx - 1].id || idx - 1}`;
+            generatedEdges.push({
+              id: `edge-seq-${idx}`,
+              source: prevChNodeId,
+              target: chNodeId,
+              label: "Prasyarat",
+              relationType: "prerequisite_of",
+              strength: 0.8,
+            });
+          }
+        });
+      } else {
+        // Fallback 3 pilar topik langsung dari judul modul aktif
+        const fallbackConcepts = [
+          {
+            title: "Konsep Dasar",
+            cat: "concept" as const,
+            pos: { x: 180, y: 300 },
+            summary: `Konsep dasar dan terminologi fundamental dari ${material.title}`,
+          },
+          {
+            title: "Penerapan & Metode",
+            cat: "methodology" as const,
+            pos: { x: 380, y: 340 },
+            summary: `Metode teknis dan implementasi terapan dari ${material.title}`,
+          },
+          {
+            title: "Analisis & Evaluasi",
+            cat: "formula" as const,
+            pos: { x: 580, y: 300 },
+            summary: `Analisis mendalam dan studi evaluasi pemahaman ${material.title}`,
+          },
+        ];
+
+        fallbackConcepts.forEach((fc, fIdx) => {
+          const fcId = `node-fb-${fIdx}`;
+          generatedNodes.push({
+            id: fcId,
+            label: fc.title,
+            category: fc.cat,
+            mastery: 75 + fIdx * 5,
+            masteryScore: 75 + fIdx * 5,
+            page: fIdx * 5 + 1,
+            referencePage: fIdx * 5 + 1,
+            difficultyLevel: fIdx + 2,
+            connectionsCount: 1,
+            summary: fc.summary,
+            criticalZone: false,
+            coordinates: fc.pos,
+            x: fc.pos.x,
+            y: fc.pos.y,
+          });
+
+          generatedEdges.push({
+            id: `edge-root-fb-${fIdx}`,
+            source: rootId,
+            target: fcId,
+            label: "Bagian Dari",
+            relationType: "part_of",
+            strength: 0.9,
+          });
+        });
+      }
+
+      // Hitung koneksi
+      const connCounts: Record<string, number> = {};
+      generatedEdges.forEach((e) => {
+        connCounts[e.source] = (connCounts[e.source] || 0) + 1;
+        connCounts[e.target] = (connCounts[e.target] || 0) + 1;
+      });
+      generatedNodes.forEach((n) => {
+        n.connectionsCount = connCounts[n.id] || 1;
+      });
+
+      finalNodes = generatedNodes;
+      finalEdges = generatedEdges;
+    }
+
     // Format axes untuk Exam Readiness Radar
-    const formattedAxes = formattedNodes.map((n) => {
+    const formattedAxes = finalNodes.map((n) => {
       const score = n.mastery;
       const mastery = masteryMap[n.id];
       let status: "mastered" | "needs_practice" | "critical_review" = "mastered";
@@ -391,8 +545,8 @@ export async function GET(request: NextRequest) {
         },
         chapters: formattedChapters,
         conceptGraph: {
-          nodes: formattedNodes,
-          edges: formattedEdges,
+          nodes: finalNodes,
+          edges: finalEdges,
         },
         examReadiness: {
           axes: formattedAxes,
