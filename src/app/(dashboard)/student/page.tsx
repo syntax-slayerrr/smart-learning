@@ -143,7 +143,7 @@ export default async function StudentDashboard() {
       {/* 1. Mobile Contextual Greeting & Atmosphere */}
       <div className="flex items-center justify-between pt-1 sm:hidden">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-900 text-white font-bold text-sm shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)] border border-white/20">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-900 text-white font-bold text-sm shadow-2xs border border-white/20">
             <span>{studentName.charAt(0)}</span>
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
@@ -169,7 +169,7 @@ export default async function StudentDashboard() {
         {/* Scan Quick Action */}
         <Link
           href="/student/scan"
-          className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_4px_12px_-2px_rgba(37,99,235,0.35)] active:scale-95 transition-transform"
+          className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-2xs active:scale-95 transition-transform"
           aria-label="Scan QR Presensi"
         >
           <QrCode className="h-4 w-4 stroke-[2]" />

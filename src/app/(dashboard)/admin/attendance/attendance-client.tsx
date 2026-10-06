@@ -244,7 +244,7 @@ export function AttendanceClient({ students, sessions, records, classes }: Atten
             type="button"
             variant="primary"
             onClick={handleExport}
-            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+            className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-4 shadow-xs hover:shadow-sm"
           >
             <Download className="h-4 w-4" />
             <span>Export Excel</span>

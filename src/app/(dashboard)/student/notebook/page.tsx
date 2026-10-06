@@ -723,7 +723,7 @@ export default function StudentNotebookPage() {
                           setSelectedMaterial(mat);
                           setStudyMode("reader");
                         }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-[0_4px_12px_rgba(0,122,255,0.25)] active:scale-95 transition-all"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
                       >
                         <Play className="h-3.5 w-3.5 fill-current" />
                         <span>Pelajari Materi</span>
@@ -1172,7 +1172,7 @@ export default function StudentNotebookPage() {
             {/* Apple Floating Companion Pill (Docking Assistant) */}
             <button
               onClick={() => setStudyMode("chat")}
-              className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-full bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_48px_rgba(0,122,255,0.25)] hover:scale-105 active:scale-95 transition-all text-left"
+              className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-full bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:shadow-lg hover:scale-105 active:scale-95 transition-all text-left"
             >
               <div className="relative h-8 w-8 rounded-full overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-200/50">
                 <video

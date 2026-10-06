@@ -16,6 +16,8 @@ import {
   BookOpen,
   Calendar,
   CheckCircle2,
+  Camera,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { getTeacherSessionsAnalytics } from "@/services/student-analytics";
@@ -353,6 +355,36 @@ export default async function TeacherDashboard() {
         }
         totalSessionsToday={todaySessionsRes.count || 0}
       />
+
+      {/* Flagship: AI Classroom Vision & Live Monitor */}
+      <div className="card-3d-ceramic relative overflow-hidden p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-blue-200/80 bg-gradient-to-r from-blue-50/50 via-white to-indigo-50/30">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-2xs">
+            <Camera className="h-6 w-6 stroke-[1.8]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                AI Classroom Vision & Live Monitor
+              </h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Stream & AI
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-1 max-w-xl leading-relaxed">
+              Pantau atensi, fokus, dan interaksi siswa di kelas secara real-time. Sinkronisasi presensi otomatis dan visual bounding box berbasis AI Edge.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/teacher/camera-monitor"
+          className="apple-press inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors shrink-0"
+        >
+          <span>Buka Live Monitor Kelas</span>
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
 
       {/* 4. Quick Access Squircle Chips */}
       <div>

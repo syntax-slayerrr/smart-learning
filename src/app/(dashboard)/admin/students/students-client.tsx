@@ -305,7 +305,7 @@ export function StudentsClient({
               setFormError("");
               setShowAddSheet(true);
             }}
-            className="min-h-[44px] inline-flex items-center gap-2 px-4 shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 shadow-xs hover:shadow-sm"
           >
             <Plus className="h-4 w-4" />
             <span>Tambah Siswa</span>
