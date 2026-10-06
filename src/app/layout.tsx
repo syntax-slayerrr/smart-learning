@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -14,11 +13,8 @@ import { PushManager } from "@/components/shared/push-manager";
 import { AmbientBackground } from "@/components/layout/ambient-background";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-});
+// System Apple HIG font stack via CSS variable
+const interVariable = "font-sans";
 
 export const metadata: Metadata = {
   title: {
@@ -46,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`h-full ${inter.variable}`}>
+    <html lang="id" className="h-full">
       <body className="h-full min-h-full font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
         <AmbientBackground intensity="medium" />
         <Suspense fallback={null}>
