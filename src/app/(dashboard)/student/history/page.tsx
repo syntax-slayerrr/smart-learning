@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/attendance/status-badge";
@@ -9,10 +10,14 @@ export default async function StudentHistoryPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: student } = await supabase
     .from("students")
     .select("id")
-    .eq("profile_id", user!.id)
+    .eq("profile_id", user.id)
     .single();
 
   const { data: records } = await supabase

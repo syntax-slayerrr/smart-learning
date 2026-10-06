@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -37,11 +38,15 @@ export default async function TeacherDashboard() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   // Get teacher record
   const { data: teacher } = await supabase
     .from("teachers")
     .select("id, profiles(full_name, push_subscription)")
-    .eq("profile_id", user!.id)
+    .eq("profile_id", user.id)
     .single();
 
   const teacherId = teacher?.id;

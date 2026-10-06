@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, WifiOff, RefreshCw } from "lucide-react";
 import { getRoleLabel } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { useOfflineStatus } from "@/lib/offline-lms-cache";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   role: UserRole;
@@ -13,6 +15,7 @@ interface HeaderProps {
 }
 
 export function Header({ role, onMenuClick }: HeaderProps) {
+  const { isOnline, offlineQueueCount, isSyncing, triggerSync } = useOfflineStatus();
   return (
     <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 sm:px-6 backdrop-blur-[24px] supports-[backdrop-filter]:bg-white/70 transition-colors shadow-[0_1px_3px_0_rgba(15,23,42,0.02)]">
       {/* Left: Brand Identity on Mobile / Role Badge on Desktop */}
@@ -61,32 +64,53 @@ export function Header({ role, onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      {/* Center: Live Telemetry Indicator Pill */}
-      {role === "admin" ? (
-        <Link
-          href="/admin/camera-monitor"
-          className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-100/70 px-3.5 py-1.5 text-xs font-semibold text-slate-800 transition-all active:scale-95 shadow-sm"
-          title="Buka AI Classroom Vision & Live Monitor"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <span className="text-[12px] tracking-tight">
-            AI Telemetry <span className="text-emerald-600 font-bold">• Live Monitor</span>
-          </span>
-        </Link>
-      ) : (
-        <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <span className="text-[12px] tracking-tight">
-            AI Engine <span className="text-emerald-600 font-bold">• Aktif</span>
-          </span>
-        </div>
-      )}
+      {/* Center: Live Telemetry Indicator Pill & Offline Resilience Status */}
+      <div className="flex items-center gap-2">
+        {!isOnline && (
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 shadow-xs">
+            <WifiOff className="h-3.5 w-3.5 text-amber-600" />
+            <span>Mode Offline</span>
+          </div>
+        )}
+
+        {isOnline && offlineQueueCount > 0 && (
+          <button
+            onClick={triggerSync}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-800 shadow-xs active:scale-95 transition-all"
+            title="Klik untuk sinkronisasi data draf lokal ke server"
+          >
+            <RefreshCw className={cn("h-3 w-3 text-blue-600", isSyncing && "animate-spin")} />
+            <span>{isSyncing ? "Menyinkronkan..." : `${offlineQueueCount} draf`}</span>
+          </button>
+        )}
+
+        {role === "admin" ? (
+          <Link
+            href="/admin/camera-monitor"
+            className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-100/70 px-3.5 py-1.5 text-xs font-semibold text-slate-800 transition-all active:scale-95 shadow-sm"
+            title="Buka AI Classroom Vision & Live Monitor"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-[12px] tracking-tight">
+              AI Telemetry <span className="text-emerald-600 font-bold">• Live Monitor</span>
+            </span>
+          </Link>
+        ) : (
+          <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-[12px] tracking-tight">
+              AI Engine <span className="text-emerald-600 font-bold">• Aktif</span>
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Right: Notifications & Quick Profile */}
       <div className="hidden sm:flex items-center gap-2">

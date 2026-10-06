@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -32,10 +33,14 @@ export default async function StudentDashboard() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: student } = await supabase
     .from("students")
     .select("id, nis, class_id, classes ( name ), profiles ( full_name )")
-    .eq("profile_id", user!.id)
+    .eq("profile_id", user.id)
     .single();
 
   const nowUtc = new Date();

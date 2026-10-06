@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import Link from "next/link";
@@ -9,10 +10,14 @@ export default async function TeacherHistoryPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: teacher } = await supabase
     .from("teachers")
     .select("id")
-    .eq("profile_id", user!.id)
+    .eq("profile_id", user.id)
     .single();
 
   const { data: sessions } = await supabase

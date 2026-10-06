@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -14,10 +15,14 @@ export default async function ParentDashboard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: parent } = await supabase
     .from("parents")
     .select("id")
-    .eq("profile_id", user!.id)
+    .eq("profile_id", user.id)
     .single();
 
   // Get linked children
