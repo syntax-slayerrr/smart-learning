@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   ShieldCheck,
   Camera,
-  Sparkles,
   CheckCircle2,
   ChevronRight,
   UserCheck,

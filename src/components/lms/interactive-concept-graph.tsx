@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles,
+  BrainCircuit,
   BookOpen,
   ArrowRight,
   Info,
@@ -506,7 +506,7 @@ export function InteractiveConceptGraph({
                 className="w-full justify-center text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 onClick={() => onAskSmartAI?.(selectedNode?.label || "Konsep Jaringan")}
               >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                <BrainCircuit className="h-3.5 w-3.5 mr-1.5" />
                 Minta Smart AI Jelaskan Konsep Ini
               </Button>
             </div>

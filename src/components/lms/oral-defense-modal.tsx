@@ -297,7 +297,7 @@ export function OralDefenseModal({
             <div className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative overflow-hidden group">
               <div className="flex items-center justify-between gap-2 mb-2.5">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20">
-                  <Sparkles className="w-3 h-3 text-[#007AFF]" />
+                  <BrainCircuit className="w-3 h-3 text-[#007AFF]" />
                   Pertanyaan {activeQuestionIdx + 1} dari {defenseQuestions.length}
                 </span>
                 <span className="text-[11px] font-medium text-slate-400">
