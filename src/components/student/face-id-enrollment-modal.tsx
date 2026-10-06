@@ -103,6 +103,19 @@ export function FaceIdEnrollmentModal({
   const detectorRef = useRef<unknown>(null);
   const isDetectorLoadingRef = useRef<boolean>(false);
 
+  // State machine tracker untuk liveness kedipan mata (mencegah false scan)
+  const blinkTrackerRef = useRef<{
+    calibratedOpenFrames: number;
+    isEyeClosed: boolean;
+    closedStartTime: number;
+    blinkVerified: boolean;
+  }>({
+    calibratedOpenFrames: 0,
+    isEyeClosed: false,
+    closedStartTime: 0,
+    blinkVerified: false,
+  });
+
   // Sync refs to avoid stale closure in requestAnimationFrame loop
   stepRef.current = step;
   isCapturingRef.current = isCapturing;
@@ -196,6 +209,12 @@ export function FaceIdEnrollmentModal({
       setAutoProgress(0);
       setStep("liveness");
       stepRef.current = "liveness";
+      blinkTrackerRef.current = {
+        calibratedOpenFrames: 0,
+        isEyeClosed: false,
+        closedStartTime: 0,
+        blinkVerified: false,
+      };
       setInstruction("Sempurna! Terakhir, tatap kamera & kedipkan mata");
       setIsCapturing(false);
     } else if (currentStep === "liveness") {
@@ -323,25 +342,93 @@ export function FaceIdEnrollmentModal({
         stepRef.current !== "processing" &&
         stepRef.current !== "success"
       ) {
-        // Cek kecocokan pose tiap tahap
-        const isPoseCorrect =
-          stepRef.current === "frontal"
-            ? faceEval.headPose === "center"
-            : stepRef.current === "angle"
-            ? faceEval.headPose === "tilted"
-            : true;
+        if (stepRef.current === "frontal") {
+          const isPoseCorrect = faceEval.headPose === "center";
+          if (isPoseCorrect) {
+            setAutoProgress((prev) => {
+              const next = Math.min(prev + 1.8, 100);
+              if (next >= 100) {
+                executeCapture();
+                return 100;
+              }
+              return next;
+            });
+          } else {
+            setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+          }
+        } else if (stepRef.current === "angle") {
+          const isPoseCorrect = faceEval.headPose === "tilted";
+          if (isPoseCorrect) {
+            setAutoProgress((prev) => {
+              const next = Math.min(prev + 1.8, 100);
+              if (next >= 100) {
+                executeCapture();
+                return 100;
+              }
+              return next;
+            });
+          } else {
+            setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+          }
+        } else if (stepRef.current === "liveness") {
+          // KHUSUS TAHAP LIVENESS: WAJIB MENUNGGU KEDIPAN MATA ASLI!
+          const tracker = blinkTrackerRef.current;
 
-        if (isPoseCorrect) {
-          setAutoProgress((prev) => {
-            const next = Math.min(prev + 1.8, 100); // Responsif ~1.2 detik tahan posisi stabil
-            if (next >= 100) {
-              executeCapture();
-              return 100;
+          if (tracker.blinkVerified) {
+            setAutoProgress(100);
+          } else {
+            const eyes = faceEval.eyesState;
+
+            if (eyes === "closed") {
+              if (!tracker.isEyeClosed) {
+                if (tracker.calibratedOpenFrames >= 3) {
+                  tracker.isEyeClosed = true;
+                  tracker.closedStartTime = Date.now();
+                  setInstruction("Mata berkedip...");
+                }
+              } else {
+                const duration = Date.now() - tracker.closedStartTime;
+                if (duration > 1600) {
+                  tracker.isEyeClosed = false;
+                  tracker.calibratedOpenFrames = 0;
+                  setInstruction("Buka mata Anda kembali...");
+                }
+              }
+            } else if (eyes === "open") {
+              if (tracker.isEyeClosed) {
+                // Mata kembali terbuka setelah tertutup! Evaluasi durasi kedipan
+                const duration = Date.now() - tracker.closedStartTime;
+                tracker.isEyeClosed = false;
+
+                // Durasi kedipan manusia alami adalah 75ms - 850ms
+                if (duration >= 75 && duration <= 850 && tracker.calibratedOpenFrames >= 3) {
+                  tracker.blinkVerified = true;
+                  setInstruction("Kedipan terverifikasi! ✓");
+                  playSuccessChime();
+                  if (typeof window !== "undefined" && "vibrate" in navigator) {
+                    navigator.vibrate([40, 50, 80]);
+                  }
+                  setAutoProgress(100);
+                  setTimeout(() => {
+                    executeCapture();
+                  }, 300);
+                  return;
+                } else {
+                  setInstruction("Kedipkan mata sekali lagi...");
+                }
+              } else {
+                tracker.calibratedOpenFrames = Math.min(tracker.calibratedOpenFrames + 1, 15);
+                if (tracker.calibratedOpenFrames < 4) {
+                  setInstruction("Tatap kamera...");
+                } else {
+                  setInstruction("Silakan kedipkan mata sekarang...");
+                }
+              }
             }
-            return next;
-          });
-        } else {
-          setAutoProgress((prev) => Math.max(prev - 0.4, 0));
+
+            // Selama belum berkedip, progress TETAP di 0 agar tidak scan sembarangan!
+            setAutoProgress((prev) => (tracker.blinkVerified ? 100 : Math.max(prev - 0.8, 0)));
+          }
         }
       } else {
         setAutoProgress((prev) => Math.max(prev - 0.8, 0));
@@ -358,10 +445,17 @@ export function FaceIdEnrollmentModal({
   useEffect(() => {
     if (isOpen) {
       setStep("frontal");
+      stepRef.current = "frontal";
       setAutoProgress(0);
       setTotalProgress(0);
       setCapturedFrames([]);
       setInstruction("Arahkan wajah ke dalam oval");
+      blinkTrackerRef.current = {
+        calibratedOpenFrames: 0,
+        isEyeClosed: false,
+        closedStartTime: 0,
+        blinkVerified: false,
+      };
 
       if (!detectorRef.current && !isDetectorLoadingRef.current) {
         isDetectorLoadingRef.current = true;

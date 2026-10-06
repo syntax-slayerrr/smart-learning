@@ -9,6 +9,7 @@ export interface FaceEvaluation {
   statusMessage: string;
   headPose: "center" | "tilted" | "unknown";
   confidence: number;
+  eyesState?: "open" | "closed" | "unknown";
 }
 
 let faceDetectorInstance: any = null;
@@ -62,6 +63,76 @@ export async function getFaceDetector(): Promise<any> {
   } finally {
     isInitializing = false;
   }
+}
+
+/**
+ * Analisis status kelopak mata (terbuka / tertutup / berkedip) dari patch mata pada frameData
+ */
+export function analyzeEyeClosure(
+  frameData: ImageData,
+  rightEyeNorm: { x: number; y: number },
+  leftEyeNorm: { x: number; y: number }
+): "open" | "closed" | "unknown" {
+  const { width: w, height: h, data } = frameData;
+  if (!data || w <= 0 || h <= 0) return "unknown";
+
+  const rx = 6;
+  const ry = 4;
+
+  const eyes = [
+    { px: Math.round(rightEyeNorm.x * w), py: Math.round(rightEyeNorm.y * h) },
+    { px: Math.round(leftEyeNorm.x * w), py: Math.round(leftEyeNorm.y * h) },
+  ];
+
+  let totalDarkPixels = 0;
+  let totalPixels = 0;
+  let totalLuminance = 0;
+  const samples: number[] = [];
+
+  for (const eye of eyes) {
+    const xMin = Math.max(0, eye.px - rx);
+    const xMax = Math.min(w - 1, eye.px + rx);
+    const yMin = Math.max(0, eye.py - ry);
+    const yMax = Math.min(h - 1, eye.py + ry);
+
+    for (let y = yMin; y <= yMax; y++) {
+      for (let x = xMin; x <= xMax; x++) {
+        const idx = (y * w + x) * 4;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        totalLuminance += lum;
+        samples.push(lum);
+        totalPixels++;
+      }
+    }
+  }
+
+  if (totalPixels === 0) return "unknown";
+
+  const meanLum = totalLuminance / totalPixels;
+  for (const lum of samples) {
+    if (lum < meanLum * 0.72 || lum < 65) {
+      totalDarkPixels++;
+    }
+  }
+
+  let varSum = 0;
+  for (const lum of samples) {
+    varSum += (lum - meanLum) * (lum - meanLum);
+  }
+  const variance = varSum / totalPixels;
+
+  if (totalDarkPixels <= 3 && variance < 220) {
+    return "closed";
+  }
+
+  if (totalDarkPixels >= 7 || variance >= 400) {
+    return "open";
+  }
+
+  return "unknown";
 }
 
 /**
@@ -201,6 +272,16 @@ function evaluateViaCanvasCV(
   // Deteksi miring kepala / menoleh jika distribusi simetri berbeda > 16%
   const headPose: "center" | "tilted" = diffRatio > 0.16 ? "tilted" : "center";
 
+  const estimatedRightEye = {
+    x: Math.max(0.1, Math.min(0.9, (meanX - 0.55 * stdX) / w)),
+    y: Math.max(0.1, Math.min(0.9, (meanY - 0.28 * stdY) / h)),
+  };
+  const estimatedLeftEye = {
+    x: Math.max(0.1, Math.min(0.9, (meanX + 0.55 * stdX) / w)),
+    y: Math.max(0.1, Math.min(0.9, (meanY - 0.28 * stdY) / h)),
+  };
+  const eyesState = analyzeEyeClosure(frameData, estimatedRightEye, estimatedLeftEye);
+
   let statusMessage = "Wajah pas! Tahan posisi...";
   if (expectedStep === "frontal") {
     statusMessage =
@@ -213,7 +294,10 @@ function evaluateViaCanvasCV(
         ? "Miringkan atau tolehkan kepala sedikit (~10°)"
         : "Sudut terverifikasi! Tahan sebentar...";
   } else if (expectedStep === "liveness") {
-    statusMessage = "Tatap layar secara alami...";
+    statusMessage =
+      eyesState === "closed"
+        ? "Mata berkedip..."
+        : "Tatap kamera lalu kedipkan mata...";
   }
 
   return {
@@ -224,6 +308,7 @@ function evaluateViaCanvasCV(
     statusMessage,
     headPose,
     confidence: 0.92,
+    eyesState,
   };
 }
 
@@ -326,8 +411,9 @@ export function evaluateVideoFace(
           };
         }
 
-        // Estimasi pose kepala dari keypoints MediaPipe
+        // Estimasi pose kepala dan status mata dari keypoints MediaPipe
         let headPose: "center" | "tilted" = "center";
+        let eyesState: "open" | "closed" | "unknown" = "unknown";
         const keypoints = det.keypoints;
         if (keypoints && keypoints.length >= 6) {
           const rightEye = keypoints[0]; // Kanan subjek
@@ -346,6 +432,10 @@ export function evaluateVideoFace(
             if (rollAngle > 10 || yawOffset > 0.18) {
               headPose = "tilted";
             }
+
+            if (frameData) {
+              eyesState = analyzeEyeClosure(frameData, rightEye, leftEye);
+            }
           }
         }
 
@@ -361,7 +451,10 @@ export function evaluateVideoFace(
               ? "Miringkan atau tolehkan kepala sedikit (~10°)"
               : "Sudut terverifikasi! Tahan sebentar...";
         } else if (expectedStep === "liveness") {
-          statusMessage = "Tatap layar secara alami...";
+          statusMessage =
+            eyesState === "closed"
+              ? "Mata berkedip..."
+              : "Tatap kamera lalu kedipkan mata...";
         }
 
         return {
@@ -372,6 +465,7 @@ export function evaluateVideoFace(
           statusMessage,
           headPose,
           confidence: det.categories?.[0]?.score || 0.95,
+          eyesState,
         };
       }
     } catch (e) {
