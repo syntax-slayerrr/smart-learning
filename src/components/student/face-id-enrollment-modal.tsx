@@ -558,26 +558,26 @@ export function FaceIdEnrollmentModal({
     step === "frontal" ? 1 : step === "angle" ? 2 : step === "liveness" ? 3 : 3;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-slate-100 flex flex-col transition-all">
-        {/* Header Modal - Formal & Minimalist Apple Aesthetic */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-5 py-3.5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-card border border-border shadow-2xl text-card-foreground flex flex-col transition-all">
+        {/* Header Modal - Harmonious Apple HIG Palette */}
+        <div className="flex items-center justify-between border-b border-border/80 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
-                Verifikasi Wajah
+              <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-foreground">
+                Verifikasi Wajah Siswa
               </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Presensi Siswa • {studentName}
+              <p className="text-[11px] text-muted-foreground">
+                Presensi Mandiri • {studentName}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
@@ -586,10 +586,10 @@ export function FaceIdEnrollmentModal({
 
         {/* Minimalist 3-Step Indicator Bar */}
         {step !== "success" && (
-          <div className="px-5 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/40">
-            <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+          <div className="px-5 pt-3 pb-2 border-b border-border/60 bg-muted/30">
+            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground mb-1.5">
               <span>Langkah {currentStepNum} dari 3</span>
-              <span className="font-medium text-slate-800 dark:text-slate-200">
+              <span className="font-semibold text-foreground">
                 {step === "frontal"
                   ? "Wajah Lurus"
                   : step === "angle"
@@ -608,8 +608,8 @@ export function FaceIdEnrollmentModal({
                       isCompleted
                         ? "bg-emerald-500"
                         : isCurrent
-                        ? "bg-slate-900 dark:bg-slate-100"
-                        : "bg-slate-200 dark:bg-slate-800"
+                        ? "bg-primary shadow-[0_0_8px_rgba(0,122,255,0.4)]"
+                        : "bg-muted"
                     }`}
                   />
                 );
@@ -618,19 +618,19 @@ export function FaceIdEnrollmentModal({
           </div>
         )}
 
-        {/* Viewport Kamera Bersih & Formal (Tanpa Efek Laser / Neon Berlebihan) */}
+        {/* Viewport Kamera Bersih & Formal */}
         <div className="relative p-5 flex flex-col items-center">
           <canvas ref={canvasRef} className="hidden" />
 
           {step !== "success" ? (
-            <div className="relative w-full aspect-[3/4] max-w-[260px] overflow-hidden rounded-2xl bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
+            <div className="relative w-full aspect-[3/4] max-w-[260px] overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-950 border border-border shadow-inner flex items-center justify-center">
               {cameraError ? (
                 <div className="p-5 text-center space-y-3">
                   <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
                   <p className="text-xs text-slate-300 leading-relaxed">{cameraError}</p>
                   <button
                     onClick={startCamera}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary-hover shadow-sm transition-colors"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                     Hubungkan Ulang
@@ -664,7 +664,7 @@ export function FaceIdEnrollmentModal({
                       <rect
                         width="300"
                         height="400"
-                        fill="rgba(15, 23, 42, 0.60)"
+                        fill="rgba(15, 23, 42, 0.55)"
                         mask="url(#formal-oval-cutout)"
                       />
 
@@ -675,19 +675,25 @@ export function FaceIdEnrollmentModal({
                         rx="95"
                         ry="135"
                         fill="none"
-                        stroke={quality.centered ? "rgba(16, 185, 129, 0.45)" : "rgba(255, 255, 255, 0.25)"}
+                        stroke={quality.centered ? "rgba(0, 122, 255, 0.55)" : "rgba(255, 255, 255, 0.25)"}
                         strokeWidth="1.5"
                         strokeDasharray="4 4"
                       />
 
-                      {/* Clean Progress Stroke */}
+                      {/* Clean Progress Stroke - Apple System Blue to Emerald */}
                       <ellipse
                         cx="150"
                         cy="190"
                         rx="95"
                         ry="135"
                         fill="none"
-                        stroke={quality.centered ? "#10b981" : "#94a3b8"}
+                        stroke={
+                          step === "liveness" && blinkTrackerRef.current.blinkVerified
+                            ? "#34C759"
+                            : quality.centered
+                            ? "#007AFF"
+                            : "rgba(255, 255, 255, 0.4)"
+                        }
                         strokeWidth="2.5"
                         strokeDasharray={ovalPerimeter}
                         strokeDashoffset={strokeOffset}
@@ -700,12 +706,23 @@ export function FaceIdEnrollmentModal({
 
                     {/* Status Pill Tunggal & Rapi di Bawah Kamera */}
                     <div className="absolute bottom-3 flex items-center justify-center w-full px-4">
-                      <div className="backdrop-blur-md bg-slate-900/80 px-3 py-1 rounded-full border border-white/10 text-[11px] font-medium text-white shadow-xs text-center truncate max-w-[220px]">
-                        {quality.centered
-                          ? step === "liveness"
-                            ? instruction
-                            : `Posisi Tepat • ${Math.round(autoProgress)}%`
-                          : instruction || "Posisikan wajah di dalam oval"}
+                      <div className="backdrop-blur-md bg-black/65 px-3 py-1 rounded-full border border-white/15 text-[11px] font-medium text-white shadow-xs text-center truncate max-w-[220px] flex items-center gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                            blinkTrackerRef.current.blinkVerified
+                              ? "bg-emerald-400"
+                              : quality.centered
+                              ? "bg-primary animate-pulse"
+                              : "bg-white/60"
+                          }`}
+                        />
+                        <span className="truncate">
+                          {quality.centered
+                            ? step === "liveness"
+                              ? instruction
+                              : `Posisi Tepat • ${Math.round(autoProgress)}%`
+                            : instruction || "Posisikan wajah di dalam oval"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -714,16 +731,16 @@ export function FaceIdEnrollmentModal({
             </div>
           ) : (
             /* Tampilan Sukses Minimalis & Formal */
-            <div className="w-full aspect-[3/4] max-w-[260px] rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center p-6 text-center space-y-3">
+            <div className="w-full aspect-[3/4] max-w-[260px] rounded-2xl sm:rounded-3xl bg-muted/20 border border-border flex flex-col items-center justify-center p-6 text-center space-y-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">
                   Biometrik Terverifikasi
                 </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[200px]">
-                  Data profil Face ID tersimpan aman untuk presensi mandiri.
+                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[200px]">
+                  Profil Face ID berhasil didaftarkan dan tersimpan aman untuk presensi.
                 </p>
               </div>
             </div>
@@ -731,7 +748,7 @@ export function FaceIdEnrollmentModal({
 
           {/* Feedback Teks Instruksi Bawah */}
           <div className="mt-3.5 text-center space-y-0.5 max-w-xs">
-            <p className="text-xs font-medium text-slate-900 dark:text-slate-100">
+            <p className="text-xs font-semibold text-foreground">
               {instruction}
             </p>
             {quality.lighting === "low" && step !== "success" ? (
@@ -740,7 +757,7 @@ export function FaceIdEnrollmentModal({
                 Pencahayaan rendah • Arahkan wajah ke sumber cahaya
               </p>
             ) : step !== "success" ? (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+              <p className="text-[10px] text-muted-foreground">
                 {step === "liveness"
                   ? "Sistem memvalidasi keaslian melalui kedipan mata alami"
                   : "Pastikan wajah tampak jelas tanpa tertutup masker atau topi"}
@@ -750,9 +767,9 @@ export function FaceIdEnrollmentModal({
         </div>
 
         {/* Footer Minimalis & Formal */}
-        <div className="border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 px-5 py-3 flex items-center justify-between">
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 font-medium">
-            <Lock className="h-3 w-3 text-slate-400" />
+        <div className="border-t border-border/80 bg-muted/20 px-5 py-3 flex items-center justify-between">
+          <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 font-medium">
+            <Lock className="h-3 w-3 text-muted-foreground" />
             <span>Enkripsi Biometrik Lokal</span>
           </div>
 
@@ -763,7 +780,7 @@ export function FaceIdEnrollmentModal({
                   onSuccess();
                   onClose();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 px-3.5 py-1.5 text-xs font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground shadow-sm shadow-primary/25 px-4 py-1.5 text-xs font-semibold active:scale-95 transition-all"
               >
                 <span>Selesai & Aktifkan</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -772,7 +789,7 @@ export function FaceIdEnrollmentModal({
               <button
                 onClick={executeCapture}
                 disabled={isCapturing || !!cameraError || step === "processing"}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 active:scale-95 disabled:opacity-40 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground px-2.5 py-1 text-[11px] font-medium active:scale-95 disabled:opacity-40 transition-all"
                 title="Ambil foto manual bila kondisi kamera terbatas"
               >
                 <Camera className="h-3 w-3" />

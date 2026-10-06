@@ -64,8 +64,8 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
                     Face ID Aktif ✓
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    Belum Terdaftar
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/8 px-2.5 py-0.5 text-[11px] font-medium text-primary dark:text-blue-400 border border-primary/20">
+                    Belum Didaftarkan
                   </span>
                 )}
               </div>
