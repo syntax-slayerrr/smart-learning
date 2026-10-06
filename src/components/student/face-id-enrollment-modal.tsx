@@ -275,12 +275,17 @@ export function FaceIdEnrollmentModal({
 
     if (!ctx) return;
 
-    canvas.width = 160;
-    canvas.height = 120;
-    ctx.drawImage(video, 0, 0, 160, 120);
+    const vidW = video.videoWidth || 640;
+    const vidH = video.videoHeight || 480;
+    // Pertahankan proporsi aspek rasio video saat sampling canvas
+    const sampleW = vidW >= vidH ? 160 : 120;
+    const sampleH = vidW >= vidH ? 120 : 160;
+    canvas.width = sampleW;
+    canvas.height = sampleH;
+    ctx.drawImage(video, 0, 0, sampleW, sampleH);
 
     try {
-      const frameData = ctx.getImageData(0, 0, 160, 120);
+      const frameData = ctx.getImageData(0, 0, sampleW, sampleH);
       const data = frameData.data;
 
       // 1. Analisis pencahayaan (Luminance)
@@ -657,7 +662,7 @@ export function FaceIdEnrollmentModal({
                         className={`backdrop-blur-md px-3.5 py-1.5 rounded-full border text-[11px] font-medium flex items-center gap-1.5 shadow-lg transition-colors ${
                           quality.centered
                             ? "bg-black/75 border-emerald-500/40 text-emerald-400"
-                            : "bg-black/75 border-white/15 text-zinc-300"
+                            : "bg-black/75 border-amber-500/40 text-amber-300"
                         }`}
                       >
                         <span className="relative flex h-2 w-2">
@@ -675,7 +680,7 @@ export function FaceIdEnrollmentModal({
                         <span>
                           {quality.centered
                             ? `Posisi Pas • Menyimpan ${Math.round(autoProgress)}%`
-                            : "Arahkan Wajah ke Oval"}
+                            : instruction || "Arahkan Wajah ke Oval"}
                         </span>
                       </div>
                     </div>

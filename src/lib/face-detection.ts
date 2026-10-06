@@ -136,6 +136,162 @@ export function analyzeEyeClosure(
 }
 
 /**
+ * Konversi koordinat normalisasi video kamera (0..1) ke koordinat normalisasi viewport container (3:4)
+ * dengan memperhitungkan pemotongan CSS object-cover
+ */
+export function mapVideoToScreenNormalized(
+  normCenterX: number,
+  normCenterY: number,
+  normW: number,
+  normH: number,
+  vidW: number,
+  vidH: number,
+  containerAspect = 3 / 4
+): {
+  screenCenterX: number;
+  screenCenterY: number;
+  screenW: number;
+  screenH: number;
+} {
+  const videoAspect = vidW > 0 && vidH > 0 ? vidW / vidH : containerAspect;
+
+  if (videoAspect > containerAspect) {
+    // Video lebih lebar daripada container (misal 4:3 landscape / 16:9 vs 3:4 portrait)
+    // Sisi kiri & kanan video dipotong oleh CSS object-cover
+    const visibleWidthFraction = containerAspect / videoAspect;
+    const cropOffsetLeft = (1 - visibleWidthFraction) / 2;
+
+    const screenCenterX = (normCenterX - cropOffsetLeft) / visibleWidthFraction;
+    const screenW = normW / visibleWidthFraction;
+    const screenCenterY = normCenterY;
+    const screenH = normH;
+
+    return { screenCenterX, screenCenterY, screenW, screenH };
+  } else {
+    // Video lebih tinggi daripada container (misal 9:16 portrait vs 3:4 portrait)
+    // Sisi atas & bawah video dipotong oleh CSS object-cover
+    const visibleHeightFraction = videoAspect / containerAspect;
+    const cropOffsetTop = (1 - visibleHeightFraction) / 2;
+
+    const screenCenterX = normCenterX;
+    const screenW = normW;
+    const screenCenterY = (normCenterY - cropOffsetTop) / visibleHeightFraction;
+    const screenH = normH / visibleHeightFraction;
+
+    return { screenCenterX, screenCenterY, screenW, screenH };
+  }
+}
+
+/**
+ * Validasi presisi geometris posisi wajah terhadap oval panduan (300x400 container, oval cx=0.50, cy=0.475).
+ * Menjamin 100% wajah berada di dalam oval, menolak wajah yang turun ke bawah, dahi di tengah, atau dagu keluar.
+ */
+export function validateFaceOvalFit(
+  screenCenterX: number,
+  screenCenterY: number,
+  screenW: number,
+  screenH: number
+): {
+  isCentered: boolean;
+  isGoodSize: boolean;
+  statusMessage: string;
+} {
+  const top = screenCenterY - screenH / 2;
+  const bottom = screenCenterY + screenH / 2;
+  const left = screenCenterX - screenW / 2;
+  const right = screenCenterX + screenW / 2;
+
+  // 1. Cek ukuran wajah (jarak optimal smartphone 30cm - 70cm)
+  if (screenH < 0.28 || screenW < 0.20) {
+    return {
+      isCentered: false,
+      isGoodSize: false,
+      statusMessage: "Dekatkan wajah ke kamera",
+    };
+  }
+  if (screenH > 0.72 || screenW > 0.65) {
+    return {
+      isCentered: false,
+      isGoodSize: false,
+      statusMessage: "Mundur sedikit dari kamera",
+    };
+  }
+
+  // 2. Cek titik pusat wajah terhadap pusat oval (target x=0.50, y=0.475)
+  if (screenCenterY > 0.56) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Naikkan wajah ke tengah oval",
+    };
+  }
+  if (screenCenterY < 0.38) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Turunkan wajah ke tengah oval",
+    };
+  }
+  if (screenCenterX < 0.37) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Geser wajah sedikit ke kanan",
+    };
+  }
+  if (screenCenterX > 0.63) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Geser wajah sedikit ke kiri",
+    };
+  }
+
+  // 3. Cek batas ekstrem dahi & dagu (mencegah wajah separuh keluar batas oval)
+  if (top > 0.38) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Naikkan wajah agar dahi pas di oval",
+    };
+  }
+  if (top < 0.12) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Turunkan posisi sedikit agar kepala pas di oval",
+    };
+  }
+  if (bottom > 0.82) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Naikkan wajah agar dagu pas di oval",
+    };
+  }
+  if (bottom < 0.58) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Posisikan dagu di batas bawah oval",
+    };
+  }
+  if (left < 0.14 || right > 0.86) {
+    return {
+      isCentered: false,
+      isGoodSize: true,
+      statusMessage: "Posisikan seluruh wajah di dalam oval",
+    };
+  }
+
+  return {
+    isCentered: true,
+    isGoodSize: true,
+    statusMessage: "Posisi Pas",
+  };
+}
+
+/**
  * Detektor Biometrik Berbasis Statistical Cluster CV (Zero Latency, 100% Offline)
  * Menggunakan segmentasi warna kulit YCbCr dengan estimasi sebaran Gaussian (Standard Deviation).
  * Sangat tahan terhadap noise background, baju, leher, atau perabotan kamar.
@@ -221,47 +377,19 @@ function evaluateViaCanvasCV(
   const faceWidthRatio = (3.0 * stdX) / w;
   const faceHeightRatio = (3.4 * stdY) / h;
 
-  // Toleransi oval tengah yang sangat nyaman untuk smartphone selfie portrait
-  const isCentered =
-    centroidX >= 0.22 &&
-    centroidX <= 0.78 &&
-    centroidY >= 0.18 &&
-    centroidY <= 0.82;
+  // Petakan koordinat frame CV ke layar container (3:4) sesuai CSS object-cover
+  const { screenCenterX, screenCenterY, screenW, screenH } =
+    mapVideoToScreenNormalized(centroidX, centroidY, faceWidthRatio, faceHeightRatio, w, h, 3 / 4);
 
-  // Ukuran wajah wajar (toleransi jarak 30cm - 80cm)
-  const isGoodSize =
-    (faceWidthRatio >= 0.15 || skinRatio >= 0.07) &&
-    faceWidthRatio <= 0.85 &&
-    skinRatio <= 0.75;
+  const ovalCheck = validateFaceOvalFit(screenCenterX, screenCenterY, screenW, screenH);
 
-  if (!isCentered) {
-    let msg = "Arahkan wajah ke tengah oval";
-    if (centroidX < 0.22) msg = "Geser wajah sedikit ke kanan";
-    else if (centroidX > 0.78) msg = "Geser wajah sedikit ke kiri";
-    else if (centroidY < 0.18) msg = "Turunkan kamera sedikit";
-    else if (centroidY > 0.82) msg = "Naikkan kamera sedikit";
-
+  if (!ovalCheck.isCentered || !ovalCheck.isGoodSize) {
     return {
       detected: true,
       faceCount: 1,
-      isCentered: false,
-      isGoodSize,
-      statusMessage: msg,
-      headPose: "unknown",
-      confidence: 0.88,
-    };
-  }
-
-  if (!isGoodSize) {
-    return {
-      detected: true,
-      faceCount: 1,
-      isCentered: true,
-      isGoodSize: false,
-      statusMessage:
-        faceWidthRatio < 0.15 && skinRatio < 0.07
-          ? "Dekatkan wajah ke kamera."
-          : "Mundur sedikit dari kamera.",
+      isCentered: ovalCheck.isCentered,
+      isGoodSize: ovalCheck.isGoodSize,
+      statusMessage: ovalCheck.statusMessage,
       headPose: "unknown",
       confidence: 0.88,
     };
@@ -365,47 +493,19 @@ export function evaluateVideoFace(
         const boxWidthRatio = box.width / vidW;
         const boxHeightRatio = box.height / vidH;
 
-        // Toleransi oval tengah yang sangat nyaman untuk smartphone selfie
-        const isCentered =
-          boxCenterX >= 0.22 &&
-          boxCenterX <= 0.78 &&
-          boxCenterY >= 0.16 &&
-          boxCenterY <= 0.84;
+        // Petakan koordinat video asli ke layar container (3:4) sesuai CSS object-cover
+        const { screenCenterX, screenCenterY, screenW, screenH } =
+          mapVideoToScreenNormalized(boxCenterX, boxCenterY, boxWidthRatio, boxHeightRatio, vidW, vidH, 3 / 4);
 
-        const isGoodSize =
-          boxWidthRatio >= 0.15 &&
-          boxWidthRatio <= 0.85 &&
-          boxHeightRatio >= 0.16 &&
-          boxHeightRatio <= 0.90;
+        const ovalCheck = validateFaceOvalFit(screenCenterX, screenCenterY, screenW, screenH);
 
-        if (!isCentered) {
-          let msg = "Arahkan wajah ke tengah oval";
-          if (boxCenterX < 0.22) msg = "Geser wajah sedikit ke kanan";
-          else if (boxCenterX > 0.78) msg = "Geser wajah sedikit ke kiri";
-          else if (boxCenterY < 0.16) msg = "Turunkan kamera sedikit";
-          else if (boxCenterY > 0.84) msg = "Naikkan kamera sedikit";
-
+        if (!ovalCheck.isCentered || !ovalCheck.isGoodSize) {
           return {
             detected: true,
             faceCount: 1,
-            isCentered: false,
-            isGoodSize,
-            statusMessage: msg,
-            headPose: "unknown",
-            confidence: det.categories?.[0]?.score || 0.9,
-          };
-        }
-
-        if (!isGoodSize) {
-          return {
-            detected: true,
-            faceCount: 1,
-            isCentered: true,
-            isGoodSize: false,
-            statusMessage:
-              boxWidthRatio < 0.15
-                ? "Dekatkan wajah ke kamera."
-                : "Mundur sedikit dari kamera.",
+            isCentered: ovalCheck.isCentered,
+            isGoodSize: ovalCheck.isGoodSize,
+            statusMessage: ovalCheck.statusMessage,
             headPose: "unknown",
             confidence: det.categories?.[0]?.score || 0.9,
           };
