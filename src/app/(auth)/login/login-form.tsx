@@ -25,7 +25,7 @@ export function LoginForm() {
       <form action={action} className="space-y-4">
         {state?.error && (
           <div className="rounded-2xl border border-rose-200/80 bg-rose-50/90 px-3.5 py-2.5 text-xs font-medium text-rose-700 animate-slide-up flex items-center gap-2 shadow-xs">
-            <span className="h-2 w-2 rounded-full bg-rose-600 shrink-0 animate-ping" />
+            <span className="h-2 w-2 rounded-full bg-rose-600 shrink-0" />
             <span>{state.error}</span>
           </div>
         )}

@@ -310,11 +310,14 @@ export function InteractiveConceptGraph({
                   onMouseLeave={() => setHoveredNodeId(null)}
                   className="cursor-pointer touch-manipulation transition-transform duration-200"
                 >
-                  {/* Outer Pulsing Aura when selected */}
+                  {/* Outer Focus Ring when selected */}
                   {isSelected && (
                     <circle
-                      r="40"
-                      className="animate-ping fill-purple-400/20"
+                      r="36"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-purple-500/40 animate-pulse"
                     />
                   )}
 

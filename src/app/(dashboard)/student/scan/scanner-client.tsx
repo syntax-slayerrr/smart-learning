@@ -249,10 +249,8 @@ export function ScannerClient() {
     return (
       <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center min-h-[300px] animate-fade-in shadow-2xs">
         <div className="relative flex items-center justify-center">
-          <div className="absolute h-20 w-20 animate-ping rounded-full bg-primary/15" />
-          <div className="absolute h-14 w-14 animate-pulse rounded-full bg-primary/30" />
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-sm shadow-primary/30 text-white">
-            {geoStatus ? <MapPin className="h-6 w-6 animate-bounce" /> : <Loader2 className="h-6 w-6 animate-spin" />}
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#007AFF] text-white shadow-xs">
+            {geoStatus ? <MapPin className="h-5 w-5 animate-pulse" /> : <Loader2 className="h-5 w-5 animate-spin" />}
           </div>
         </div>
         

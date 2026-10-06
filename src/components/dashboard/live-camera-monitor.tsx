@@ -516,7 +516,7 @@ export function LiveCameraMonitor() {
       case "writing":
         return { label: "Menulis / Laptop", bg: "bg-sky-500/10 text-sky-700 border-sky-500/20", dot: "bg-sky-500" };
       case "using_phone":
-        return { label: "Gadget Terdeteksi", bg: "bg-red-500/15 text-red-700 border-red-500/30 animate-pulse font-bold", dot: "bg-red-600 animate-ping" };
+        return { label: "Gadget Terdeteksi", bg: "bg-red-500/15 text-red-700 border-red-500/30 font-bold", dot: "bg-red-600" };
       case "sleep":
         return { label: "Menunduk / Tidur", bg: "bg-red-500/15 text-red-700 border-red-500/30 animate-pulse font-bold", dot: "bg-red-600" };
       case "hand_raised":

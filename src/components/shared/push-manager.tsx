@@ -133,7 +133,7 @@ export function PushManager() {
         <div className="p-6 text-center space-y-4">
           <div className="space-y-1.5">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-xs font-semibold text-blue-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
               Sistem Presensi Aktif
             </span>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight pt-1">

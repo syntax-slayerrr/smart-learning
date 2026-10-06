@@ -780,7 +780,7 @@ export function FaceIdEnrollmentModal({
                   onSuccess();
                   onClose();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground shadow-sm shadow-primary/25 px-4 py-1.5 text-xs font-semibold active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground shadow-xs border border-white/10 px-4 py-1.5 text-xs font-semibold active:scale-95 transition-all"
               >
                 <span>Selesai & Aktifkan</span>
                 <ChevronRight className="h-3.5 w-3.5" />

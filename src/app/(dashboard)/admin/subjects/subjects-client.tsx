@@ -99,7 +99,7 @@ export default function SubjectsClient({
             setError("");
             setShowAddModal(true);
           }}
-          className="apple-press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover min-h-[44px] cursor-pointer"
+          className="apple-press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs border border-white/10 hover:bg-primary-hover min-h-[44px] cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           Tambah Mata Pelajaran

@@ -334,13 +334,13 @@ export function TelemetryPanel({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  AI Pedagogical Insight
-                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-mono text-primary font-semibold">
+                  Rekomendasi Interaksi Kelas
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
                     Real-time
                   </span>
                 </span>
                 {isNudgeLoading && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">

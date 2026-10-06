@@ -344,9 +344,8 @@ export function HermesCopilotWidget() {
                 loading="eager"
               />
             </picture>
-            <span className="absolute -top-1 -right-1 flex h-3 w-3 sm:h-3.5 sm:w-3.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+              <span className="inline-flex h-full w-full rounded-full bg-emerald-500 ring-2 ring-white" />
             </span>
           </div>
 
@@ -717,7 +716,7 @@ export function HermesCopilotWidget() {
                   </picture>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-xl bg-white border border-slate-200/90 px-3.5 py-2 text-slate-600 shadow-2xs font-mono text-[11px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-ping" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
                   <span>Smart AI membaca basis data & menyiapkan workspace...</span>
                 </div>
               </div>

@@ -88,25 +88,19 @@ export function Header({ role, onMenuClick }: HeaderProps) {
         {role === "admin" ? (
           <Link
             href="/admin/camera-monitor"
-            className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-100/70 px-3.5 py-1.5 text-xs font-semibold text-slate-800 transition-all active:scale-95 shadow-sm"
-            title="Buka AI Classroom Vision & Live Monitor"
+            className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-100/70 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 px-3.5 py-1.5 text-xs font-medium text-slate-800 dark:text-zinc-200 transition-all active:scale-95 shadow-2xs"
+            title="Buka Pantauan Kelas Live"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="text-[12px] tracking-tight">
-              AI Telemetry <span className="text-emerald-600 font-bold">• Live Monitor</span>
+              Pantauan Kelas <span className="text-emerald-600 dark:text-emerald-400 font-semibold">• Live</span>
             </span>
           </Link>
         ) : (
-          <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
+          <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/80 dark:bg-emerald-950/30 px-3.5 py-1.5 text-xs font-medium text-slate-800 dark:text-zinc-200 shadow-2xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="text-[12px] tracking-tight">
-              AI Engine <span className="text-emerald-600 font-bold">• Aktif</span>
+              Sistem <span className="text-emerald-600 dark:text-emerald-400 font-semibold">• Siap</span>
             </span>
           </div>
         )}

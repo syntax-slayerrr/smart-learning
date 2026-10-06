@@ -97,7 +97,7 @@ export function ActivityFeedCard({
                 <div className="flex flex-col items-end shrink-0 pl-3">
                   {item.status === "active" ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/70">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-ping" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                       Live
                     </span>
                   ) : item.status === "completed" ? (
