@@ -630,7 +630,7 @@ export default function StudentNotebookPage() {
         className={`flex-1 flex flex-col min-h-0 w-full max-w-5xl mx-auto ${
           studyMode === "chat"
             ? "p-0 sm:p-4 overflow-hidden"
-            : "overflow-y-auto overscroll-contain p-3 sm:p-6"
+            : "overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 pb-28 sm:pb-32"
         }`}
       >
         {/* =================================================================== */}
@@ -757,30 +757,18 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 2: MIND MAP VIEW (PETA KONSEP INTERAKTIF)                 */}
         {/* =================================================================== */}
         {studyMode === "mindmap" && (
-          <div className="flex-1 flex flex-col min-h-[600px] h-full rounded-3xl overflow-hidden bg-white/60 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] animate-fade-in relative">
-            <div className="p-3.5 border-b border-black/[0.06] bg-white/40 backdrop-blur-md flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Network className="h-4 w-4 text-[#5E5CE6]" />
-                <span className="text-xs font-bold text-[#1D1D1F]">
-                  Peta Konsep Visual: Hubungan Subnetting, Host Bits & Formula 2ⁿ - 2
-                </span>
-              </div>
-              <span className="text-[11px] text-[#6E6E73]">
-                Klik node konsep untuk melihat rangkuman
-              </span>
-            </div>
-            <div className="flex-1 min-h-0 relative">
-              <InteractiveConceptGraph
-                nodes={conceptGraph.nodes}
-                edges={conceptGraph.edges}
-                onSelectConceptPage={(page) => {
-                  console.log("Selected page:", page);
-                }}
-                onAskSmartAI={(conceptName) => {
-                  setStudyMode("chat");
-                }}
-              />
-            </div>
+          <div className="w-full space-y-4 animate-fade-in pb-16">
+            <InteractiveConceptGraph
+              nodes={conceptGraph.nodes}
+              edges={conceptGraph.edges}
+              onSelectConceptPage={(page) => {
+                console.log("Selected page:", page);
+                setStudyMode("reader");
+              }}
+              onAskSmartAI={(conceptName) => {
+                setStudyMode("chat");
+              }}
+            />
           </div>
         )}
 

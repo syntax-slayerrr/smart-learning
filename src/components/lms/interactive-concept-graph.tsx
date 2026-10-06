@@ -179,32 +179,32 @@ export function InteractiveConceptGraph({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Header bar with meta and legend */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-[rgba(60,60,67,0.08)] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-200/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/70 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-200/60">
             <Zap className="h-4 w-4" />
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
               Peta Konsep Hidup (Knowledge Graph)
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] text-slate-500 truncate">
               Visualisasi hierarki dan dependensi pemahaman bab dari materi modul
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-600">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+        <div className="flex items-center gap-3 text-[11px] text-slate-600 overflow-x-auto pb-0.5 sm:pb-0">
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
             Bab Utama
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-teal-500" />
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-teal-500" />
             Konsep Kunci
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-purple-500" />
             Metodologi
           </span>
         </div>
@@ -213,7 +213,7 @@ export function InteractiveConceptGraph({
       {/* Main Canvas & Inspector Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Graph Canvas Viewport */}
-        <div className="lg:col-span-8 relative bg-gradient-to-b from-slate-50 to-slate-100/60 rounded-3xl border border-[rgba(60,60,67,0.12)] p-2 overflow-hidden shadow-inner min-h-[380px] sm:min-h-[440px] flex items-center justify-center">
+        <div className="lg:col-span-8 relative bg-gradient-to-b from-slate-50/80 to-slate-100/60 backdrop-blur-sm rounded-3xl border border-slate-200/60 p-2 overflow-hidden shadow-inner min-h-[340px] sm:min-h-[440px] flex items-center justify-center">
           {/* Subtle Grid Dot Matrix Pattern */}
           <div
             className="absolute inset-0 opacity-[0.4]"
@@ -302,9 +302,13 @@ export function InteractiveConceptGraph({
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
                   onClick={() => setSelectedNodeId(node.id)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    setSelectedNodeId(node.id);
+                  }}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
-                  className="cursor-pointer transition-transform duration-200"
+                  className="cursor-pointer touch-manipulation transition-transform duration-200"
                 >
                   {/* Outer Pulsing Aura when selected */}
                   {isSelected && (
@@ -313,6 +317,13 @@ export function InteractiveConceptGraph({
                       className="animate-ping fill-purple-400/20"
                     />
                   )}
+
+                  {/* Invisible large touch target for mobile thumb tapping */}
+                  <circle
+                    r="44"
+                    fill="transparent"
+                    className="cursor-pointer"
+                  />
 
                   {/* Node Capsule Background */}
                   <circle
@@ -362,7 +373,7 @@ export function InteractiveConceptGraph({
                     textAnchor="middle"
                     fill={isSelected ? "#0f172a" : "#334155"}
                     fontSize={isSelected ? "12" : "11"}
-                    fontWeight={isSelected ? "700" : "500"}
+                    fontWeight={isSelected ? "700" : "600"}
                     className="select-none transition-all duration-200"
                   >
                     {node.label}
@@ -377,7 +388,7 @@ export function InteractiveConceptGraph({
                         ? "#dc2626"
                         : "#64748b"
                     }
-                    fontSize="9"
+                    fontSize="9.5"
                     fontWeight="600"
                     className="select-none font-mono"
                   >

@@ -46,8 +46,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`h-full overflow-hidden ${inter.variable}`}>
-      <body className="h-full overflow-hidden font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
+    <html lang="id" className={`h-full ${inter.variable}`}>
+      <body className="min-h-full font-sans relative antialiased selection:bg-blue-600/20 selection:text-blue-700">
         <AmbientBackground intensity="medium" />
         <Suspense fallback={null}>
           <PushManager />
