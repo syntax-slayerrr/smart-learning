@@ -95,7 +95,7 @@ export function FaceIdEnrollmentModal({
     stability: true,
   });
 
-  const [instruction, setInstruction] = useState("Posisikan wajah Anda di dalam oval");
+  const [instruction, setInstruction] = useState("Arahkan wajah ke dalam oval");
   const autoProgressRef = useRef(0);
   const stepRef = useRef<StepType>("frontal");
   const isCapturingRef = useRef(false);
@@ -286,12 +286,13 @@ export function FaceIdEnrollmentModal({
       const isStable = motionDelta < 22; // Stabil jika gerakan wajar
       const isLightingGood = lightingStatus === "optimal";
 
-      // 3. Face Detection & Oval Gating Riil (BlazeFace Engine)
+      // 3. Face Detection & Oval Gating Riil (BlazeFace Engine + Instant Canvas CV Fallback)
       const faceEval = evaluateVideoFace(
         detectorRef.current,
         video,
         performance.now(),
-        stepRef.current
+        stepRef.current,
+        frameData
       );
 
       const isFaceValid = faceEval.detected && faceEval.isCentered && faceEval.isGoodSize;
@@ -354,7 +355,7 @@ export function FaceIdEnrollmentModal({
       setAutoProgress(0);
       setTotalProgress(0);
       setCapturedFrames([]);
-      setInstruction("Menyiapkan sensor biometrik AI...");
+      setInstruction("Arahkan wajah ke dalam oval");
 
       if (!detectorRef.current && !isDetectorLoadingRef.current) {
         isDetectorLoadingRef.current = true;
