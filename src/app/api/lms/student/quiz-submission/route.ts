@@ -11,6 +11,7 @@ const quizSubmissionSchema = z.object({
   totalQuestions: z.number().int().positive(),
   correctCount: z.number().int().min(0),
   answers: z.record(z.string().or(z.number()), z.number()).optional(),
+  completedDurationSeconds: z.number().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,6 +28,12 @@ export async function POST(req: NextRequest) {
       totalQuestions: rawBody.totalQuestions || rawBody.total_questions || 3,
       correctCount: rawBody.correctCount || rawBody.correct_count || 0,
       answers: rawBody.answers || {},
+      completedDurationSeconds:
+        typeof rawBody.completedDurationSeconds === "number"
+          ? rawBody.completedDurationSeconds
+          : typeof rawBody.completed_duration_seconds === "number"
+          ? rawBody.completed_duration_seconds
+          : null,
     };
 
     const parseResult = quizSubmissionSchema.safeParse(normalizedBody);
@@ -41,38 +48,81 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { studentId, materialId, quizTitle, score, totalQuestions, correctCount } =
-      parseResult.data;
+    const {
+      studentId,
+      materialId,
+      quizTitle,
+      score,
+      totalQuestions,
+      correctCount,
+      completedDurationSeconds,
+    } = parseResult.data;
+
+    const durationText = completedDurationSeconds
+      ? `\n- **Waktu Pengerjaan**: ${Math.floor(completedDurationSeconds / 60)}m ${completedDurationSeconds % 60}s`
+      : "";
+
+    const grade =
+      score === 100
+        ? "A+"
+        : score >= 85
+        ? "A"
+        : score >= 75
+        ? "B"
+        : score >= 60
+        ? "C"
+        : "D";
 
     // Save summary checkpoint into student_study_notes
-    const noteContent = `### 🏆 Hasil Kuis: ${quizTitle}\n\n- **Skor**: ${score}/100\n- **Jawaban Benar**: ${correctCount} dari ${totalQuestions} soal\n- **Status**: ${score >= 75 ? "Lulus Kompetensi (Sangat Baik)" : "Perlu Penguatan Konsep"}\n\n*Dicatat otomatis oleh Smart Learning Engine pada ${new Date().toLocaleDateString("id-ID")}*`;
+    const noteContent = `### 🏆 Hasil Kuis: ${quizTitle}\n\n- **Predikat**: ${grade} (${score}/100)\n- **Jawaban Benar**: ${correctCount} dari ${totalQuestions} soal${durationText}\n- **Status**: ${
+      score >= 75 ? "Lulus Kompetensi (Sangat Baik)" : "Perlu Penguatan Konsep"
+    }\n\n*Dicatat otomatis oleh Smart Learning Engine pada ${new Date().toLocaleDateString("id-ID")}*`;
 
-    const { data: noteRecord, error: noteError } = await admin
-      .from("student_study_notes")
-      .insert({
-        student_id: studentId,
-        material_id: materialId || null,
-        note_content: noteContent,
-        socratic_context: {
-          type: "quiz_evaluation",
-          score,
-          correctCount,
-          totalQuestions,
-          evaluated_at: new Date().toISOString(),
-        },
-      })
-      .select()
-      .maybeSingle();
+    let noteRecordId: string | null = null;
+
+    try {
+      const { data: noteRecord, error: noteError } = await admin
+        .from("student_study_notes")
+        .insert({
+          student_id: studentId,
+          material_id: materialId || null,
+          note_content: noteContent,
+          socratic_context: {
+            type: "quiz_evaluation",
+            score,
+            grade,
+            correctCount,
+            totalQuestions,
+            durationSeconds: completedDurationSeconds,
+            evaluated_at: new Date().toISOString(),
+          },
+        })
+        .select()
+        .maybeSingle();
+
+      if (noteError) {
+        console.warn("Catatan kuis gagal disimpan ke DB (fallback aktif):", noteError.message);
+      } else if (noteRecord) {
+        noteRecordId = noteRecord.id;
+      }
+    } catch (dbErr: any) {
+      console.warn("DB insert exception in quiz submission (ignoring for resilience):", dbErr?.message);
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         score,
+        grade,
         correctCount,
         totalQuestions,
         passed: score >= 75,
-        noteId: noteRecord?.id || null,
-        message: score >= 75 ? "Selamat! Anda lulus kuis pemahaman modul ini." : "Kuis tercatat. Disarankan mengulang topik yang belum dipahami.",
+        noteId: noteRecordId,
+        completedDurationSeconds,
+        message:
+          score >= 75
+            ? "Selamat! Anda lulus kuis pemahaman modul ini dengan predikat " + grade + "."
+            : "Kuis tercatat. Disarankan mengulang topik yang belum dipahami.",
       },
     });
   } catch (err: any) {

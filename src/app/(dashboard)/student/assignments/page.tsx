@@ -17,7 +17,7 @@ import {
   FileText,
   UploadCloud,
   ShieldCheck,
-  Sparkles,
+  BrainCircuit,
   ExternalLink,
   X,
   Loader2,
@@ -598,7 +598,7 @@ export default function StudentAssignmentsPage() {
 
               {/* AI Defense Notice */}
               <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-start gap-2.5 text-xs">
-                <Sparkles className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                <BrainCircuit className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                 <div className="text-indigo-900 leading-relaxed text-[11px]">
                   <strong>Verifikasi AI Defense Otomatis:</strong> Dokumen dan ringkasan Anda akan dianalisis untuk memverifikasi keaslian dan penguasaan materi sebelum diteruskan ke guru pengampu.
                 </div>
@@ -699,7 +699,7 @@ export default function StudentAssignmentsPage() {
               {/* AI Defense Feedback */}
               <div className="p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-1 text-xs">
                 <span className="font-semibold text-indigo-900 text-[11px] flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  <BrainCircuit className="h-3.5 w-3.5 text-indigo-600" />
                   Analisis Integritas AI:
                 </span>
                 <p className="text-indigo-950/80 leading-relaxed text-xs">

@@ -7,7 +7,7 @@ import {
   CheckCircle,
   GraduationCap,
   Activity,
-  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 
 interface ChildData {
@@ -79,7 +79,7 @@ export function ChildEngagementCard({ child }: ChildEngagementCardProps) {
 
       {/* Humanized Peace of Mind Note */}
       <div className="mx-5 mb-5 rounded-lg bg-background border border-border p-3 flex items-start gap-2.5">
-        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
         <div className="text-xs text-stone-600 leading-relaxed">
           {child.sleep_incidents > 0 ? (
             <p>

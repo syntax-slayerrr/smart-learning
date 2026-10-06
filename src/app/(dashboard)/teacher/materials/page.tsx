@@ -10,7 +10,6 @@ import {
   FileText,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
   Users,
   Eye,
   Plus,
@@ -264,7 +263,7 @@ export default function TeacherMaterialsPage() {
 
         <div className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-xs flex items-center gap-3.5">
           <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
-            <Sparkles className="h-5 w-5" />
+            <BrainCircuit className="h-5 w-5" />
           </div>
           <div>
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
@@ -390,7 +389,7 @@ export default function TeacherMaterialsPage() {
                         onClick={() => setActivePreviewMaterial(item)}
                         className="text-xs h-8 px-2.5 rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                       >
-                        <Sparkles className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+                        <BrainCircuit className="h-3.5 w-3.5 mr-1 text-indigo-600" />
                         <span>Ringkasan AI</span>
                       </Button>
                     )}
@@ -603,7 +602,7 @@ export default function TeacherMaterialsPage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
-                  <Sparkles className="h-4 w-4" />
+                  <BrainCircuit className="h-4 w-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">

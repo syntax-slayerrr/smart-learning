@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { LoginForm } from "./login-form";
-import { ShieldCheck, Sparkles, User, Radio, GraduationCap } from "lucide-react";
+import { ShieldCheck, User, Radio, GraduationCap, Eye } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +74,7 @@ export default function LoginPage() {
         <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
           <div className="rounded-2xl bg-white/65 backdrop-blur-[20px] saturate-[180%] border border-white/80 ring-1 ring-white/40 p-2.5 text-center shadow-[0_10px_25px_-6px_rgba(15,23,42,0.1),0_2px_6px_rgba(15,23,42,0.04),inset_0_1px_1px_rgba(255,255,255,0.9)] flex flex-col items-center gap-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:bg-white/80">
             <div className="w-7 h-7 rounded-xl bg-blue-50/90 backdrop-blur-sm border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Eye className="w-3.5 h-3.5" />
             </div>
             <span className="text-[10px] font-bold text-slate-800 leading-tight">AI Vision</span>
             <span className="text-[9px] text-slate-500 font-medium">Auto Telemetri</span>
@@ -97,13 +97,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Subtle Divider with Sparkle Accent */}
-        <div className="relative flex items-center justify-center py-1">
-          <div className="w-full border-t border-slate-300/40" />
-          <div className="absolute bg-white/70 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/80 text-blue-500 shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 fill-blue-500/20" />
-          </div>
-        </div>
+        {/* Clean Apple Divider */}
+        <div className="w-full border-t border-slate-200/60 my-2" />
 
         {/* Motivational Quote & Signature */}
         <div className="text-center space-y-1 pb-12 sm:pb-6">

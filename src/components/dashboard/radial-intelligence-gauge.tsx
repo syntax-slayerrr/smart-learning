@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Activity, ShieldCheck } from "lucide-react";
+import { Activity, ShieldCheck, BrainCircuit } from "lucide-react";
 
 interface RadialIntelligenceGaugeProps {
   score: number; // 0 - 100
@@ -63,7 +63,7 @@ export function RadialIntelligenceGauge({
       <div className="relative flex flex-col sm:items-center">
         {/* Header Tag */}
         <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-blue-50/90 px-3 py-1 text-[11px] font-bold text-blue-700 border border-blue-200/70 mb-4 shadow-2xs">
-          <Sparkles className="h-3 w-3 text-blue-600" />
+          <Activity className="h-3 w-3 text-blue-600" />
           <span>Kesehatan Ekosistem Sekolah</span>
         </div>
 
@@ -133,7 +133,7 @@ export function RadialIntelligenceGauge({
           {/* Right Information Container on Mobile / Bottom Container on Desktop */}
           <div className="flex-1 min-w-0 text-left sm:text-center sm:mt-1">
             <div className="inline-flex sm:hidden items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60 mb-1">
-              <Sparkles className="h-2.5 w-2.5 text-blue-600 shrink-0" />
+              <Activity className="h-2.5 w-2.5 text-blue-600 shrink-0" />
               <span>Ekosistem AI</span>
             </div>
 

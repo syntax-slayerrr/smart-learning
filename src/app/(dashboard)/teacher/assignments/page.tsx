@@ -22,7 +22,7 @@ import {
   Send,
   Calendar,
   Layers,
-  Sparkles,
+  BrainCircuit,
   RefreshCw,
   Eye,
 } from "lucide-react";
@@ -541,7 +541,7 @@ export default function TeacherAssignmentsPage() {
                     {/* AI Defense Summary Card (Apple Ceramic Style) */}
                     <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1.5 text-xs">
                       <div className="flex items-center gap-1.5 text-indigo-700 font-semibold text-[11px] uppercase tracking-wider">
-                        <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                        <BrainCircuit className="h-3.5 w-3.5 text-indigo-600" />
                         <span>Ringkasan Integritas & Verifikasi AI Defense:</span>
                       </div>
                       <p className="text-slate-700 leading-relaxed text-xs">

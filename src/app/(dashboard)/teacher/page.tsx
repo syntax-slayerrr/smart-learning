@@ -11,7 +11,6 @@ import {
   Bell,
   PlayCircle,
   Clock,
-  Sparkles,
   ChevronRight,
   BookOpen,
   Calendar,

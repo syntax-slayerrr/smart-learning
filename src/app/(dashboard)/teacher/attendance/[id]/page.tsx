@@ -6,7 +6,7 @@ import { SessionDetailClient } from "./session-detail-client";
 import { SessionDynamicsPanel } from "@/components/dashboard/session-dynamics-panel";
 import { TeacherMobilityMap } from "@/components/dashboard/teacher-mobility-map";
 import { getSessionDynamics } from "@/services/student-analytics";
-import { ArrowLeft, Sparkles, MapPin } from "lucide-react";
+import { ArrowLeft, Activity, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = { title: "Detail Sesi Absensi" };
@@ -87,7 +87,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       {dynamics && dynamics.timeline.length > 0 ? (
         <div className="space-y-6 pt-4 border-t border-border">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-500" />
+            <Activity className="h-5 w-5 text-indigo-500" />
             <h3 className="text-base font-semibold text-foreground">
               Analisis Dinamika & Telemetri Kelas (AI)
             </h3>

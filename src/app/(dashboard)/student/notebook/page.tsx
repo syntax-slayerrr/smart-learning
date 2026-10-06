@@ -45,7 +45,7 @@ import {
   Network,
   ClipboardList,
   Target,
-  Sparkles,
+  BrainCircuit,
   FileCheck,
   CheckCircle2,
   Clock,
@@ -76,6 +76,7 @@ import {
   useOfflineStatus,
   cacheActiveMaterial,
   getCachedActiveMaterial,
+  saveOfflineQuiz,
 } from "@/lib/offline-lms-cache";
 
 type StudySubMode = "reader" | "mindmap" | "quiz" | "chat" | "pdf";
@@ -371,9 +372,27 @@ export default function StudentNotebookPage() {
       if (res.ok) {
         setQuizSyncStatus("synced");
       } else {
+        await saveOfflineQuiz({
+          student_id: "student-mock-zaldy",
+          material_id: selectedMaterial?.id,
+          quiz_title: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+          score: calculatedScore,
+          total_questions: quizQuestions.length,
+          correct_count: correctCount,
+          answers: quizAnswers,
+        });
         setQuizSyncStatus("offline");
       }
     } catch {
+      await saveOfflineQuiz({
+        student_id: "student-mock-zaldy",
+        material_id: selectedMaterial?.id,
+        quiz_title: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+        score: calculatedScore,
+        total_questions: quizQuestions.length,
+        correct_count: correctCount,
+        answers: quizAnswers,
+      });
       setQuizSyncStatus("offline");
     } finally {
       setIsSubmittingQuiz(false);
@@ -473,7 +492,7 @@ export default function StudentNotebookPage() {
         </div>
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md border border-neutral-200/60 dark:border-neutral-700/60 text-[#007AFF] text-[11px] font-semibold mb-2.5 shadow-xs">
-          <Sparkles className="h-3 w-3 animate-spin" style={{ animationDuration: '3s' }} />
+          <Bot className="h-3 w-3" />
           Smart AI Teman Belajarmu
         </div>
 
@@ -523,7 +542,7 @@ export default function StudentNotebookPage() {
                     Buku Pintar Siswa
                   </h1>
                   <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.2 rounded-full shrink-0">
-                    <Sparkles className="h-2.5 w-2.5" /> Smart Focus
+                    <BrainCircuit className="h-2.5 w-2.5" /> Smart Focus
                   </span>
                 </div>
                 <p className="text-[10px] text-[#6E6E73] truncate">
@@ -711,7 +730,7 @@ export default function StudentNotebookPage() {
                           </span>
                           <span>•</span>
                           <span className="text-[#007AFF] font-medium inline-flex items-center gap-1 whitespace-nowrap">
-                            <Sparkles className="h-3 w-3" /> Ekstrak AI Siap
+                            <CheckCircle2 className="h-3 w-3" /> Ekstrak AI Siap
                           </span>
                         </div>
                       </div>
@@ -772,7 +791,7 @@ export default function StudentNotebookPage() {
                 }}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/85 hover:bg-white border border-white/90 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center shrink-0"
               >
-                <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+                <FileCheck className="h-3.5 w-3.5 text-[#007AFF]" />
                 <span>Uji Pemahaman Tugas</span>
               </button>
             </div>
@@ -886,7 +905,7 @@ export default function StudentNotebookPage() {
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
-              <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+              <Bot className="h-3.5 w-3.5 text-[#007AFF]" />
               <span>Tanya Smart AI</span>
             </button>
 
@@ -1020,7 +1039,7 @@ export default function StudentNotebookPage() {
                 <div className="p-4 sm:p-5 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+                      <Lightbulb className="h-3.5 w-3.5 text-[#007AFF]" />
                       Formula Perhitungan Usable Host Subnet
                     </span>
                     <button
@@ -1088,7 +1107,7 @@ export default function StudentNotebookPage() {
                     className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#007AFF]/50 active:scale-95 transition-all text-left group"
                   >
                     <div className="h-8 w-8 rounded-xl bg-blue-50 text-[#007AFF] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                      <Sparkles className="h-4 w-4" />
+                      <Bot className="h-4 w-4" />
                     </div>
                     <p className="text-xs font-bold text-[#1D1D1F]">Tanya Smart AI</p>
                     <p className="text-[10px] text-[#6E6E73]">Asisten Belajar</p>
@@ -1256,7 +1275,7 @@ export default function StudentNotebookPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
-                    <Sparkles className="h-4 w-4" />
+                    <Network className="h-4 w-4" />
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-2">

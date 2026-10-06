@@ -1,12 +1,12 @@
 import React from "react";
-import { CheckCircle2, AlertTriangle, Video, LucideIcon, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Video, LucideIcon } from "lucide-react";
 
 export interface TriMetricItem {
   id: string;
   label: string;
   value: string | number;
   sublabel: string;
-  icon?: LucideIcon | "check" | "warning" | "video" | "sparkles";
+  icon?: LucideIcon | "check" | "warning" | "video";
   variant: "success" | "warning" | "primary" | "info";
 }
 

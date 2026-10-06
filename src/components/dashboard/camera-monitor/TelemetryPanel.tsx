@@ -3,7 +3,7 @@
 import React from "react";
 import {
   Activity,
-  Sparkles,
+  BrainCircuit,
   Users,
   Moon,
   CheckCircle2,
@@ -121,7 +121,7 @@ export function TelemetryPanel({
         <div className="rounded-xl border border-border/80 bg-muted/30 p-3 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Indeks Atensi
+              <Activity className="h-3.5 w-3.5 text-primary" /> Indeks Atensi
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
@@ -329,7 +329,7 @@ export function TelemetryPanel({
         {hermesNudge && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-start gap-2.5 shadow-2xs">
             <div className="rounded-lg bg-primary/10 p-1.5 text-primary shrink-0 mt-0.5">
-              <Sparkles className="h-4 w-4" />
+              <BrainCircuit className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-0.5">

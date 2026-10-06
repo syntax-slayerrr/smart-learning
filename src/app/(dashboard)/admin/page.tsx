@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   QrCode,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { AdminScannerTrigger } from "./scanner-trigger";

@@ -8,7 +8,6 @@ import {
   AlertCircle,
   UserCheck,
   RefreshCw,
-  Sparkles,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -210,7 +209,7 @@ export function AiAttendanceDraftView({
       {/* Verified List Header */}
       <div className="flex items-center justify-between text-xs px-1">
         <span className="font-semibold text-foreground flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <UserCheck className="h-3.5 w-3.5 text-primary" />
           Draf Presensi ({verifiedList.length})
         </span>
         <div className="flex items-center gap-2">

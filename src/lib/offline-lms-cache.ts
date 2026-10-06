@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const DB_NAME = "smart_learning_offline_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface CachedMaterial {
   id: string;
@@ -17,6 +17,20 @@ export interface OfflineNote {
   chapter_id?: string;
   quote?: string;
   my_note: string;
+  created_at: string;
+  synced: boolean;
+}
+
+export interface OfflineQuizSubmission {
+  client_id: string;
+  student_id: string;
+  material_id?: string | null;
+  quiz_title: string;
+  score: number;
+  total_questions: number;
+  correct_count: number;
+  answers: Record<string | number, number>;
+  completed_duration_seconds?: number;
   created_at: string;
   synced: boolean;
 }
@@ -45,6 +59,10 @@ function openOfflineDB(): Promise<IDBDatabase> {
 
       if (!db.objectStoreNames.contains("offline_notes_queue")) {
         db.createObjectStore("offline_notes_queue", { keyPath: "client_id" });
+      }
+
+      if (!db.objectStoreNames.contains("offline_quizzes_queue")) {
+        db.createObjectStore("offline_quizzes_queue", { keyPath: "client_id" });
       }
     };
   });
@@ -132,7 +150,7 @@ export async function getCachedStudyNotes(): Promise<any[]> {
 export async function saveOfflineNote(note: Omit<OfflineNote, "client_id" | "synced" | "created_at">): Promise<OfflineNote> {
   const offlineNote: OfflineNote = {
     ...note,
-    client_id: "local_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    client_id: "local_note_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
     created_at: new Date().toISOString(),
     synced: false,
   };
@@ -147,6 +165,30 @@ export async function saveOfflineNote(note: Omit<OfflineNote, "client_id" | "syn
   }
 
   return offlineNote;
+}
+
+/**
+ * Save quiz submission locally while offline and enqueue for sync
+ */
+export async function saveOfflineQuiz(
+  quiz: Omit<OfflineQuizSubmission, "client_id" | "synced" | "created_at">
+): Promise<OfflineQuizSubmission> {
+  const offlineQuiz: OfflineQuizSubmission = {
+    ...quiz,
+    client_id: "local_quiz_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    created_at: new Date().toISOString(),
+    synced: false,
+  };
+
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction("offline_quizzes_queue", "readwrite");
+    tx.objectStore("offline_quizzes_queue").put(offlineQuiz);
+  } catch (err) {
+    console.warn("Offline Cache: Gagal menyimpan hasil kuis offline", err);
+  }
+
+  return offlineQuiz;
 }
 
 /**
@@ -183,7 +225,6 @@ export async function syncPendingOfflineNotes(): Promise<{ synced: number }> {
         });
 
         if (res.ok) {
-          // Remove from queue
           const delTx = db.transaction("offline_notes_queue", "readwrite");
           delTx.objectStore("offline_notes_queue").delete(note.client_id);
           syncedCount++;
@@ -201,23 +242,87 @@ export async function syncPendingOfflineNotes(): Promise<{ synced: number }> {
 }
 
 /**
+ * Sync all pending offline quizzes to remote API
+ */
+export async function syncPendingOfflineQuizzes(): Promise<{ synced: number }> {
+  try {
+    const db = await openOfflineDB();
+    const pendingQuizzes: OfflineQuizSubmission[] = await new Promise((resolve) => {
+      const tx = db.transaction("offline_quizzes_queue", "readonly");
+      const store = tx.objectStore("offline_quizzes_queue");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+
+    if (!pendingQuizzes || pendingQuizzes.length === 0) {
+      return { synced: 0 };
+    }
+
+    let syncedCount = 0;
+    for (const quiz of pendingQuizzes) {
+      try {
+        const res = await fetch("/api/lms/student/quiz-submission", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: quiz.student_id,
+            materialId: quiz.material_id,
+            quizTitle: quiz.quiz_title,
+            score: quiz.score,
+            totalQuestions: quiz.total_questions,
+            correctCount: quiz.correct_count,
+            answers: quiz.answers,
+            completedDurationSeconds: quiz.completed_duration_seconds,
+          }),
+        });
+
+        if (res.ok) {
+          const delTx = db.transaction("offline_quizzes_queue", "readwrite");
+          delTx.objectStore("offline_quizzes_queue").delete(quiz.client_id);
+          syncedCount++;
+        }
+      } catch (e) {
+        console.warn("Sync failed for quiz", quiz.client_id, e);
+      }
+    }
+
+    return { synced: syncedCount };
+  } catch (err) {
+    console.error("Gagal sinkronisasi kuis offline", err);
+    return { synced: 0 };
+  }
+}
+
+/**
  * Hook for monitoring online/offline status and queue size
  */
 export function useOfflineStatus() {
   const [isOnline, setIsOnline] = useState(true);
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [offlineQuizCount, setOfflineQuizCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const checkQueue = useCallback(async () => {
     try {
       const db = await openOfflineDB();
-      const tx = db.transaction("offline_notes_queue", "readonly");
-      const countReq = tx.objectStore("offline_notes_queue").count();
-      countReq.onsuccess = () => {
-        setOfflineQueueCount(countReq.result);
+      const tx = db.transaction(["offline_notes_queue", "offline_quizzes_queue"], "readonly");
+      const notesCountReq = tx.objectStore("offline_notes_queue").count();
+      const quizCountReq = tx.objectStore("offline_quizzes_queue").count();
+
+      let notesCount = 0;
+      notesCountReq.onsuccess = () => {
+        notesCount = notesCountReq.result;
+      };
+
+      quizCountReq.onsuccess = () => {
+        const qCount = quizCountReq.result;
+        setOfflineQuizCount(qCount);
+        setOfflineQueueCount(notesCount + qCount);
       };
     } catch {
       setOfflineQueueCount(0);
+      setOfflineQuizCount(0);
     }
   }, []);
 
@@ -225,7 +330,7 @@ export function useOfflineStatus() {
     if (!navigator.onLine || isSyncing) return;
     setIsSyncing(true);
     try {
-      await syncPendingOfflineNotes();
+      await Promise.all([syncPendingOfflineNotes(), syncPendingOfflineQuizzes()]);
       await checkQueue();
     } finally {
       setIsSyncing(false);
@@ -259,6 +364,7 @@ export function useOfflineStatus() {
   return {
     isOnline,
     offlineQueueCount,
+    offlineQuizCount,
     isSyncing,
     triggerSync,
   };
