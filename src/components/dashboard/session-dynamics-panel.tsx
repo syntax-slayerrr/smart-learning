@@ -16,7 +16,7 @@ import {
   BookOpen,
   Users,
   Activity,
-  Sparkles,
+  BrainCircuit,
   CheckCircle,
 } from "lucide-react";
 
@@ -242,7 +242,7 @@ export function SessionDynamicsPanel({
       {insights.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <BrainCircuit className="h-4 w-4 text-primary" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">
               Refleksi & Rekomendasi Pedagogis AI
             </h4>

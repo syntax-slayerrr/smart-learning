@@ -8,7 +8,6 @@ import {
   Target,
   AlertTriangle,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
   TrendingUp,
   BrainCircuit,
@@ -433,7 +432,7 @@ export function ExamReadinessRadar({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4" />
+                  <BrainCircuit className="h-4 w-4" />
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-900">

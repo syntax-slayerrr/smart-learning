@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Sparkles,
+  BrainCircuit,
+  Bot,
   Send,
   Lightbulb,
   BookmarkPlus,
@@ -565,7 +566,7 @@ export function SocraticDocumentViewer({
                 {!isStudent && (
                   <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
+                      <Bot className="h-3.5 w-3.5 text-[#007AFF]" />
                       <span className="text-[11px] font-bold text-slate-700 tracking-tight">
                         Smart AI Mentor
                       </span>
@@ -669,7 +670,7 @@ export function SocraticDocumentViewer({
         {isAiThinking && (
           <div className="flex flex-col items-start">
             <div className="rounded-2xl sm:rounded-3xl p-4 bg-white/85 backdrop-blur-xl border border-white/80 shadow-xs flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#007AFF] animate-spin" />
+              <BrainCircuit className="h-4 w-4 text-[#007AFF] animate-pulse" />
               <span className="text-xs text-slate-500 font-medium">
                 Smart AI sedang menganalisis materi bab...
               </span>

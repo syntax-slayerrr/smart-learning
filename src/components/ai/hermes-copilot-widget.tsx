@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  Sparkles,
   X,
   Send,
   Bot,
@@ -450,7 +449,7 @@ export function HermesCopilotWidget() {
                 disabled={isLoading}
                 className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3 py-1 font-medium text-slate-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs whitespace-nowrap"
               >
-                <Sparkles className="h-3 w-3 text-blue-500 shrink-0" />
+                <Bot className="h-3 w-3 text-blue-500 shrink-0" />
                 <span>{prompt}</span>
               </button>
             ))}

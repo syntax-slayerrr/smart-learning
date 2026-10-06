@@ -5,7 +5,7 @@ import {
   Mic,
   MicOff,
   CheckCircle2,
-  Sparkles,
+  BrainCircuit,
   Award,
   Loader2,
   FileCheck,
