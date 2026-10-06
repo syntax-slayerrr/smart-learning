@@ -8,11 +8,8 @@ import {
   X,
   RefreshCw,
   Sun,
-  Focus,
-  Sparkles,
   ShieldCheck,
   ChevronRight,
-  Zap,
   Check,
   Lock,
 } from "lucide-react";
@@ -35,8 +32,8 @@ interface QualityChecks {
   stability: boolean;
 }
 
-// Gentle audio synthesizer for Apple/Fintech feel
-function playTone(freq = 880, duration = 0.12, type: OscillatorType = "sine") {
+// Gentle audio synthesizer for Apple/institutional feel
+function playTone(freq = 880, duration = 0.1, type: OscillatorType = "sine") {
   try {
     const AudioCtx =
       typeof window !== "undefined"
@@ -49,7 +46,7 @@ function playTone(freq = 880, duration = 0.12, type: OscillatorType = "sine") {
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -62,12 +59,12 @@ function playTone(freq = 880, duration = 0.12, type: OscillatorType = "sine") {
 
 function playSuccessChime() {
   playTone(523.25, 0.08); // C5
-  setTimeout(() => playTone(659.25, 0.08), 80); // E5
-  setTimeout(() => playTone(783.99, 0.16), 160); // G5
+  setTimeout(() => playTone(659.25, 0.08), 70); // E5
+  setTimeout(() => playTone(783.99, 0.14), 140); // G5
 }
 
 function playStepChime() {
-  playTone(784, 0.09); // G5
+  playTone(740, 0.08); // F#5 subtle click
 }
 
 export function FaceIdEnrollmentModal({
@@ -86,8 +83,7 @@ export function FaceIdEnrollmentModal({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [, setCapturedFrames] = useState<string[]>([]);
-  const [autoProgress, setAutoProgress] = useState(0); // 0 - 100 for current step hold
-  const [totalProgress, setTotalProgress] = useState(0); // 0, 33, 66, 100
+  const [autoProgress, setAutoProgress] = useState(0); // 0 - 100
   const [flashActive, setFlashActive] = useState(false);
 
   const [quality, setQuality] = useState<QualityChecks>({
@@ -97,30 +93,30 @@ export function FaceIdEnrollmentModal({
     stability: true,
   });
 
-  const [instruction, setInstruction] = useState("Arahkan wajah ke dalam oval");
+  const [instruction, setInstruction] = useState("Posisikan wajah di dalam oval");
   const autoProgressRef = useRef(0);
   const stepRef = useRef<StepType>("frontal");
   const isCapturingRef = useRef(false);
   const detectorRef = useRef<unknown>(null);
   const isDetectorLoadingRef = useRef<boolean>(false);
 
-  // State machine tracker untuk liveness kedipan mata (mencegah false scan)
+  // State machine tracker liveness kedipan mata murni (tanpa bypass waktu)
   const blinkTrackerRef = useRef<{
     baselineDarkRatio: number | null;
     baselineVariance: number | null;
     calibratedFrames: number;
     isEyeClosed: boolean;
     closedStartTime: number;
+    closedConsecutiveFrames: number;
     blinkVerified: boolean;
-    stageStartTime: number;
   }>({
     baselineDarkRatio: null,
     baselineVariance: null,
     calibratedFrames: 0,
     isEyeClosed: false,
     closedStartTime: 0,
+    closedConsecutiveFrames: 0,
     blinkVerified: false,
-    stageStartTime: 0,
   });
 
   const graceCounterRef = useRef<number>(0);
@@ -169,8 +165,8 @@ export function FaceIdEnrollmentModal({
         err && typeof err === "object" && "name" in err && err.name === "NotAllowedError";
       setCameraError(
         isNotAllowed
-          ? "Izin akses kamera ditolak. Silakan izinkan akses kamera di browser Anda."
-          : "Kamera tidak terdeteksi atau sedang digunakan aplikasi lain."
+          ? "Izin akses kamera ditolak. Mohon aktifkan izin kamera pada browser."
+          : "Kamera tidak terdeteksi atau sedang aktif di aplikasi lain."
       );
     }
   }, []);
@@ -181,14 +177,14 @@ export function FaceIdEnrollmentModal({
     isCapturingRef.current = true;
     setIsCapturing(true);
 
-    // Visual Flash & Audio Feedback
+    // Visual Flash & Audio Feedback yang halus
     setFlashActive(true);
-    setTimeout(() => setFlashActive(false), 240);
+    setTimeout(() => setFlashActive(false), 200);
     playStepChime();
 
     // Haptic feedback jika didukung perangkat
     if (typeof window !== "undefined" && "vibrate" in navigator) {
-      navigator.vibrate(60);
+      navigator.vibrate(40);
     }
 
     // Ambil snapshot frame ke canvas internal
@@ -207,14 +203,12 @@ export function FaceIdEnrollmentModal({
     const currentStep = stepRef.current;
 
     if (currentStep === "frontal") {
-      setTotalProgress(33);
       setAutoProgress(0);
       setStep("angle");
       stepRef.current = "angle";
-      setInstruction("Bagus! Sekarang miringkan kepala sedikit (~10°)");
+      setInstruction("Miringkan kepala sedikit ke kanan atau kiri (~10°)");
       setIsCapturing(false);
     } else if (currentStep === "angle") {
-      setTotalProgress(66);
       setAutoProgress(0);
       setStep("liveness");
       stepRef.current = "liveness";
@@ -224,17 +218,16 @@ export function FaceIdEnrollmentModal({
         calibratedFrames: 0,
         isEyeClosed: false,
         closedStartTime: 0,
+        closedConsecutiveFrames: 0,
         blinkVerified: false,
-        stageStartTime: Date.now(),
       };
-      setInstruction("Sempurna! Terakhir, tatap kamera & kedipkan mata");
+      setInstruction("Tatap kamera dengan tenang...");
       setIsCapturing(false);
     } else if (currentStep === "liveness") {
-      setTotalProgress(100);
       setAutoProgress(100);
       setStep("processing");
       stepRef.current = "processing";
-      setInstruction("Mengekstrak biometrik & mengenkripsi data...");
+      setInstruction("Memverifikasi dan mengenkripsi profil biometrik...");
       stopCamera();
 
       try {
@@ -258,19 +251,18 @@ export function FaceIdEnrollmentModal({
           });
           setTimeout(() => {
             setStep("success");
-            setInstruction("Pendaftaran Face ID Berhasil!");
+            setInstruction("Pendaftaran Face ID Berhasil");
             playSuccessChime();
             if (typeof window !== "undefined" && "vibrate" in navigator) {
-              navigator.vibrate([60, 40, 90]);
+              navigator.vibrate([40, 30, 60]);
             }
-          }, 900);
+          }, 600);
         } else {
-          setCameraError("Gagal mendaftarkan biometrik ke server. Coba lagi.");
+          setCameraError("Gagal menyimpan data biometrik ke server. Silakan coba lagi.");
           setStep("frontal");
-          setTotalProgress(0);
         }
       } catch {
-        // Fallback local simulated success with persistent cache
+        // Fallback simpan lokal bila server sedang offline
         saveFaceIdEnrollmentStatus({
           isEnrolled: true,
           studentName,
@@ -281,9 +273,9 @@ export function FaceIdEnrollmentModal({
         });
         setTimeout(() => {
           setStep("success");
-          setInstruction("Pendaftaran Face ID Berhasil!");
+          setInstruction("Pendaftaran Face ID Berhasil");
           playSuccessChime();
-        }, 900);
+        }, 600);
       } finally {
         setIsCapturing(false);
       }
@@ -305,7 +297,6 @@ export function FaceIdEnrollmentModal({
 
     const vidW = video.videoWidth || 640;
     const vidH = video.videoHeight || 480;
-    // Pertahankan proporsi aspek rasio video saat sampling canvas
     const sampleW = vidW >= vidH ? 160 : 120;
     const sampleH = vidW >= vidH ? 120 : 160;
     canvas.width = sampleW;
@@ -319,18 +310,15 @@ export function FaceIdEnrollmentModal({
       // 1. Analisis pencahayaan (Luminance)
       let totalBrightness = 0;
       for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        totalBrightness += 0.299 * r + 0.587 * g + 0.114 * b;
+        totalBrightness += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       }
       const avgBrightness = totalBrightness / (data.length / 4);
 
       let lightingStatus: QualityChecks["lighting"] = "optimal";
-      if (avgBrightness < 30) lightingStatus = "low";
-      else if (avgBrightness > 235) lightingStatus = "high";
+      if (avgBrightness < 28) lightingStatus = "low";
+      else if (avgBrightness > 238) lightingStatus = "high";
 
-      // 2. Analisis kestabilan gerakan (Stability / Motion Delta)
+      // 2. Analisis kestabilan gerakan (Stability)
       let motionDelta = 0;
       if (prevFrameDataRef.current && prevFrameDataRef.current.length === data.length) {
         let diffSum = 0;
@@ -341,7 +329,7 @@ export function FaceIdEnrollmentModal({
       }
       prevFrameDataRef.current = new Uint8ClampedArray(data);
 
-      const isStable = motionDelta < 26; // Gerakan wajar
+      const isStable = motionDelta < 28;
       const isLightingGood = lightingStatus === "optimal";
 
       // 3. Face Detection & Oval Gating
@@ -362,12 +350,12 @@ export function FaceIdEnrollmentModal({
         stability: isStable,
       });
 
-      // Perbarui panduan teks sesuai evaluasi biometrik
+      // 4. Update instruksi teks biometrik
       if (faceEval.statusMessage && stepRef.current !== "processing" && stepRef.current !== "success") {
         setInstruction(faceEval.statusMessage);
       }
 
-      // 4. Auto-Progress Timer Logic
+      // 5. Auto-Progress Timer Logic
       if (
         isLightingGood &&
         isFaceValid &&
@@ -410,66 +398,75 @@ export function FaceIdEnrollmentModal({
             }
           }
         } else if (stepRef.current === "liveness") {
-          // KHUSUS TAHAP LIVENESS: WAJIB MENUNGGU KEDIPAN MATA ASLI!
+          // =========================================================================
+          // LOGIKA VERIFIKASI KEDIP MURNI (TANPA TIMEOUT AUTO-PASS)
+          // Siklus: Baseline Mata Terbuka -> Penutupan Nyata (>=2 frame) -> Pembukaan Kembali
+          // =========================================================================
           const tracker = blinkTrackerRef.current;
-          if (tracker.stageStartTime === 0) {
-            tracker.stageStartTime = Date.now();
-          }
 
           if (tracker.blinkVerified) {
             setAutoProgress(100);
           } else {
             const metrics = faceEval.eyeMetrics;
-            const eyes = faceEval.eyesState;
 
-            // 1. Kalibrasi baseline mata pengguna
-            if (metrics && tracker.calibratedFrames < 3) {
+            // FASE 1: Kalibrasi baseline mata terbuka (kumpulkan minimal 6 frame stabil)
+            if (metrics && tracker.calibratedFrames < 6) {
               if (tracker.baselineDarkRatio === null || tracker.baselineVariance === null) {
                 tracker.baselineDarkRatio = metrics.darkRatio;
                 tracker.baselineVariance = metrics.variance;
               } else {
-                tracker.baselineDarkRatio = tracker.baselineDarkRatio * 0.7 + metrics.darkRatio * 0.3;
-                tracker.baselineVariance = tracker.baselineVariance * 0.7 + metrics.variance * 0.3;
+                tracker.baselineDarkRatio = tracker.baselineDarkRatio * 0.75 + metrics.darkRatio * 0.25;
+                tracker.baselineVariance = tracker.baselineVariance * 0.75 + metrics.variance * 0.25;
               }
               tracker.calibratedFrames++;
-              setInstruction("Tatap kamera lalu kedipkan mata...");
-            } else {
-              // 2. Evaluasi deteksi kedipan (relatif terhadap baseline pengguna)
-              const baseDark = tracker.baselineDarkRatio ?? 0.10;
-              const baseVar = tracker.baselineVariance ?? 300;
+              setAutoProgress(0);
+              setInstruction("Tatap kamera dengan rileks...");
+            } else if (metrics && tracker.baselineVariance !== null && tracker.baselineDarkRatio !== null) {
+              // FASE 2: Deteksi transisi penutupan dan pembukaan mata
+              const baseVar = tracker.baselineVariance;
+              const baseDark = tracker.baselineDarkRatio;
+
+              // Penutupan kelopak mata menghasilkan penurunan drastis variasi tekstur pupil
+              const varDropRatio = metrics.variance / Math.max(baseVar, 1);
+              const darkDropRatio = baseDark > 0.02 ? metrics.darkRatio / baseDark : 1.0;
 
               const isEyeClosing =
-                eyes === "closed" ||
-                (metrics !== undefined && (
-                  metrics.darkRatio < 0.05 ||
-                  metrics.darkRatio <= baseDark * 0.70 ||
-                  metrics.variance <= baseVar * 0.65 ||
-                  metrics.variance < 170
-                ));
+                varDropRatio < 0.60 ||
+                (darkDropRatio < 0.55 && varDropRatio < 0.78);
 
               if (isEyeClosing) {
-                if (!tracker.isEyeClosed) {
-                  tracker.isEyeClosed = true;
-                  tracker.closedStartTime = Date.now();
-                  setInstruction("Mata terpejam... buka kembali");
-                } else {
-                  const duration = Date.now() - tracker.closedStartTime;
-                  if (duration > 1600) {
-                    tracker.isEyeClosed = false;
-                    tracker.calibratedFrames = 0;
-                    setInstruction("Buka mata Anda kembali...");
+                tracker.closedConsecutiveFrames++;
+                // Perlu minimal 2 frame berturut-turut untuk menghindari noise kamera 1 frame
+                if (tracker.closedConsecutiveFrames >= 2) {
+                  if (!tracker.isEyeClosed) {
+                    tracker.isEyeClosed = true;
+                    tracker.closedStartTime = Date.now();
+                    setInstruction("Mata terpejam... buka kembali");
+                  } else {
+                    const elapsedClosed = Date.now() - tracker.closedStartTime;
+                    if (elapsedClosed > 1400) {
+                      // Terlalu lama memejamkan mata (bukan kedipan alami)
+                      tracker.isEyeClosed = false;
+                      tracker.closedConsecutiveFrames = 0;
+                      tracker.calibratedFrames = 3;
+                      setInstruction("Buka mata kembali dan kedipkan secara natural");
+                    }
                   }
                 }
               } else {
-                // Mata dalam kondisi terbuka / kembali terbuka
+                // Mata dalam kondisi terbuka / telah kembali terbuka
                 if (tracker.isEyeClosed) {
-                  const duration = Date.now() - tracker.closedStartTime;
+                  const closedDuration = Date.now() - tracker.closedStartTime;
                   tracker.isEyeClosed = false;
+                  tracker.closedConsecutiveFrames = 0;
 
-                  // Kedipan alami: 60ms - 950ms
-                  if (duration >= 60 && duration <= 950) {
+                  // Kedipan alami manusia berlangsung antara 80ms - 900ms
+                  // dan variasi tekstur mata kembali mendekati baseline
+                  const isReopened = varDropRatio > 0.75 || darkDropRatio > 0.70;
+
+                  if (closedDuration >= 80 && closedDuration <= 900 && isReopened) {
                     tracker.blinkVerified = true;
-                    setInstruction("Kedipan terverifikasi! ✓");
+                    setInstruction("Kedipan terverifikasi ✓");
                     playSuccessChime();
                     if (typeof window !== "undefined" && "vibrate" in navigator) {
                       navigator.vibrate([40, 50, 80]);
@@ -477,40 +474,25 @@ export function FaceIdEnrollmentModal({
                     setAutoProgress(100);
                     setTimeout(() => {
                       executeCapture();
-                    }, 200);
+                    }, 220);
                     return;
                   } else {
-                    tracker.calibratedFrames = 0;
-                    setInstruction("Kedipkan mata sekali lagi...");
+                    tracker.calibratedFrames = 3;
+                    setInstruction("Kedipkan kedua mata secara perlahan");
                   }
                 } else {
-                  setInstruction("Silakan kedipkan mata sekarang...");
+                  tracker.closedConsecutiveFrames = 0;
+                  setInstruction("Silakan kedipkan kedua mata");
                 }
-              }
-
-              // 3. Fallback pengaman (jika pengguna stabil & menghadap kamera selama >= 3 detik)
-              const stageElapsed = Date.now() - tracker.stageStartTime;
-              if (stageElapsed >= 3000 && !tracker.blinkVerified) {
-                tracker.blinkVerified = true;
-                setInstruction("Liveness terverifikasi! ✓");
-                playSuccessChime();
-                if (typeof window !== "undefined" && "vibrate" in navigator) {
-                  navigator.vibrate([40, 50, 80]);
-                }
-                setAutoProgress(100);
-                setTimeout(() => {
-                  executeCapture();
-                }, 200);
-                return;
               }
             }
           }
         }
       } else {
-        // Toleransi distraksi / jitter sementara (grace period ~400ms / 12 frames)
+        // Toleransi distraksi sementara
         graceCounterRef.current++;
-        if (graceCounterRef.current > 12) {
-          setAutoProgress((prev) => Math.max(prev - 0.3, 0));
+        if (graceCounterRef.current > 14) {
+          setAutoProgress((prev) => Math.max(prev - 0.25, 0));
         }
       }
     } catch {
@@ -527,17 +509,16 @@ export function FaceIdEnrollmentModal({
       setStep("frontal");
       stepRef.current = "frontal";
       setAutoProgress(0);
-      setTotalProgress(0);
       setCapturedFrames([]);
-      setInstruction("Arahkan wajah ke dalam oval");
+      setInstruction("Posisikan wajah di dalam oval");
       blinkTrackerRef.current = {
         baselineDarkRatio: null,
         baselineVariance: null,
         calibratedFrames: 0,
         isEyeClosed: false,
         closedStartTime: 0,
+        closedConsecutiveFrames: 0,
         blinkVerified: false,
-        stageStartTime: 0,
       };
       graceCounterRef.current = 0;
 
@@ -569,7 +550,7 @@ export function FaceIdEnrollmentModal({
 
   if (!isOpen) return null;
 
-  // Keliling elips rx=95, ry=135 -> ~728px untuk animasi stroke-dashoffset melingkar clockwise
+  // Keliling elips rx=95, ry=135 -> ~728px untuk lingkaran progres
   const ovalPerimeter = 728;
   const strokeOffset = ovalPerimeter - (autoProgress / 100) * ovalPerimeter;
 
@@ -577,52 +558,46 @@ export function FaceIdEnrollmentModal({
     step === "frontal" ? 1 : step === "angle" ? 2 : step === "liveness" ? 3 : 3;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-card border border-border shadow-2xl text-card-foreground flex flex-col transition-all">
-        {/* Header Modal - Apple Glassmorphism Aesthetic */}
-        <div className="flex items-center justify-between border-b border-border/80 px-5 py-4 bg-muted/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
-              <ShieldCheck className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-slate-100 flex flex-col transition-all">
+        {/* Header Modal - Formal & Minimalist Apple Aesthetic */}
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-5 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <ShieldCheck className="h-4 w-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-bold leading-tight tracking-tight text-foreground">
-                  Pendaftaran Face ID
-                </h2>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <Zap className="h-2.5 w-2.5" />
-                  Auto-Scan
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {studentName} • Presensi Otomatis
+              <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
+                Verifikasi Wajah
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Presensi Siswa • {studentName}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Tutup modal"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Tutup"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Multi-Step Segmented Bar (3 Stages: Frontal, Angle, Liveness) */}
+        {/* Minimalist 3-Step Indicator Bar */}
         {step !== "success" && (
-          <div className="px-5 pt-3 pb-2 border-b border-border/40 bg-muted/10">
-            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground mb-1.5">
-              <span>Tahap {currentStepNum} dari 3</span>
-              <span className="font-semibold text-foreground">
+          <div className="px-5 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/40">
+            <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+              <span>Langkah {currentStepNum} dari 3</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">
                 {step === "frontal"
-                  ? "Hadap Lurus"
+                  ? "Wajah Lurus"
                   : step === "angle"
-                  ? "Miringkan Kepala"
-                  : "Kedipkan Mata"}
+                  ? "Sudut Kepala"
+                  : "Kedip Mata"}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+            <div className="grid grid-cols-3 gap-1.5 h-1 w-full">
               {[1, 2, 3].map((sIndex) => {
                 const isCompleted = currentStepNum > sIndex;
                 const isCurrent = currentStepNum === sIndex;
@@ -633,8 +608,8 @@ export function FaceIdEnrollmentModal({
                       isCompleted
                         ? "bg-emerald-500"
                         : isCurrent
-                        ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]"
-                        : "bg-muted-foreground/20"
+                        ? "bg-slate-900 dark:bg-slate-100"
+                        : "bg-slate-200 dark:bg-slate-800"
                     }`}
                   />
                 );
@@ -643,22 +618,22 @@ export function FaceIdEnrollmentModal({
           </div>
         )}
 
-        {/* Viewport Kamera Interaktif (Portrait Squircle - Ergonomis Layar Smartphone) */}
-        <div className="relative p-5 sm:p-6 flex flex-col items-center">
+        {/* Viewport Kamera Bersih & Formal (Tanpa Efek Laser / Neon Berlebihan) */}
+        <div className="relative p-5 flex flex-col items-center">
           <canvas ref={canvasRef} className="hidden" />
 
           {step !== "success" ? (
-            <div className="relative w-full aspect-[3/4] max-w-[280px] sm:max-w-[300px] overflow-hidden rounded-3xl bg-zinc-950 border border-border shadow-md flex items-center justify-center">
+            <div className="relative w-full aspect-[3/4] max-w-[260px] overflow-hidden rounded-2xl bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
               {cameraError ? (
-                <div className="p-6 text-center space-y-3">
-                  <AlertCircle className="mx-auto h-10 w-10 text-amber-500" />
-                  <p className="text-xs text-zinc-300 leading-relaxed">{cameraError}</p>
+                <div className="p-5 text-center space-y-3">
+                  <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
+                  <p className="text-xs text-slate-300 leading-relaxed">{cameraError}</p>
                   <button
                     onClick={startCamera}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 transition-colors"
                   >
-                    <RefreshCw className="h-4 w-4" />
-                    Coba Hubungkan Ulang
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Hubungkan Ulang
                   </button>
                 </div>
               ) : (
@@ -670,188 +645,115 @@ export function FaceIdEnrollmentModal({
                     className="absolute inset-0 h-full w-full object-cover -scale-x-100"
                   />
 
-                  {/* Flash visual saat capture otomatis berhasil */}
+                  {/* Flash halus saat capture berhasil */}
                   {flashActive && (
-                    <div className="absolute inset-0 bg-white/70 animate-out fade-out duration-300 pointer-events-none z-20" />
+                    <div className="absolute inset-0 bg-white/60 animate-out fade-out duration-200 pointer-events-none z-20" />
                   )}
 
-                  {/* Subtle Laser Scan Line Animasi */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
-                    <div className="w-[190px] h-[270px] relative">
-                      <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-80 shadow-[0_0_12px_rgba(59,130,246,0.8)] animate-pulse -translate-y-full animate-[scan_2.2s_ease-in-out_infinite]" />
-                    </div>
-                  </div>
-
-                  {/* Masking Oval Apple Face ID Guide (Portrait Aspect 300x400) */}
+                  {/* Oval Masking Guide Minimalis */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <svg className="w-full h-full" viewBox="0 0 300 400">
                       <defs>
-                        <mask id="oval-portrait-cutout">
+                        <mask id="formal-oval-cutout">
                           <rect width="300" height="400" fill="white" />
                           <ellipse cx="150" cy="190" rx="95" ry="135" fill="black" />
                         </mask>
-                        <linearGradient id="faceRingProgressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#10b981" />
-                        </linearGradient>
                       </defs>
 
                       {/* Vignette gelap di sekeliling oval */}
                       <rect
                         width="300"
                         height="400"
-                        fill="rgba(9, 9, 11, 0.68)"
-                        mask="url(#oval-portrait-cutout)"
+                        fill="rgba(15, 23, 42, 0.60)"
+                        mask="url(#formal-oval-cutout)"
                       />
 
-                      {/* Outline Oval Latar Belakang (Dashed Guide) */}
+                      {/* Hairline Oval Outline */}
                       <ellipse
                         cx="150"
                         cy="190"
                         rx="95"
                         ry="135"
                         fill="none"
-                        stroke={quality.centered ? "rgba(16, 185, 129, 0.5)" : "rgba(255, 255, 255, 0.3)"}
+                        stroke={quality.centered ? "rgba(16, 185, 129, 0.45)" : "rgba(255, 255, 255, 0.25)"}
+                        strokeWidth="1.5"
+                        strokeDasharray="4 4"
+                      />
+
+                      {/* Clean Progress Stroke */}
+                      <ellipse
+                        cx="150"
+                        cy="190"
+                        rx="95"
+                        ry="135"
+                        fill="none"
+                        stroke={quality.centered ? "#10b981" : "#94a3b8"}
                         strokeWidth="2.5"
-                        strokeDasharray="6 6"
-                      />
-
-                      {/* Animated Progress Ring (Mengisi Otomatis Mengelilingi Wajah) */}
-                      <ellipse
-                        cx="150"
-                        cy="190"
-                        rx="95"
-                        ry="135"
-                        fill="none"
-                        stroke="url(#faceRingProgressGrad)"
-                        strokeWidth="4.5"
                         strokeDasharray={ovalPerimeter}
                         strokeDashoffset={strokeOffset}
                         strokeLinecap="round"
                         style={{
                           transition: "stroke-dashoffset 0.08s linear",
                         }}
-                        className="filter drop-shadow-[0_0_8px_rgba(59,130,246,0.7)]"
                       />
                     </svg>
 
-                    {/* Floating Status Ring Badge di dalam Camera Viewport */}
-                    <div className="absolute bottom-4 flex items-center justify-center w-full px-4">
-                      <div
-                        className={`backdrop-blur-md px-3.5 py-1.5 rounded-full border text-[11px] font-medium flex items-center gap-1.5 shadow-lg transition-colors ${
-                          quality.centered
-                            ? "bg-black/75 border-emerald-500/40 text-emerald-400"
-                            : "bg-black/75 border-amber-500/40 text-amber-300"
-                        }`}
-                      >
-                        <span className="relative flex h-2 w-2">
-                          <span
-                            className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                              quality.centered ? "bg-emerald-400" : "bg-amber-400"
-                            }`}
-                          />
-                          <span
-                            className={`relative inline-flex rounded-full h-2 w-2 ${
-                              quality.centered ? "bg-emerald-400" : "bg-amber-400"
-                            }`}
-                          />
-                        </span>
-                        <span>
-                          {quality.centered
-                            ? `Posisi Pas • Menyimpan ${Math.round(autoProgress)}%`
-                            : instruction || "Arahkan Wajah ke Oval"}
-                        </span>
+                    {/* Status Pill Tunggal & Rapi di Bawah Kamera */}
+                    <div className="absolute bottom-3 flex items-center justify-center w-full px-4">
+                      <div className="backdrop-blur-md bg-slate-900/80 px-3 py-1 rounded-full border border-white/10 text-[11px] font-medium text-white shadow-xs text-center truncate max-w-[220px]">
+                        {quality.centered
+                          ? step === "liveness"
+                            ? instruction
+                            : `Posisi Tepat • ${Math.round(autoProgress)}%`
+                          : instruction || "Posisikan wajah di dalam oval"}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Badge Tahap di Sudut Kiri Atas Viewport */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-medium border border-white/10 text-white">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    <span>
-                      {step === "frontal"
-                        ? "1/3 Lurus"
-                        : step === "angle"
-                        ? "2/3 Miring"
-                        : "3/3 Kedip"}
-                    </span>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            /* Tampilan Sukses (Apple Verified Card) */
-            <div className="w-full aspect-[3/4] max-w-[280px] sm:max-w-[300px] rounded-3xl bg-muted/20 border border-emerald-500/30 flex flex-col items-center justify-center p-6 text-center space-y-4 shadow-sm">
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 animate-in zoom-in-75">
-                <CheckCircle2 className="h-10 w-10" />
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-white font-bold">
-                  <Check className="h-3 w-3" />
-                </span>
+            /* Tampilan Sukses Minimalis & Formal */
+            <div className="w-full aspect-[3/4] max-w-[260px] rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center p-6 text-center space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 className="h-6 w-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground tracking-tight">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                   Biometrik Terverifikasi
                 </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
-                  Data profil Face ID tersimpan aman. Presensi otomatis akan langsung mengenali Anda di kelas.
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-[200px]">
+                  Data profil Face ID tersimpan aman untuk presensi mandiri.
                 </p>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-card px-3.5 py-1.5 border border-border text-[11px] font-medium text-muted-foreground shadow-2xs">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span>3 Sudut Biometrik Aktif</span>
               </div>
             </div>
           )}
 
-          {/* Dynamic Guidance Banner */}
-          <div className="mt-4 text-center space-y-1 max-w-xs">
-            <p className="text-sm font-semibold tracking-tight text-foreground flex items-center justify-center gap-1.5">
-              <span>{instruction}</span>
+          {/* Feedback Teks Instruksi Bawah */}
+          <div className="mt-3.5 text-center space-y-0.5 max-w-xs">
+            <p className="text-xs font-medium text-slate-900 dark:text-slate-100">
+              {instruction}
             </p>
             {quality.lighting === "low" && step !== "success" ? (
-              <p className="text-xs text-amber-500 flex items-center justify-center gap-1 font-medium">
-                <Sun className="h-3.5 w-3.5" />
-                Ruangan agak gelap, hadapkan wajah ke arah cahaya
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
+                <Sun className="h-3 w-3" />
+                Pencahayaan rendah • Arahkan wajah ke sumber cahaya
               </p>
             ) : step !== "success" ? (
-              <p className="text-[11px] text-muted-foreground">
-                Tahan posisi beberapa detik untuk merekam otomatis
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                {step === "liveness"
+                  ? "Sistem memvalidasi keaslian melalui kedipan mata alami"
+                  : "Pastikan wajah tampak jelas tanpa tertutup masker atau topi"}
               </p>
             ) : null}
           </div>
-
-          {/* Clean Quality Chips Strip */}
-          {step !== "success" && !cameraError && (
-            <div className="mt-3 flex items-center gap-2 text-[11px]">
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-colors ${
-                  quality.lighting === "optimal"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                }`}
-              >
-                <Sun className="h-3 w-3" />
-                <span>Cahaya: {quality.lighting === "optimal" ? "Optimal" : "Kurang"}</span>
-              </div>
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-colors ${
-                  quality.centered
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                }`}
-              >
-                <Focus className="h-3 w-3" />
-                <span>Posisi: {quality.centered ? "Pas" : "Belum Pas"}</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Footer Actions (Apple HIG & Secure On-Device Badge) */}
-        <div className="border-t border-border/80 bg-muted/20 px-5 py-3.5 flex items-center justify-between">
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 font-medium">
-            <Lock className="h-3.5 w-3.5 text-emerald-500" />
-            <span>Enkripsi AES-256 On-Device</span>
+        {/* Footer Minimalis & Formal */}
+        <div className="border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 px-5 py-3 flex items-center justify-between">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 font-medium">
+            <Lock className="h-3 w-3 text-slate-400" />
+            <span>Enkripsi Biometrik Lokal</span>
           </div>
 
           <div>
@@ -861,24 +763,21 @@ export function FaceIdEnrollmentModal({
                   onSuccess();
                   onClose();
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 active:scale-95 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-slate-100 px-3.5 py-1.5 text-xs font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white active:scale-95 transition-all"
               >
                 <span>Selesai & Aktifkan</span>
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <div className="flex items-center gap-2">
-                {/* Secondary manual capture trigger */}
-                <button
-                  onClick={executeCapture}
-                  disabled={isCapturing || !!cameraError || step === "processing"}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted active:scale-95 disabled:opacity-40 transition-all shadow-2xs"
-                  title="Ambil manual bila kondisi ruangan kurang ideal"
-                >
-                  <Camera className="h-3.5 w-3.5 text-primary" />
-                  <span>Ambil Manual</span>
-                </button>
-              </div>
+              <button
+                onClick={executeCapture}
+                disabled={isCapturing || !!cameraError || step === "processing"}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 active:scale-95 disabled:opacity-40 transition-all"
+                title="Ambil foto manual bila kondisi kamera terbatas"
+              >
+                <Camera className="h-3 w-3" />
+                <span>Ambil Manual</span>
+              </button>
             )}
           </div>
         </div>

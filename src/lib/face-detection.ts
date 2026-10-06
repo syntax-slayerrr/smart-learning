@@ -88,8 +88,13 @@ export function analyzeEyeClosure(
     return { state: "unknown", darkRatio: 0, variance: 0, meanLum: 0 };
   }
 
-  const rx = 6;
-  const ry = 4;
+  // Hitung Inter-Pupillary Distance (IPD) dalam pixel untuk ukuran patch adaptif
+  const ipd = Math.hypot(
+    (leftEyeNorm.x - rightEyeNorm.x) * w,
+    (leftEyeNorm.y - rightEyeNorm.y) * h
+  );
+  const rx = Math.max(8, Math.min(26, Math.round(ipd * 0.16)));
+  const ry = Math.max(6, Math.min(18, Math.round(ipd * 0.11)));
 
   const eyes = [
     { px: Math.round(rightEyeNorm.x * w), py: Math.round(rightEyeNorm.y * h) },
@@ -139,17 +144,7 @@ export function analyzeEyeClosure(
   const variance = varSum / totalPixels;
   const darkRatio = totalDarkPixels / totalPixels;
 
-  let state: "open" | "closed" | "unknown" = "open";
-  // Deteksi mata tertutup jika dark ratio turun signifikan atau varians kontras merosot
-  if (darkRatio <= 0.05 || variance < 180) {
-    state = "closed";
-  } else if (darkRatio >= 0.08 || variance >= 260) {
-    state = "open";
-  } else {
-    state = "unknown";
-  }
-
-  return { state, darkRatio, variance, meanLum };
+  return { state: "unknown", darkRatio, variance, meanLum };
 }
 
 /**
