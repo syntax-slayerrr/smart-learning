@@ -13,6 +13,6 @@ export const config = {
      * - favicon.ico, manifest.json, sw.js
      * - images, wasm, tflite & public static assets
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|wasm|tflite|bin|data)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|webm|wasm|tflite|bin|data)$).*)",
   ],
 };
