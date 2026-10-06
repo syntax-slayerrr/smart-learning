@@ -185,15 +185,21 @@ export function SocraticDocumentViewer({
   const [showChapterMenu, setShowChapterMenu] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll chat to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Auto-scroll chat to bottom without scrolling window
+  const scrollToBottom = (smooth = true) => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(true);
   }, [chatMessages, isAiThinking]);
 
   // Initial prompt trigger
@@ -212,21 +218,32 @@ export function SocraticDocumentViewer({
     };
   }, []);
 
-  // Visual Viewport tracking for mobile virtual keyboard
+  // Visual Viewport tracking for mobile virtual keyboard (strict lock to prevent window scroll)
   useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
+    if (typeof window === "undefined") return;
 
-    const vv = window.visualViewport;
-    const handleViewportChange = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Keep window scroll strictly at 0 so page headers are never pushed off-screen
+    const handleWindowScroll = () => {
+      if (window.scrollY > 0) {
+        window.scrollTo(0, 0);
+      }
     };
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
 
-    vv.addEventListener("resize", handleViewportChange);
-    vv.addEventListener("scroll", handleViewportChange);
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      const handleViewportChange = () => {
+        scrollToBottom(false);
+      };
+      vv.addEventListener("resize", handleViewportChange);
+      return () => {
+        window.removeEventListener("scroll", handleWindowScroll);
+        vv.removeEventListener("resize", handleViewportChange);
+      };
+    }
 
     return () => {
-      vv.removeEventListener("resize", handleViewportChange);
-      vv.removeEventListener("scroll", handleViewportChange);
+      window.removeEventListener("scroll", handleWindowScroll);
     };
   }, []);
 
@@ -529,7 +546,10 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 2. CHAT FEED: Dedicated Native Scroll Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-3.5 py-4 sm:px-6 space-y-4">
+      <div
+        ref={chatScrollRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-3.5 py-4 sm:px-6 space-y-4"
+      >
         {chatMessages.map((msg) => {
           const isStudent = msg.sender === "student";
           const isSpeaking = activeSpeakingId === msg.id;
@@ -709,10 +729,10 @@ export function SocraticDocumentViewer({
             onChange={(e) => setPromptInput(e.target.value)}
             onFocus={() => {
               setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                scrollToBottom(true);
               }, 150);
               setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                scrollToBottom(true);
               }, 350);
             }}
             placeholder={`Tanyakan konsep seputar ${activeChapter.title}...`}

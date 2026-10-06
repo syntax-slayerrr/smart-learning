@@ -35,7 +35,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-dvh h-dvh overflow-hidden bg-transparent">
+    <div className="flex h-full w-full overflow-hidden bg-transparent">
       {/* Sidebar navigation for desktop and slide drawer for mobile menu */}
       {!isNotebook && (
         <Sidebar
