@@ -295,7 +295,7 @@ Bab 3: Arsitektur Variable Length Subnet Mask (VLSM) dan Alokasi IP Adaptif.`,
                     <Eye className="h-3.5 w-3.5 mr-1" />
                     Buka Viewer
                   </Button>
-                  <Button variant="primary" size="sm" className="text-xs h-8 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button variant="primary" size="sm" className="text-xs h-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />
                     Peta Konsep AI
                   </Button>

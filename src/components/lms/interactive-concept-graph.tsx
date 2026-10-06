@@ -181,7 +181,7 @@ export function InteractiveConceptGraph({
       {/* Header bar with meta and legend */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/70 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/60 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-200/60">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/60">
             <Zap className="h-4 w-4" />
           </div>
           <div className="min-w-0">
@@ -500,7 +500,7 @@ export function InteractiveConceptGraph({
 
               <Button
                 variant="primary"
-                className="w-full justify-center text-xs h-9 bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                className="w-full justify-center text-xs h-9 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                 onClick={() => onAskSmartAI?.(selectedNode?.label || "Konsep Jaringan")}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1.5" />

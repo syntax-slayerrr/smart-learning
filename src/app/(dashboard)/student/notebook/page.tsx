@@ -892,7 +892,7 @@ export default function StudentNotebookPage() {
 
               {/* Apple-grade Mini Audio Podcast Bar (60s Summary) */}
               {showAudioBar && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50/90 via-white/80 to-purple-50/70 backdrop-blur-xl border border-blue-200/60 shadow-[0_4px_20px_rgba(0,122,255,0.08)] flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 backdrop-blur-xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center gap-3 w-full sm:w-auto">
                     <button
                       onClick={() => setIsAudioPlaying(!isAudioPlaying)}
@@ -987,9 +987,9 @@ export default function StudentNotebookPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <button
                     onClick={() => setStudyMode("mindmap")}
-                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-[#5E5CE6]/50 active:scale-95 transition-all text-left group"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-indigo-400/50 active:scale-95 transition-all text-left group"
                   >
-                    <div className="h-8 w-8 rounded-xl bg-purple-50 text-[#5E5CE6] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Network className="h-4 w-4" />
                     </div>
                     <p className="text-xs font-bold text-[#1D1D1F]">Peta Konsep</p>
