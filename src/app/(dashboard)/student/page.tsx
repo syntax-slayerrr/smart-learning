@@ -20,6 +20,7 @@ import {
   TriMetricMatrix,
   TriMetricItem,
 } from "@/components/dashboard/tri-metric-matrix";
+import { FaceIdStatusBadge } from "@/components/student/face-id-status-badge";
 
 export const metadata: Metadata = {
   title: "Dashboard Siswa — Smart Learning",
@@ -142,7 +143,7 @@ export default async function StudentDashboard() {
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
                 Siswa Aktif
               </span>
@@ -151,9 +152,12 @@ export default async function StudentDashboard() {
                 {cls?.name ? (cls.name as string) : "Kelas"}
               </span>
             </div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-              {greeting}, {studentName.split(" ")[0]}
-            </h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                {greeting}, {studentName.split(" ")[0]}
+              </h1>
+              <FaceIdStatusBadge studentName={studentName} showModalTrigger={true} />
+            </div>
           </div>
         </div>
 
@@ -178,13 +182,16 @@ export default async function StudentDashboard() {
               : "Portal Akademik & Presensi Cerdas"
           }
           action={
-            <Link
-              href="/student/scan"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
-            >
-              <QrCode className="h-4 w-4" />
-              <span>Scan QR Sesi</span>
-            </Link>
+            <div className="flex items-center gap-2.5">
+              <FaceIdStatusBadge studentName={studentName} showModalTrigger={true} />
+              <Link
+                href="/student/scan"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
+              >
+                <QrCode className="h-4 w-4" />
+                <span>Scan QR Sesi</span>
+              </Link>
+            </div>
           }
         />
       </div>
