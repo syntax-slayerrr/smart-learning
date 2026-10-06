@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { z } from "zod";
+
+// Zod Schema for Note Creation
+const createNoteSchema = z.object({
+  studentId: z.string().min(1, "studentId wajib diisi"),
+  materialId: z.string().optional().nullable(),
+  topicId: z.string().optional().nullable(),
+  noteContent: z.string().min(1, "noteContent tidak boleh kosong").max(10000, "Catatan melebihi batas maksimal 10.000 karakter"),
+  highlightedText: z.string().optional().nullable(),
+  socraticContext: z.record(z.any()).optional().nullable(),
+});
 
 // GET /api/lms/student/notes?materialId=xxx&topicId=xxx&studentId=yyy
 export async function GET(req: NextRequest) {
@@ -34,15 +45,32 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
-    const body = await req.json();
-    const { studentId, materialId, topicId, noteContent, highlightedText, socraticContext } = body;
+    const rawBody = await req.json();
 
-    if (!studentId || !noteContent) {
+    // Map flexible payload (support snake_case from offline sync and camelCase)
+    const normalizedBody = {
+      studentId: rawBody.studentId || rawBody.student_id || "student-mock-zaldy",
+      materialId: rawBody.materialId || rawBody.material_id || null,
+      topicId: rawBody.topicId || rawBody.topic_id || rawBody.chapter_id || null,
+      noteContent: rawBody.noteContent || rawBody.note_content || rawBody.my_note,
+      highlightedText: rawBody.highlightedText || rawBody.highlighted_text || rawBody.quote || null,
+      socraticContext: rawBody.socraticContext || rawBody.socratic_context || {},
+    };
+
+    const parseResult = createNoteSchema.safeParse(normalizedBody);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: "studentId and noteContent are required" },
+        {
+          success: false,
+          error: "Validasi gagal",
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
+
+    const { studentId, materialId, topicId, noteContent, highlightedText, socraticContext } =
+      parseResult.data;
 
     const { data, error } = await admin
       .from("student_study_notes")

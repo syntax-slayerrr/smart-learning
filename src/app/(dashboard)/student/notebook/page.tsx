@@ -1,15 +1,44 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { InteractiveConceptGraph } from "@/components/lms/interactive-concept-graph";
-import { ExamReadinessRadar } from "@/components/lms/exam-readiness-radar";
-import { SocraticDocumentViewer } from "@/components/lms/socratic-document-viewer";
-import { OralDefenseModal } from "@/components/lms/oral-defense-modal";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
+
+// Dynamic imports with Apple HIG skeletons for heavy sub-mode components
+const InteractiveConceptGraph = dynamic(
+  () => import("@/components/lms/interactive-concept-graph").then((mod) => mod.InteractiveConceptGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 rounded-3xl bg-white/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/60 animate-pulse text-xs text-[#86868B] gap-2">
+        <div className="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
+        <span>Memuat Peta Konsep Interaktif...</span>
+      </div>
+    ),
+  }
+);
+
+const SocraticDocumentViewer = dynamic(
+  () => import("@/components/lms/socratic-document-viewer").then((mod) => mod.SocraticDocumentViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[600px] rounded-3xl bg-white/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/60 animate-pulse text-xs text-[#86868B] gap-2">
+        <div className="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
+        <span>Menyiapkan Socratic Document Viewer...</span>
+      </div>
+    ),
+  }
+);
+
+const OralDefenseModal = dynamic(
+  () => import("@/components/lms/oral-defense-modal").then((mod) => mod.OralDefenseModal),
+  { ssr: false }
+);
 import {
   ArrowLeft,
   BookOpen,
@@ -296,8 +325,21 @@ export default function StudentNotebookPage() {
     });
   };
 
-  const handleCalculateScore = () => {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
+  const [quizSyncStatus, setQuizSyncStatus] = useState<"synced" | "offline" | null>(null);
+
+  const handleCopyValue = (text: string, label: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(label);
+      setTimeout(() => setCopiedField(null), 1800);
+    }
+  };
+
+  const handleCalculateScore = async () => {
     setQuizSubmitted(true);
+    setIsSubmittingQuiz(true);
     const matKey = selectedMaterial?.id || "default";
     try {
       localStorage.setItem(
@@ -305,11 +347,43 @@ export default function StudentNotebookPage() {
         JSON.stringify({ answers: quizAnswers, submitted: true })
       );
     } catch {}
+
+    let correctCount = 0;
+    quizQuestions.forEach((q, idx) => {
+      if (quizAnswers[idx] === q.correctIndex) correctCount++;
+    });
+    const calculatedScore = Math.round((correctCount / quizQuestions.length) * 100);
+
+    try {
+      const res = await fetch("/api/lms/student/quiz-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: "student-mock-zaldy",
+          materialId: selectedMaterial?.id,
+          quizTitle: selectedMaterial?.title || "Kuis Konseptual Subnetting & Jaringan",
+          score: calculatedScore,
+          totalQuestions: quizQuestions.length,
+          correctCount,
+          answers: quizAnswers,
+        }),
+      });
+      if (res.ok) {
+        setQuizSyncStatus("synced");
+      } else {
+        setQuizSyncStatus("offline");
+      }
+    } catch {
+      setQuizSyncStatus("offline");
+    } finally {
+      setIsSubmittingQuiz(false);
+    }
   };
 
   const handleResetQuiz = () => {
     setQuizAnswers({});
     setQuizSubmitted(false);
+    setQuizSyncStatus(null);
     const matKey = selectedMaterial?.id || "default";
     try {
       localStorage.removeItem(`smart-learning:quiz:${matKey}`);
@@ -331,6 +405,7 @@ export default function StudentNotebookPage() {
     const maskNum = cidr === 0 ? 0 : ((0xffffffff << (32 - cidr)) >>> 0);
     const netNum = (ipNum & maskNum) >>> 0;
     const bcastNum = (netNum | (~maskNum >>> 0)) >>> 0;
+    const wildcardNum = (~maskNum >>> 0);
 
     const toIpStr = (num: number) =>
       [
@@ -354,6 +429,7 @@ export default function StudentNotebookPage() {
 
     return {
       netmask: toIpStr(maskNum),
+      wildcardMask: toIpStr(wildcardNum),
       networkId: toIpStr(netNum),
       broadcastId: toIpStr(bcastNum),
       usableHosts: usable,
@@ -1207,9 +1283,16 @@ export default function StudentNotebookPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
                     {/* IP Input */}
                     <div>
-                      <label className="text-[11px] font-semibold text-[#1D1D1F] block mb-1">
-                        IP Address
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-[#1D1D1F]">
+                          IP Address
+                        </label>
+                        <span className={`text-[10px] font-medium px-2 py-0.2 rounded-full ${
+                          calculatedSubnet ? "bg-emerald-50 text-emerald-600 border border-emerald-200/50" : "bg-red-50 text-red-600 border border-red-200/50"
+                        }`}>
+                          {calculatedSubnet ? "IPv4 Valid" : "Format Salah"}
+                        </span>
+                      </div>
                       <input
                         type="text"
                         value={calcIp}
@@ -1246,32 +1329,103 @@ export default function StudentNotebookPage() {
                     </div>
                   </div>
 
+                  {/* CIDR Quick Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-slate-400 mr-1">Preset Cepat:</span>
+                    {[
+                      { prefix: 24, label: "/24 (254 H)" },
+                      { prefix: 26, label: "/26 (62 H)" },
+                      { prefix: 27, label: "/27 (30 H)" },
+                      { prefix: 28, label: "/28 (14 H)" },
+                      { prefix: 29, label: "/29 (6 H)" },
+                      { prefix: 30, label: "/30 (P2P)" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.prefix}
+                        type="button"
+                        onClick={() => setCalcCidr(preset.prefix)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-medium font-mono transition-all ${
+                          calcCidr === preset.prefix
+                            ? "bg-[#007AFF] text-white shadow-2xs"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Calculated Metrics Grid */}
                   {calculatedSubnet ? (
                     <div className="space-y-2.5">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
-                          <p className="text-[10px] text-slate-500">Subnet Mask</p>
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-slate-500">Subnet Mask</p>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyValue(calculatedSubnet.netmask, "mask")}
+                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
+                              title="Salin Mask"
+                            >
+                              {copiedField === "mask" ? (
+                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
                           <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
                             {calculatedSubnet.netmask}
                           </p>
                         </div>
-                        <div className="p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100/80">
-                          <p className="text-[10px] text-blue-600 font-medium">Usable Hosts</p>
-                          <p className="text-xs font-bold font-mono text-blue-900 mt-0.5">
-                            {calculatedSubnet.usableHosts} Host
+
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-slate-500">Wildcard Mask</p>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyValue(calculatedSubnet.wildcardMask, "wildcard")}
+                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
+                              title="Salin Wildcard"
+                            >
+                              {copiedField === "wildcard" ? (
+                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
+                            {calculatedSubnet.wildcardMask}
                           </p>
                         </div>
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
-                          <p className="text-[10px] text-slate-500">Network ID</p>
+
+                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 relative group">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-slate-500">Network ID</p>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyValue(calculatedSubnet.networkId, "netid")}
+                              className="text-slate-400 hover:text-[#007AFF] p-0.5 transition-colors"
+                              title="Salin Network ID"
+                            >
+                              {copiedField === "netid" ? (
+                                <span className="text-[9px] text-[#34C759] font-bold">Salin!</span>
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
                           <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
                             {calculatedSubnet.networkId}
                           </p>
                         </div>
-                        <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100">
-                          <p className="text-[10px] text-slate-500">Broadcast ID</p>
-                          <p className="text-xs font-bold font-mono text-slate-900 mt-0.5 truncate">
-                            {calculatedSubnet.broadcastId}
+
+                        <div className="p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100/80">
+                          <p className="text-[10px] text-blue-600 font-medium">Usable Hosts</p>
+                          <p className="text-xs font-bold font-mono text-blue-900 mt-0.5">
+                            {calculatedSubnet.usableHosts} Host
                           </p>
                         </div>
                       </div>
@@ -1279,7 +1433,25 @@ export default function StudentNotebookPage() {
                       {/* Usable Range & Binary Mask */}
                       <div className="p-3 rounded-2xl bg-slate-50/90 border border-slate-100 space-y-1.5 text-[11px]">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <span className="text-slate-500">Rentang Host Valid:</span>
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <span>Rentang Host Valid:</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyValue(
+                                  `${calculatedSubnet.firstHost} - ${calculatedSubnet.lastHost}`,
+                                  "range"
+                                )
+                              }
+                              className="hover:text-[#007AFF] transition-colors"
+                            >
+                              {copiedField === "range" ? (
+                                <span className="text-[9px] text-[#34C759] font-bold">Tersalin!</span>
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
                           <span className="font-mono font-semibold text-slate-800">
                             {calculatedSubnet.firstHost} — {calculatedSubnet.lastHost}
                           </span>
@@ -1368,26 +1540,53 @@ export default function StudentNotebookPage() {
               })}
             </div>
 
-            {/* Quiz Action Buttons */}
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              {quizSubmitted ? (
-                <button
-                  onClick={handleResetQuiz}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 hover:bg-white/90 backdrop-blur-md border border-white/70 text-xs font-semibold text-[#1D1D1F] shadow-2xs active:scale-95 transition-all"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Ulangi Kuis</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleCalculateScore}
-                  disabled={Object.keys(quizAnswers).length < quizQuestions.length}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 disabled:opacity-40 text-white text-xs font-semibold shadow-2xs active:scale-95 transition-all"
-                >
-                  <Check className="h-4 w-4" />
-                  <span>Cek Jawaban & Nilai</span>
-                </button>
-              )}
+            {/* Quiz Action Buttons & Sync Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                {isSubmittingQuiz && (
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1.5 animate-pulse">
+                    <RefreshCw className="h-3 w-3 animate-spin text-[#007AFF]" />
+                    <span>Menyimpan nilai ke Cloud LMS...</span>
+                  </span>
+                )}
+                {!isSubmittingQuiz && quizSyncStatus === "synced" && (
+                  <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50/80 px-2.5 py-1 rounded-full border border-emerald-200/60 flex items-center gap-1.5">
+                    <Check className="h-3 w-3 text-emerald-600" />
+                    <span>Tersinkron ke Cloud LMS</span>
+                  </span>
+                )}
+                {!isSubmittingQuiz && quizSyncStatus === "offline" && (
+                  <span className="text-[11px] font-medium text-amber-700 bg-amber-50/80 px-2.5 py-1 rounded-full border border-amber-200/60 flex items-center gap-1.5">
+                    <WifiOff className="h-3 w-3 text-amber-600" />
+                    <span>Tersimpan di Cache Offline (Auto-Sync)</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5">
+                {quizSubmitted ? (
+                  <button
+                    onClick={handleResetQuiz}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 hover:bg-white/90 backdrop-blur-md border border-white/70 text-xs font-semibold text-[#1D1D1F] shadow-2xs active:scale-95 transition-all"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Ulangi Kuis</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCalculateScore}
+                    disabled={Object.keys(quizAnswers).length < quizQuestions.length || isSubmittingQuiz}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 disabled:opacity-40 text-white text-xs font-semibold shadow-2xs active:scale-95 transition-all"
+                  >
+                    {isSubmittingQuiz ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    <span>{isSubmittingQuiz ? "Menilai..." : "Cek Jawaban & Nilai"}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

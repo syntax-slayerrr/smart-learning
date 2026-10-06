@@ -170,10 +170,11 @@ export async function syncPendingOfflineNotes(): Promise<{ synced: number }> {
     let syncedCount = 0;
     for (const note of pendingNotes) {
       try {
-        const res = await fetch("/api/lms/notes", {
+        const res = await fetch("/api/lms/student/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            student_id: "student-mock-zaldy",
             material_id: note.material_id,
             chapter_id: note.chapter_id,
             quote: note.quote,
