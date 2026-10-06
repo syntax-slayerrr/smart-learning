@@ -7,7 +7,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#007AFF",
-  interactiveWidget: "overlays-content",
+  interactiveWidget: "resizes-content",
 };
 import { Suspense } from "react";
 import { PushManager } from "@/components/shared/push-manager";

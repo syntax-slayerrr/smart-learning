@@ -170,6 +170,24 @@ export function SocraticDocumentViewer({
     };
   }, []);
 
+  // Visual Viewport tracking for mobile virtual keyboard
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const handleViewportChange = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    vv.addEventListener("resize", handleViewportChange);
+    vv.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      vv.removeEventListener("resize", handleViewportChange);
+      vv.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
   // Update welcome message if chapter changed and chat is at start
   const handleSelectChapter = (index: number) => {
     setActiveChapterIndex(index);
@@ -394,10 +412,10 @@ export function SocraticDocumentViewer({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full bg-transparent overflow-hidden ${className}`}
+      className={`relative flex flex-col h-full w-full bg-gradient-to-b from-[#F2F6FC] via-[#EEF4FB] to-[#E9EFF7] overflow-hidden ${className}`}
     >
       {/* 1. SLIM CONTEXT SUB-TOOLBAR (Eliminates clashing double-header) */}
-      <div className="shrink-0 px-3.5 sm:px-6 py-1.5 bg-white/40 backdrop-blur-xl border-b border-white/50 flex items-center justify-between gap-2 z-10">
+      <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/70 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between gap-2 z-10">
         {/* Left: Active Chapter Selector & Strict Grounding Badge */}
         <div className="flex items-center gap-2 min-w-0">
           <div className="relative">
@@ -491,7 +509,7 @@ export function SocraticDocumentViewer({
                 className={`group relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 transition-all ${
                   isStudent
                     ? "bg-[#007AFF] text-white shadow-xs max-w-[85%] sm:max-w-[75%]"
-                    : "bg-white/85 backdrop-blur-xl border border-white/80 text-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.03)] max-w-[92%] sm:max-w-[82%]"
+                    : "bg-white border border-slate-100/90 text-slate-800 shadow-[0_4px_24px_rgba(0,0,0,0.04)] max-w-[92%] sm:max-w-[82%]"
                 }`}
               >
                 {/* Assistant Label */}
@@ -615,13 +633,13 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 3. CONTEXT SUGGESTIONS PILLS */}
-      <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/50 backdrop-blur-md border-t border-white/60 overflow-x-auto no-scrollbar flex items-center gap-2">
+      <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/60 backdrop-blur-md border-t border-slate-200/50 overflow-x-auto no-scrollbar flex items-center gap-2">
         {suggestions.map((promptText, idx) => (
           <button
             key={idx}
             onClick={() => handleSendPrompt(promptText)}
             disabled={isAiThinking}
-            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/80 hover:bg-white border border-slate-200/80 text-slate-700 hover:text-[#007AFF] shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-40"
+            className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white hover:bg-slate-50 border border-slate-200/80 text-slate-700 hover:text-[#007AFF] shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-40"
           >
             <Lightbulb className="h-3 w-3 text-amber-500" />
             <span className="truncate max-w-[220px]">{promptText}</span>
@@ -630,13 +648,13 @@ export function SocraticDocumentViewer({
       </div>
 
       {/* 4. DOCKED INPUT CAPSULE */}
-      <footer className="shrink-0 sticky bottom-0 p-2.5 sm:p-4 bg-white/85 backdrop-blur-2xl border-t border-white/70 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer className="shrink-0 sticky bottom-0 p-2.5 sm:p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendPrompt();
           }}
-          className="relative flex items-center gap-2 rounded-full bg-white/95 border border-slate-200/90 px-3 sm:px-4 py-1.5 sm:py-2 shadow-xs focus-within:ring-2 focus-within:ring-[#007AFF]/20 focus-within:border-[#007AFF] transition-all"
+          className="relative flex items-center gap-2 rounded-full bg-white border border-slate-200/90 px-3 sm:px-4 py-1.5 sm:py-2 shadow-xs focus-within:ring-2 focus-within:ring-[#007AFF]/20 focus-within:border-[#007AFF] transition-all"
         >
           <input
             ref={inputRef}
@@ -646,7 +664,10 @@ export function SocraticDocumentViewer({
             onFocus={() => {
               setTimeout(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-              }, 300);
+              }, 150);
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 350);
             }}
             placeholder={`Tanyakan konsep seputar ${activeChapter.title}...`}
             disabled={isAiThinking}
