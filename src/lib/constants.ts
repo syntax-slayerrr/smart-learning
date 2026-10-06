@@ -31,7 +31,7 @@ export const ROLES = [
 export const NAV_ITEMS = {
   admin: [
     { label: "Dashboard", href: "/admin", icon: "LayoutDashboard", group: "OPERASIONAL" },
-    { label: "AI Classroom", href: "/admin/camera-monitor", icon: "Video", group: "OPERASIONAL" },
+    { label: "Pantauan Kelas", href: "/admin/camera-monitor", icon: "Video", group: "OPERASIONAL" },
     { label: "Absensi Siswa", href: "/admin/attendance", icon: "ClipboardCheck", group: "OPERASIONAL" },
     { label: "Absensi Guru", href: "/admin/attendance/teachers", icon: "ClipboardList", group: "OPERASIONAL" },
     { label: "Laporan & Rekap", href: "/admin/reports", icon: "BarChart3", group: "OPERASIONAL" },
@@ -44,14 +44,14 @@ export const NAV_ITEMS = {
     { label: "Direktori Guru", href: "/admin/teachers", icon: "GraduationCap", group: "DATA MASTER" },
     { label: "Orang Tua / Wali", href: "/admin/parents", icon: "Users", group: "DATA MASTER" },
     
-    { label: "Log Notifikasi", href: "/admin/notifications", icon: "Bell", group: "SISTEM" },
+    { label: "Pemberitahuan", href: "/admin/notifications", icon: "Bell", group: "SISTEM" },
     { label: "Pengaturan", href: "/admin/settings", icon: "Settings", group: "SISTEM" },
     { label: "Profil Akun", href: "/admin/profile", icon: "UserCircle", group: "SISTEM" },
   ],
   teacher: [
     { label: "Dashboard", href: "/teacher", icon: "LayoutDashboard", group: "AKTIVITAS" },
-    { label: "LMS & Modul AI", href: "/teacher/materials", icon: "BookOpen", group: "AKADEMIK & AI" },
-    { label: "Tugas & Oral Defense", href: "/teacher/assignments", icon: "ClipboardList", group: "AKADEMIK & AI" },
+    { label: "Bahan Ajar & Modul", href: "/teacher/materials", icon: "BookOpen", group: "PEMBELAJARAN" },
+    { label: "Tugas & Uji Pemahaman", href: "/teacher/assignments", icon: "ClipboardList", group: "PEMBELAJARAN" },
     { label: "Scan QR Absensi", href: "/teacher/scan", icon: "QrCode", group: "AKTIVITAS" },
     { label: "Riwayat Sesi", href: "/teacher/history", icon: "History", group: "DATA KELAS" },
     { label: "Rekap Kehadiran", href: "/teacher/recap", icon: "BarChart3", group: "DATA KELAS" },
@@ -59,17 +59,17 @@ export const NAV_ITEMS = {
   ],
   student: [
     { label: "Dashboard", href: "/student", icon: "LayoutDashboard", group: "UTAMA" },
-    { label: "Smart Notebook", href: "/student/notebook", icon: "BookOpen", group: "AI LEARNING" },
-    { label: "Tugas & Oral Defense", href: "/student/assignments", icon: "ClipboardList", group: "AI LEARNING" },
+    { label: "Buku Catatan Digital", href: "/student/notebook", icon: "BookOpen", group: "PEMBELAJARAN" },
+    { label: "Tugas & Uji Pemahaman", href: "/student/assignments", icon: "ClipboardList", group: "PEMBELAJARAN" },
     { label: "Scan Kartu / QR", href: "/student/scan", icon: "QrCode", group: "UTAMA" },
     { label: "Riwayat Absensi", href: "/student/history", icon: "History", group: "CATATAN" },
     { label: "Profil Siswa", href: "/student/profile", icon: "UserCircle", group: "AKUN" },
   ],
   parent: [
-    { label: "Dashboard Anak", href: "/parent", icon: "LayoutDashboard", group: "STATUS ANAK" },
-    { label: "Absensi & Telemetri", href: "/parent/attendance", icon: "ClipboardCheck", group: "STATUS ANAK" },
+    { label: "Pantauan Belajar Anak", href: "/parent", icon: "LayoutDashboard", group: "STATUS ANAK" },
+    { label: "Kehadiran & Keaktifan", href: "/parent/attendance", icon: "ClipboardCheck", group: "STATUS ANAK" },
     { label: "Riwayat Bulanan", href: "/parent/history", icon: "History", group: "CATATAN" },
-    { label: "Pusat Notifikasi", href: "/parent/notifications", icon: "Bell", group: "ALARM & NOTIF" },
+    { label: "Pemberitahuan", href: "/parent/notifications", icon: "Bell", group: "INFORMASI" },
   ],
 } as const;
 

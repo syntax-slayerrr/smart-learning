@@ -442,7 +442,7 @@ export function SocraticDocumentViewer({
   // Save Checkpoint to Notes
   const handleSaveCheckpointToNotes = async (msgId: string, concept: string, summary: string) => {
     try {
-      const noteContent = `### ✨ Checkpoint Pemahaman: ${activeChapter.title}\n\n**${concept}**\n${summary}\n\n*Dicatat otomatis dari sesi Socratic Smart AI pada ${new Date().toLocaleDateString("id-ID")}*`;
+      const noteContent = `### ✨ Checkpoint Pemahaman: ${activeChapter.title}\n\n**${concept}**\n${summary}\n\n*Dicatat otomatis dari sesi Smart AI pada ${new Date().toLocaleDateString("id-ID")}*`;
       saveOfflineNote({
         material_id: materialId,
         chapter_id: activeChapter.id,

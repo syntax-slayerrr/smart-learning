@@ -174,12 +174,12 @@ export default async function StudentDashboard() {
       {/* Desktop Page Header */}
       <div className="hidden sm:block">
         <PageHeader
-          eyebrow="PORTAL AKADEMIK SISWA"
+          eyebrow="BERANDA BELAJAR SISWA"
           title={`${greeting}, ${studentName}`}
           description={
             cls
               ? `Kelas ${cls.name as string} • NIS: ${student?.nis || "—"}`
-              : "Portal Akademik & Presensi Cerdas"
+              : "Beranda Belajar & Presensi Siswa"
           }
           action={
             <div className="flex items-center gap-2.5">
@@ -189,7 +189,7 @@ export default async function StudentDashboard() {
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
               >
                 <QrCode className="h-4 w-4" />
-                <span>Scan QR Sesi</span>
+                <span>Scan QR</span>
               </Link>
             </div>
           }
@@ -224,7 +224,7 @@ export default async function StudentDashboard() {
             </div>
             <div className="flex-1 min-w-0 flex flex-col sm:items-center">
               <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
-                Scan Presensi
+                Scan QR
               </span>
               <span className="text-[9px] sm:text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-blue-100/60 w-fit">
                 Kamera
@@ -289,7 +289,7 @@ export default async function StudentDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <RadialIntelligenceGauge
           score={rate}
-          title="Indeks Kehadiran Akademik"
+          title="Persentase Kehadiran Saya"
           subtitle="Tingkat ketepatan dan kedisiplinan hadir di seluruh mata pelajaran"
         />
 

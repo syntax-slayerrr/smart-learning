@@ -56,7 +56,7 @@ export default async function ParentDashboard() {
 
   return (
     <div className="dashboard-container space-y-6 animate-fade-in">
-      <PageHeader title="Dashboard Orang Tua" description="Pantau kehadiran anak Anda" />
+      <PageHeader title="Pantauan Belajar Anak" description="Pantau kehadiran dan aktivitas belajar anak Anda" />
 
       {/* Children Cards */}
       {links && links.length > 0 && (
@@ -93,7 +93,7 @@ export default async function ParentDashboard() {
       {/* Recent Attendance */}
       <div className="rounded-xl border border-[#E7E2DA] bg-white shadow-2xs overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#E7E2DA] px-5 py-3.5 bg-[#FBF9F5]">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">Catatan Absensi Terkini</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">Riwayat Kehadiran Anak</h3>
           <Link href="/parent/attendance" className="text-xs font-semibold text-[#EA580C] hover:underline">Lihat Semua →</Link>
         </div>
         {records && records.length > 0 ? (
@@ -121,9 +121,9 @@ export default async function ParentDashboard() {
       <div className="rounded-xl border border-[#E7E2DA] bg-white shadow-2xs overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#E7E2DA] px-5 py-3.5 bg-[#FBF9F5]">
           <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-900">
-            <Bell className="h-4 w-4 text-[#EA580C]" /> Notifikasi & Informasi Sekolah
+            <Bell className="h-4 w-4 text-[#EA580C]" /> Pemberitahuan & Informasi Sekolah
           </h3>
-          <Link href="/parent/notifications" className="text-xs font-semibold text-[#EA580C] hover:underline">Semua Notifikasi →</Link>
+          <Link href="/parent/notifications" className="text-xs font-semibold text-[#EA580C] hover:underline">Semua Pemberitahuan →</Link>
         </div>
         {notifications && notifications.length > 0 ? (
           <div className="divide-y divide-[#E7E2DA]/60">
@@ -155,10 +155,10 @@ async function ChildEngagementSection({ parentId }: { parentId: string }) {
         </div>
         <div>
           <h2 className="text-sm font-bold tracking-tight text-foreground">
-            Analitik Engagement Anak
+            Grafik Fokus & Keaktifan di Kelas
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Data AI dari kamera kelas
+            Pantauan keaktifan dari kelas
           </p>
         </div>
       </div>

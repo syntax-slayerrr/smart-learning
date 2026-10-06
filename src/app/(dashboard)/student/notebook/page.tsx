@@ -33,10 +33,15 @@ import {
   Headphones,
   Lock,
   Play,
+  Pause,
   RotateCcw,
   Award,
   Check,
   Zap,
+  Volume2,
+  Copy,
+  Bookmark,
+  Bot,
 } from "lucide-react";
 import {
   useOfflineStatus,
@@ -85,19 +90,90 @@ export default function StudentNotebookPage() {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
-  // Pop-up Explanation Modal State
-  const [isAnalogyModalOpen, setIsAnalogyModalOpen] = useState<boolean>(false);
-
-  // Oral Defense Modal State
-  const [isDefenseModalOpen, setIsDefenseModalOpen] = useState<boolean>(false);
-  const [defenseTopic, setDefenseTopic] = useState<string>("Desain Subnetting & VLSM Topologi Hybrid");
-
   // Data & Network State
   const [notebookData, setNotebookData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { isOnline, offlineQueueCount, isSyncing, triggerSync } = useOfflineStatus();
 
-  // Initial Data Fetch
+  // Oral Defense Modal State
+  const [isDefenseModalOpen, setIsDefenseModalOpen] = useState<boolean>(false);
+  const [defenseTopic, setDefenseTopic] = useState<string>("Desain Subnetting & VLSM Topologi Hybrid");
+
+  // Pop-up Explanation Modal State
+  const [isAnalogyModalOpen, setIsAnalogyModalOpen] = useState<boolean>(false);
+  const [isCitationModalOpen, setIsCitationModalOpen] = useState<boolean>(false);
+
+  // Audio Summary 60s Player State
+  const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
+  const [audioProgress, setAudioProgress] = useState<number>(0);
+  const [showAudioBar, setShowAudioBar] = useState<boolean>(false);
+
+  // Floating Contextual Action Bar State
+  const [selectedSnippet, setSelectedSnippet] = useState<string>("");
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [copiedToast, setCopiedToast] = useState<boolean>(false);
+
+  // Dynamic Loading Tips State
+  const [tipIndex, setTipIndex] = useState<number>(0);
+  const loadingTips = useMemo(
+    () => [
+      "Tip Belajar: Menjelaskan konsep ke orang lain (atau AI) melatih pemahaman hingga 90%.",
+      "Smart AI Insight: Formula 2ⁿ - 2 memisahkan Network ID dan Broadcast ID untuk efisiensi rute.",
+      "Fokus Aktif: Pembagian segmen VLSM menghemat hingga 80% alamat IP di topologi hybrid.",
+      "Refleksi Cepat: Subnet /30 adalah standar emas untuk koneksi router-ke-router point-to-point.",
+    ],
+    []
+  );
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % loadingTips.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, [isLoading, loadingTips.length]);
+
+  // Audio 60s progress simulation
+  useEffect(() => {
+    let timer: any;
+    if (isAudioPlaying) {
+      timer = setInterval(() => {
+        setAudioProgress((prev) => {
+          if (prev >= 100) {
+            setIsAudioPlaying(false);
+            return 0;
+          }
+          return prev + 1.6; // ~60 seconds total
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isAudioPlaying]);
+
+  // Handle Text Selection for Floating Contextual Menu
+  const handleReaderMouseUp = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      setContextMenuPos(null);
+      setSelectedSnippet("");
+      return;
+    }
+
+    const text = selection.toString().trim();
+    if (text.length > 5) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setSelectedSnippet(text);
+      setContextMenuPos({
+        x: Math.max(16, rect.left + rect.width / 2),
+        y: Math.max(16, rect.top - 10),
+      });
+    } else {
+      setContextMenuPos(null);
+      setSelectedSnippet("");
+    }
+  };
+
   useEffect(() => {
     async function fetchNotebookData() {
       try {
@@ -208,13 +284,46 @@ export default function StudentNotebookPage() {
   if (isLoading && !notebookData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] p-6 text-center animate-fade-in">
-        <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center mb-4 text-[#007AFF] shadow-sm animate-pulse">
-          <Sparkles className="h-6 w-6" />
+        {/* Apple-grade Interactive Robot Stage */}
+        <div className="relative mb-5 flex flex-col items-center justify-center">
+          {/* Subtle Ambient Studio Glow */}
+          <div className="absolute -top-6 w-72 h-72 rounded-full bg-gradient-to-b from-[#007AFF]/10 via-cyan-400/5 to-transparent blur-3xl pointer-events-none" />
+          
+          {/* Studio Video Pedestal */}
+          <div className="relative w-44 sm:w-52 aspect-[9/16] max-h-72 flex items-center justify-center">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-contain select-none pointer-events-none"
+            >
+              <source src="/assets/hermes-robot-loading-alpha.webm" type="video/webm" />
+              <source src="/assets/hermes-robot-loading.mp4" type="video/mp4" />
+            </video>
+          </div>
         </div>
-        <h2 className="text-base font-bold text-[#1D1D1F]">Memuat Buku Pintar Siswa...</h2>
-        <p className="text-xs text-[#6E6E73] max-w-xs mt-1">
-          Menyiapkan silabus materi, ekstraksi AI, dan peta konsep bebas gangguan.
-        </p>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md border border-neutral-200/60 dark:border-neutral-700/60 text-[#007AFF] text-[11px] font-semibold mb-2.5 shadow-xs">
+          <Sparkles className="h-3 w-3 animate-spin" style={{ animationDuration: '3s' }} />
+          Smart AI Teman Belajarmu
+        </div>
+
+        <h2 className="text-base sm:text-lg font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+          Menyiapkan Lembar Belajarmu...
+        </h2>
+        
+        {/* Dynamic Micro-Learning Tips Rotation */}
+        <div className="h-10 mt-1 flex items-center justify-center max-w-sm px-4">
+          <p key={tipIndex} className="text-xs text-[#86868B] leading-relaxed animate-in fade-in duration-300">
+            {loadingTips[tipIndex]}
+          </p>
+        </div>
+
+        {/* Tactile Progress Indicator */}
+        <div className="w-48 sm:w-56 h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden mt-4 border border-neutral-200/60 dark:border-neutral-700/60">
+          <div className="h-full bg-gradient-to-r from-[#007AFF] to-cyan-400 rounded-full animate-pulse w-3/4" />
+        </div>
       </div>
     );
   }
@@ -476,7 +585,7 @@ export default function StudentNotebookPage() {
                       Tugas 02: Desain Subnetting & Simulasi Topologi Hybrid
                     </h4>
                     <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
-                      Perlu Oral Defense
+                      Perlu Uji Pemahaman
                     </span>
                   </div>
                   <p className="text-[11px] sm:text-xs text-[#6E6E73]">
@@ -493,7 +602,7 @@ export default function StudentNotebookPage() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/85 hover:bg-white border border-white/90 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center shrink-0"
               >
                 <Sparkles className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span>Ikuti Micro-Defense</span>
+                <span>Uji Pemahaman Tugas</span>
               </button>
             </div>
           </div>
@@ -637,21 +746,97 @@ export default function StudentNotebookPage() {
         {/* SUB-MODE 1: TEKS MATERI (CLEAN, EYE-FRIENDLY READER & FEATURE HUB) */}
         {/* =================================================================== */}
         {studyMode === "reader" && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-5 animate-fade-in relative" onMouseUp={handleReaderMouseUp}>
             {/* Reading Canvas Card */}
             <div className="p-5 sm:p-8 rounded-3xl bg-white/60 hover:bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.05)] space-y-6">
-              {/* Header Bab */}
-              <div className="space-y-1.5 border-b border-black/[0.06] pb-4">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF]">
-                  Bab 2 • Subnetting IPv4 & VLSM
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
-                  Implementasi Alokasi VLSM pada Topologi Router Bertingkat
-                </h2>
-                <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">
-                  Hasil ekstraksi cerdas dari modul ajar resmi. Menyajikan intisari teknis, rumus matematis alokasi bit host, dan efisiensi pengalamatan IP.
-                </p>
+              {/* Header Bab with Apple-grade Action Badges */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-black/[0.06] pb-4">
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF]">
+                      Bab 2 • Subnetting IPv4 & VLSM
+                    </span>
+                    <span className="inline-block h-1 w-1 rounded-full bg-neutral-300" />
+                    <span className="text-[11px] text-[#86868B]">Estimasi baca: 4 menit</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
+                    Implementasi Alokasi VLSM pada Topologi Router Bertingkat
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#6E6E73] leading-relaxed">
+                    Hasil ekstraksi cerdas dari modul ajar resmi. Menyajikan intisari teknis, rumus matematis alokasi bit host, dan efisiensi pengalamatan IP.
+                  </p>
+                </div>
+
+                {/* Apple-grade Interactive Action Pills */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowAudioBar(!showAudioBar);
+                      if (!showAudioBar) setIsAudioPlaying(true);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border transition-all active:scale-95 shadow-2xs ${
+                      showAudioBar
+                        ? "bg-[#007AFF] text-white border-[#007AFF]"
+                        : "bg-white/80 hover:bg-white text-[#1D1D1F] border-white/80"
+                    }`}
+                  >
+                    <Headphones className="h-3.5 w-3.5" />
+                    <span>{showAudioBar ? "Tutup Audio" : "Audio 60s"}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsCitationModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 hover:bg-white text-[#1D1D1F] text-xs font-semibold backdrop-blur-xl border border-white/80 transition-all active:scale-95 shadow-2xs"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-[#34C759]" />
+                    <span>Sitasi Modul</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Apple-grade Mini Audio Podcast Bar (60s Summary) */}
+              {showAudioBar && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50/90 via-white/80 to-purple-50/70 backdrop-blur-xl border border-blue-200/60 shadow-[0_4px_20px_rgba(0,122,255,0.08)] flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={() => setIsAudioPlaying(!isAudioPlaying)}
+                      className="h-9 w-9 rounded-full bg-[#007AFF] text-white flex items-center justify-center shadow-xs hover:bg-blue-600 active:scale-95 transition-all shrink-0"
+                    >
+                      {isAudioPlaying ? (
+                        <Pause className="h-4 w-4 fill-white" />
+                      ) : (
+                        <Play className="h-4 w-4 fill-white ml-0.5" />
+                      )}
+                    </button>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#1D1D1F]">
+                          Podcast Intisari Bab: Efisiensi VLSM
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-[#007AFF]/10 text-[#007AFF] text-[9px] font-bold">
+                          AI Voice
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#6E6E73] truncate">
+                        Narasi Smart AI • Pembahasan praktis usable host dan rumus 2ⁿ - 2
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Scrubber Progress & Waveform */}
+                  <div className="flex items-center gap-3 w-full sm:w-64">
+                    <div className="flex-1 h-1.5 bg-neutral-200/80 rounded-full overflow-hidden relative">
+                      <div
+                        className="h-full bg-[#007AFF] rounded-full transition-all duration-300"
+                        style={{ width: `${audioProgress}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[11px] text-[#6E6E73] shrink-0">
+                      {Math.floor((audioProgress * 0.6))}s / 60s
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Paragraf Materi Inti */}
               <div className="space-y-4 text-sm text-[#1D1D1F] leading-relaxed">
@@ -733,8 +918,8 @@ export default function StudentNotebookPage() {
                     <div className="h-8 w-8 rounded-xl bg-blue-50 text-[#007AFF] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                       <Sparkles className="h-4 w-4" />
                     </div>
-                    <p className="text-xs font-bold text-[#1D1D1F]">Tanya AI</p>
-                    <p className="text-[10px] text-[#6E6E73]">Socratic tutor</p>
+                    <p className="text-xs font-bold text-[#1D1D1F]">Tanya Smart AI</p>
+                    <p className="text-[10px] text-[#6E6E73]">Asisten Belajar</p>
                   </button>
 
                   <button
@@ -750,6 +935,93 @@ export default function StudentNotebookPage() {
                 </div>
               </div>
             </div>
+
+            {/* iPadOS-Style Floating Contextual Action Bar */}
+            {contextMenuPos && selectedSnippet && (
+              <div
+                style={{
+                  position: "fixed",
+                  left: `${contextMenuPos.x}px`,
+                  top: `${contextMenuPos.y}px`,
+                  transform: "translate(-50%, -100%)",
+                }}
+                className="z-50 flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#1D1D1F]/90 dark:bg-white/90 backdrop-blur-2xl text-white dark:text-[#1D1D1F] shadow-[0_12px_36px_rgba(0,0,0,0.25)] border border-white/20 animate-in fade-in zoom-in-95 duration-150"
+              >
+                <button
+                  onClick={() => {
+                    setStudyMode("chat");
+                    setContextMenuPos(null);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#007AFF] text-white text-xs font-semibold hover:bg-blue-600 active:scale-95 transition-all"
+                >
+                  <Bot className="h-3.5 w-3.5" />
+                  <span>Tanya AI</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setCopiedToast(true);
+                    setTimeout(() => setCopiedToast(false), 2000);
+                    setContextMenuPos(null);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-white/10 dark:hover:bg-black/10 text-xs font-medium active:scale-95 transition-all"
+                >
+                  <Bookmark className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Catat</span>
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(selectedSnippet);
+                    setCopiedToast(true);
+                    setTimeout(() => setCopiedToast(false), 2000);
+                    setContextMenuPos(null);
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-white/10 dark:hover:bg-black/10 text-xs font-medium active:scale-95 transition-all"
+                  title="Salin Teks"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setContextMenuPos(null)}
+                  className="p-1 rounded-lg hover:bg-white/10 dark:hover:bg-black/10 text-xs opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Notification Toast */}
+            {copiedToast && (
+              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-[#1D1D1F]/90 text-white text-xs font-medium shadow-lg backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span>Kutipan tersimpan ke catatan belajarmu!</span>
+              </div>
+            )}
+
+            {/* Apple Floating Companion Pill (Docking Assistant) */}
+            <button
+              onClick={() => setStudyMode("chat")}
+              className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-full bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_48px_rgba(0,122,255,0.25)] hover:scale-105 active:scale-95 transition-all text-left"
+            >
+              <div className="relative h-8 w-8 rounded-full overflow-hidden bg-blue-50 flex items-center justify-center border border-blue-200/50">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="h-full w-full object-cover scale-125"
+                >
+                  <source src="/assets/hermes-robot-loading-alpha.webm" type="video/webm" />
+                  <source src="/assets/hermes-robot-loading.mp4" type="video/mp4" />
+                </video>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#1D1D1F] dark:text-white">Smart AI</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+                <span className="text-[10px] text-[#86868B]">Teman Belajar • Tanya</span>
+              </div>
+            </button>
           </div>
         )}
 
@@ -797,7 +1069,7 @@ export default function StudentNotebookPage() {
                   <div>
                     <p className="text-xs font-bold text-emerald-900">Skor Kamu: {quizScore}%</p>
                     <p className="text-[10px] text-emerald-700">
-                      {quizScore >= 70 ? "Pemahaman Kuat! Siap Oral Defense." : "Perlu reviu bab ini lagi."}
+                      {quizScore >= 70 ? "Pemahaman Kuat! Siap Uji Pemahaman." : "Perlu reviu bab ini lagi."}
                     </p>
                   </div>
                 </div>
@@ -1012,6 +1284,76 @@ export default function StudentNotebookPage() {
                 className="px-4 py-2 rounded-xl bg-[#007AFF] text-white text-xs font-semibold hover:bg-blue-600 active:scale-95 transition-all shadow-2xs"
               >
                 Paham, Terima Kasih!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 5. SLIDE-UP SHEET / MODAL SITASI RESMI MODAL                          */}
+      {/* ===================================================================== */}
+      {isCitationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            onClick={() => setIsCitationModalOpen(false)}
+            className="absolute inset-0 bg-black/25 backdrop-blur-md transition-opacity"
+          />
+
+          <div className="relative w-full max-w-md bg-white/85 dark:bg-[#1C1C1E]/85 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.12)] rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-[#34C759] flex items-center justify-center border border-emerald-200/50 dark:border-emerald-800/40">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-white">
+                    Sitasi & Metadata Dokumen Resmi
+                  </h3>
+                  <p className="text-[11px] text-[#6E6E73]">Institut Teknologi Garut (ITG)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCitationModalOpen(false)}
+                className="h-8 w-8 rounded-full flex items-center justify-center bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] text-[#1D1D1F] dark:text-white transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-[#1D1D1F] dark:text-[#F5F5F7]">
+              <div className="p-3.5 rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/60 dark:border-white/10 space-y-2">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-[#86868B]">Mata Kuliah</span>
+                  <span className="font-semibold text-[#1D1D1F] dark:text-white">Jaringan Komputer & Komunikasi Data</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-[#86868B]">Dokumen Sumber</span>
+                  <span className="font-semibold text-[#1D1D1F] dark:text-white">Modul_Subnetting_IPv4.pdf (Hal. 42)</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-[#86868B]">Standar Kurikulum</span>
+                  <span className="font-semibold text-[#1D1D1F] dark:text-white">OBE / IEEE 802.3 Ethernet</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-[#86868B]">Status Verifikasi</span>
+                  <span className="font-bold text-[#34C759] flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5" /> Terverifikasi Dosen Pengampu
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-[#6E6E73]">
+                Seluruh materi yang disarikan Smart AI mengacu langsung pada dokumen kurikulum aktif Semester 3 tanpa manipulasi data.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setIsCitationModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#007AFF] text-white text-xs font-semibold hover:bg-blue-600 active:scale-95 transition-all shadow-2xs"
+              >
+                Tutup Sitasi
               </button>
             </div>
           </div>

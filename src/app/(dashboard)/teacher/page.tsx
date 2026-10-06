@@ -225,12 +225,12 @@ export default async function TeacherDashboard() {
         </Link>
       </div>
 
-      {/* Desktop Page Header */}
+      {/* Desktop Header */}
       <div className="hidden sm:block">
         <PageHeader
-          eyebrow="PORTAL MANAJEMEN GURU"
+          eyebrow="RUANG KERJA GURU"
           title={`${greeting}, ${teacherName}`}
-          description="Portal Manajemen Sesi & Analitika Telemetri Kelas Pintar"
+          description="Jadwal mengajar, absensi kelas, dan rekap keaktifan siswa"
           action={
             <div className="flex items-center gap-2.5">
               <Link
@@ -245,7 +245,7 @@ export default async function TeacherDashboard() {
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors apple-press min-h-[44px]"
               >
                 <Plus className="h-4 w-4" />
-                <span>Buka Sesi Baru</span>
+                <span>Mulai Jam Pelajaran</span>
               </Link>
             </div>
           }
@@ -261,7 +261,7 @@ export default async function TeacherDashboard() {
             </div>
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
-                Pengingat Jadwal Mengajar Otomatis
+                Pengingat Jadwal Mengajar
               </h3>
               <p className="text-xs text-slate-600 mt-0.5 max-w-lg leading-relaxed font-medium">
                 Aktifkan push notification untuk mendapatkan reminder presensi
@@ -288,7 +288,7 @@ export default async function TeacherDashboard() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
               <h3 className="text-xs font-bold uppercase tracking-wider text-blue-200">
-                Jadwal Mengajar Aktif Saat Ini
+                Kelas Sedang Berlangsung
               </h3>
             </div>
             <span className="text-xs font-mono font-semibold text-white bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/15">
@@ -319,7 +319,7 @@ export default async function TeacherDashboard() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 active:scale-95 transition-all apple-press"
               >
                 <PlayCircle className="h-4 w-4" />
-                <span>Buka Konsol Sesi Sekarang →</span>
+                <span>Buka Lembar Kelas Sekarang →</span>
               </Link>
             ) : (
               <Link
@@ -327,7 +327,7 @@ export default async function TeacherDashboard() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-500 active:scale-95 transition-all apple-press"
               >
                 <QrCode className="h-4 w-4" />
-                <span>Mulai Sesi Mengajar</span>
+                <span>Mulai Jam Mengajar</span>
               </Link>
             )}
           </div>

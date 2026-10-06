@@ -53,7 +53,7 @@ export function OralDefenseModal({
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [aiEvaluation, setAiEvaluation] = useState<{ score: number; feedback: string }>({
     score: 95,
-    feedback: "Verifikasi AI Defense Berhasil: Penjelasan orisinalitas logika VLSM dan segmentasi domain sangat tepat dan konsisten dengan naskah tugas.",
+    feedback: "Verifikasi Pemahaman Berhasil: Penjelasan pemahaman logika VLSM dan segmentasi domain sangat tepat dan konsisten dengan naskah tugas.",
   });
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);

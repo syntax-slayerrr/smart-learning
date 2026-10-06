@@ -49,7 +49,7 @@ const DEFAULT_ITEMS: QuickAccessItem[] = [
   },
   {
     id: "ai-camera",
-    label: "AI Vision",
+    label: "Pantauan Kelas",
     href: "/admin/camera-monitor",
     icon: Video,
     asset: "/icons/ai-classroom.png",

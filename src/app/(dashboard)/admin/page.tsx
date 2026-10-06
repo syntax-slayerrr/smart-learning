@@ -145,28 +145,28 @@ export default async function AdminDashboardPage() {
       id: "attendance",
       label: "Tepat Waktu",
       value: `${Math.round(attendanceRate)}%`,
-      sublabel: "Kehadiran",
+      sublabel: "Tingkat Hadir",
       icon: "check",
       variant: "success",
     },
     {
       id: "attention",
-      label: "Perlu Atensi",
+      label: "Perlu Perhatian",
       value:
         schoolOverview?.at_risk_students?.length ||
         topAbsentees?.length ||
         0,
-      sublabel: "Siswa Pantau",
+      sublabel: "Siswa Terpantau",
       icon: "warning",
       variant: "warning",
     },
     {
       id: "ai-sensor",
-      label: "Kamera AI",
+      label: "Pantauan Kelas",
       value: schoolOverview?.total_sessions_with_telemetry
         ? `${schoolOverview.total_sessions_with_telemetry} Sesi`
         : "Aktif",
-      sublabel: "Monitoring",
+      sublabel: "Kamera Aktif",
       icon: "video",
       variant: "primary",
     },
@@ -184,9 +184,9 @@ export default async function AdminDashboardPage() {
       {/* Desktop Page Header */}
       <div className="hidden sm:block">
         <PageHeader
-          eyebrow="PORTAL ADMINISTRASI SEKOLAH"
+          eyebrow="RINGKASAN ADMINISTRASI SEKOLAH"
           title={`${greeting}, Admin`}
-          description="Ringkasan sekolah hari ini — pantau presensi, aktivitas AI classroom, dan telemetri akademik secara real-time"
+          description="Ringkasan sekolah hari ini — pantau kehadiran siswa, jadwal kelas, dan pantauan kelas secara langsung"
           action={
             <div className="flex flex-wrap items-center gap-2">
               <AccreditationExportTrigger />
@@ -229,8 +229,8 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <RadialIntelligenceGauge
           score={Math.round(attendanceRate)}
-          title="Kesehatan Presensi & Pembelajaran"
-          subtitle="Indeks gabungan ketertiban hadir dan keaktifan kelas"
+          title="Tingkat Kehadiran & Keaktifan Sekolah"
+          subtitle="Persentase kehadiran dan partisipasi belajar siswa di seluruh kelas"
         />
 
         <div className="space-y-4 flex flex-col justify-between">
@@ -247,7 +247,7 @@ export default async function AdminDashboardPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                      AI Classroom Vision
+                      Pantauan Kelas Live
                     </h3>
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -255,7 +255,7 @@ export default async function AdminDashboardPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Sensor interaksi & gesture keaktifan kelas
+                    Pantauan keaktifan & fokus belajar siswa
                   </p>
                 </div>
               </div>
@@ -284,7 +284,7 @@ export default async function AdminDashboardPage() {
       {/* 6. Structured Activity Feed (Recent Learning Sessions) */}
       <ActivityFeedCard
         sessions={mappedSessions}
-        title="Pembelajaran Terkini"
+        title="Sesi Kelas Terkini"
         viewAllHref="/admin/attendance"
       />
 

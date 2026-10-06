@@ -124,14 +124,14 @@ export default function TeacherAssignmentsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h4 className="text-xs uppercase font-mono tracking-wider text-slate-500 font-semibold">
-              Pengumpulan Tugas Terbaru & Catatan Defense
+              Pengumpulan Tugas Terbaru & Uji Pemahaman
             </h4>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-mono font-medium text-slate-600 border border-slate-200/60">
               {submissions.length} Tugas
             </span>
           </div>
           <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
-            Terverifikasi AI Socratic Scaffold
+            Terverifikasi Smart AI
           </span>
         </div>
 
