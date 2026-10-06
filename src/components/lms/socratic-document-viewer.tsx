@@ -94,6 +94,48 @@ const DEFAULT_CHAPTERS: DocumentChapter[] = [
   },
 ];
 
+function formatAiText(text: string) {
+  const paragraphs = text.split("\n\n");
+  return paragraphs.map((para, pIdx) => {
+    const lines = para.split("\n");
+    return (
+      <div key={pIdx} className={pIdx > 0 ? "mt-2.5" : ""}>
+        {lines.map((line, lIdx) => {
+          const isBullet = line.trim().startsWith("- ") || line.trim().startsWith("* ");
+          const cleanLine = isBullet ? line.trim().slice(2) : line;
+
+          const parts = cleanLine.split(/(\*\*[^*]+\*\*)/g);
+          const renderedLine = parts.map((part, partIdx) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return (
+                <strong key={partIdx} className="font-semibold text-slate-900">
+                  {part.slice(2, -2)}
+                </strong>
+              );
+            }
+            return part;
+          });
+
+          if (isBullet) {
+            return (
+              <div key={lIdx} className="flex items-start gap-2 my-1">
+                <span className="text-[#007AFF] font-bold mt-1 text-xs shrink-0">•</span>
+                <span className="flex-1">{renderedLine}</span>
+              </div>
+            );
+          }
+
+          return (
+            <p key={lIdx} className={lIdx > 0 ? "mt-1.5" : ""}>
+              {renderedLine}
+            </p>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
 export function SocraticDocumentViewer({
   materialId,
   materialTitle,
@@ -412,7 +454,7 @@ export function SocraticDocumentViewer({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full bg-gradient-to-b from-[#F2F6FC] via-[#EEF4FB] to-[#E9EFF7] overflow-hidden ${className}`}
+      className={`relative flex flex-col h-full w-full bg-transparent overflow-hidden ${className}`}
     >
       {/* 1. SLIM CONTEXT SUB-TOOLBAR (Eliminates clashing double-header) */}
       <div className="shrink-0 px-3.5 sm:px-6 py-2 bg-white/70 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between gap-2 z-10">
@@ -539,8 +581,12 @@ export function SocraticDocumentViewer({
                 )}
 
                 {/* Message Body */}
-                <div className="text-sm leading-relaxed whitespace-pre-wrap font-normal">
-                  {msg.text}
+                <div className="text-sm leading-relaxed font-normal">
+                  {isStudent ? (
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
+                  ) : (
+                    formatAiText(msg.text)
+                  )}
                 </div>
 
                 {/* Grounding Citation Pill */}
