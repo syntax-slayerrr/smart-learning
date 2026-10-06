@@ -25,11 +25,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validasi ukuran berkas (Maks 25MB)
-    const MAX_SIZE = 25 * 1024 * 1024;
+    // Validasi ukuran berkas (Maks 10MB, Min 100 bytes)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size <= 0 || file.size < 100) {
+      return NextResponse.json(
+        { success: false, error: "Berkas kosong atau rusak." },
+        { status: 400 }
+      );
+    }
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { success: false, error: "Ukuran berkas melebihi batas maksimal 25 MB." },
+        { success: false, error: "Ukuran berkas melebihi batas maksimal 10 MB." },
         { status: 400 }
       );
     }
@@ -37,6 +43,14 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // Verifikasi magic bytes PDF (%PDF-)
+    if (buffer.length < 5 || buffer.toString("utf8", 0, 5) !== "%PDF-") {
+      return NextResponse.json(
+        { success: false, error: "Format berkas tidak valid: bukan dokumen PDF asli." },
+        { status: 400 }
+      );
+    }
 
     // Buat nama file unik dan aman
     const timestamp = Date.now();

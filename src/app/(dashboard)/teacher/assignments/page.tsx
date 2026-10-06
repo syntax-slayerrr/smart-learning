@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,6 +163,27 @@ export default function TeacherAssignmentsPage() {
 
   useEffect(() => {
     fetchData();
+
+    // Supabase Realtime: dengarkan perubahan tabel pengumpulan siswa secara langsung
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime-teacher-submissions")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "assignment_submissions",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Handle Teacher Grade Submission
