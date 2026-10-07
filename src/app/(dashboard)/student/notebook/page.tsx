@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,19 @@ const OralDefenseModal = dynamic(
   () => import("@/components/lms/oral-defense-modal").then((mod) => mod.OralDefenseModal),
   { ssr: false }
 );
+
+const InteractiveStudyCalculator = dynamic(
+  () => import("@/components/lms/interactive-study-calculator").then((mod) => mod.InteractiveStudyCalculator),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 rounded-3xl bg-white/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/60 animate-pulse text-xs text-[#86868B] gap-2">
+        <div className="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
+        <span>Menyiapkan Kalkulator & Lab Simulasi...</span>
+      </div>
+    ),
+  }
+);
 import {
   ArrowLeft,
   BookOpen,
@@ -72,6 +85,7 @@ import {
   Copy,
   Bookmark,
   Bot,
+  Calculator,
 } from "lucide-react";
 import {
   useOfflineStatus,
@@ -80,7 +94,7 @@ import {
   saveOfflineQuiz,
 } from "@/lib/offline-lms-cache";
 
-type StudySubMode = "reader" | "mindmap" | "quiz" | "chat" | "pdf";
+type StudySubMode = "reader" | "mindmap" | "quiz" | "calculator" | "chat" | "pdf";
 
 interface MaterialItem {
   id: string;
@@ -109,8 +123,9 @@ interface SubjectItem {
   assignments: AssignmentItem[];
 }
 
-export default function StudentNotebookPage() {
+function StudentNotebookContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Navigation & Hierarchy State
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
@@ -120,6 +135,18 @@ export default function StudentNotebookPage() {
   // Interactive Quiz State & Persistence
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+  const [quizTimerSeconds, setQuizTimerSeconds] = useState<number>(0);
+  const [quizFilter, setQuizFilter] = useState<"all" | "correct" | "incorrect">("all");
+
+  useEffect(() => {
+    let timer: any;
+    if (studyMode === "quiz" && !quizSubmitted) {
+      timer = setInterval(() => {
+        setQuizTimerSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [studyMode, quizSubmitted]);
 
   // Active Chapter / Topic State
   const [activeChapterIndex, setActiveChapterIndex] = useState<number>(0);
@@ -233,22 +260,27 @@ export default function StudentNotebookPage() {
     loadAuthStudent();
   }, []);
 
-  const loadNotebookData = useCallback(async (materialId?: string) => {
+  const loadNotebookData = useCallback(async (targetMaterialId?: string) => {
     try {
       setIsLoading(true);
-      const url = materialId
-        ? `/api/lms/student/notebook-data?materialId=${materialId}&studentId=${currentStudentId}`
+      const url = targetMaterialId
+        ? `/api/lms/student/notebook-data?materialId=${targetMaterialId}&studentId=${currentStudentId}`
         : `/api/lms/student/notebook-data?studentId=${currentStudentId}`;
       const res = await fetch(url);
       const json = await res.json();
       if (json.success && json.data) {
         setNotebookData(json.data);
         cacheActiveMaterial(json.data);
-        if (json.data.material && !selectedMaterial) {
+        if (json.data.material) {
           setSelectedMaterial(json.data.material);
         }
-        if (json.data.subjects && json.data.subjects.length > 0 && !selectedSubjectId) {
-          setSelectedSubjectId(json.data.subjects[0].id);
+        if (json.data.subjects && json.data.subjects.length > 0) {
+          if (json.data.material?.subject_id) {
+            setSelectedSubjectId(json.data.material.subject_id);
+          } else if (!selectedSubjectId) {
+            const firstWithMats = json.data.subjects.find((s: SubjectItem) => s.materials && s.materials.length > 0);
+            setSelectedSubjectId(firstWithMats ? firstWithMats.id : json.data.subjects[0].id);
+          }
         }
       } else {
         const cached = await getCachedActiveMaterial();
@@ -261,17 +293,28 @@ export default function StudentNotebookPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentStudentId, selectedMaterial, selectedSubjectId]);
+  }, [currentStudentId]);
 
   useEffect(() => {
-    loadNotebookData();
-  }, [loadNotebookData]);
+    const queryMatId = searchParams?.get("materialId") || searchParams?.get("id");
+    if (queryMatId) {
+      loadNotebookData(queryMatId);
+    } else {
+      loadNotebookData();
+    }
+  }, [searchParams, loadNotebookData]);
 
   const handleSelectMaterial = (mat: any) => {
     setSelectedMaterial(mat);
     setActiveChapterIndex(0);
-    loadNotebookData(mat.id);
     setStudyMode("reader");
+    loadNotebookData(mat.id);
+    router.replace(`/student/notebook?materialId=${mat.id}`, { scroll: false });
+  };
+
+  const handleBackToShelf = () => {
+    setSelectedMaterial(null);
+    router.replace("/student/notebook", { scroll: false });
   };
 
   // Derived Active Subject
@@ -384,6 +427,7 @@ interface QuizQuestionItem {
           totalQuestions: quizQuestions.length,
           correctCount,
           answers: quizAnswers,
+          completedDurationSeconds: quizTimerSeconds,
         }),
       });
       if (res.ok) {
@@ -397,6 +441,7 @@ interface QuizQuestionItem {
           total_questions: quizQuestions.length,
           correct_count: correctCount,
           answers: quizAnswers,
+          completed_duration_seconds: quizTimerSeconds,
         });
         setQuizSyncStatus("offline");
       }
@@ -409,6 +454,7 @@ interface QuizQuestionItem {
         total_questions: quizQuestions.length,
         correct_count: correctCount,
         answers: quizAnswers,
+        completed_duration_seconds: quizTimerSeconds,
       });
       setQuizSyncStatus("offline");
     } finally {
@@ -420,6 +466,8 @@ interface QuizQuestionItem {
     setQuizAnswers({});
     setQuizSubmitted(false);
     setQuizSyncStatus(null);
+    setQuizTimerSeconds(0);
+    setQuizFilter("all");
     const matKey = selectedMaterial?.id || "default";
     try {
       localStorage.removeItem(`smart-learning:quiz:${matKey}`);
@@ -433,6 +481,18 @@ interface QuizQuestionItem {
     });
     return Math.round((correct / quizQuestions.length) * 100);
   }, [quizAnswers, quizQuestions]);
+
+  const displayedQuestions = useMemo(() => {
+    return quizQuestions
+      .map((q, idx) => ({ ...q, originalIndex: idx }))
+      .filter((q) => {
+        if (!quizSubmitted || quizFilter === "all") return true;
+        const isCorrect = quizAnswers[q.originalIndex] === q.correctIndex;
+        if (quizFilter === "correct") return isCorrect;
+        if (quizFilter === "incorrect") return !isCorrect;
+        return true;
+      });
+  }, [quizQuestions, quizSubmitted, quizFilter, quizAnswers]);
 
   // Loading State
   if (isLoading && !notebookData) {
@@ -627,94 +687,87 @@ interface QuizQuestionItem {
             </div>
 
             <div className="space-y-2.5">
-              {(
-                activeSubject?.materials || [
-                  {
-                    id: "374668a0-6b09-4e1f-9993-fa8bf2a781d8",
-                    title: "Modul Praktis Subnetting IPv4 & VLSM Jaringan Komputer",
-                    description: "Perhitungan Network ID, Broadcast, Subnet Mask /24 s/d /30, dan topologi hierarkis.",
-                    readingTime: "15 mnt",
-                    status: "in_progress",
-                    pageCount: 32,
-                    topicsCount: 3,
-                  },
-                  {
-                    id: "5aaa3233-0fe1-486a-951e-9dfdd11262a6",
-                    title: "Konfigurasi Dynamic Routing OSPF & Multi-Area Backbone",
-                    description: "Implementasi protokol Link-State, pembagian Area 0, dan kalkulasi Cost Metric.",
-                    readingTime: "25 mnt",
-                    status: "completed",
-                    pageCount: 28,
-                    topicsCount: 4,
-                  },
-                ]
-              ).map((mat: any, idx: number) => {
-                return (
-                  <div
-                    key={mat.id}
-                    className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/85 backdrop-blur-2xl border border-white/70 hover:border-[#007AFF]/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,122,255,0.08)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div
-                        className={`h-9 w-9 sm:h-10 sm:w-10 rounded-2xl flex items-center justify-center shrink-0 text-xs sm:text-sm font-bold ${
-                          mat.status === "completed"
-                            ? "bg-emerald-50 text-[#34C759] border border-emerald-200/60"
-                            : "bg-blue-50 text-[#007AFF] border border-blue-200/60"
-                        }`}
-                      >
-                        {mat.status === "completed" ? (
-                          <Check className="h-4 w-4 sm:h-5 sm:w-5" />
-                        ) : (
-                          <span>0{idx + 1}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors line-clamp-2">
-                            {mat.title}
-                          </h4>
-                          {mat.status === "completed" && (
-                            <span className="text-[9px] font-semibold text-[#34C759] bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
-                              Selesai
-                            </span>
-                          )}
-                          {mat.status === "in_progress" && (
-                            <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
-                              Aktif Dipelajari
-                            </span>
+              {(activeSubject?.materials || []).length > 0 ? (
+                (activeSubject?.materials || []).map((mat: any, idx: number) => {
+                  return (
+                    <div
+                      key={mat.id}
+                      className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/85 backdrop-blur-2xl border border-white/70 hover:border-[#007AFF]/40 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,122,255,0.08)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className={`h-9 w-9 sm:h-10 sm:w-10 rounded-2xl flex items-center justify-center shrink-0 text-xs sm:text-sm font-bold ${
+                            mat.status === "completed"
+                              ? "bg-emerald-50 text-[#34C759] border border-emerald-200/60"
+                              : "bg-blue-50 text-[#007AFF] border border-blue-200/60"
+                          }`}
+                        >
+                          {mat.status === "completed" ? (
+                            <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                          ) : (
+                            <span>0{idx + 1}</span>
                           )}
                         </div>
-                        <p className="text-[11px] sm:text-xs text-[#6E6E73] line-clamp-2 leading-relaxed">
-                          {mat.description || "Ekstraksi AI komprehensif, visualisasi diagram, dan uji pemahaman."}
-                        </p>
-                        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-[#6E6E73] pt-0.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                            <Clock className="h-3 w-3 text-slate-400" /> {mat.readingTime || "15 mnt"}
-                          </span>
-                          <span>•</span>
-                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                            <FileText className="h-3 w-3 text-slate-400" /> {mat.pageCount || 24} Halaman
-                          </span>
-                          <span>•</span>
-                          <span className="text-[#007AFF] font-medium inline-flex items-center gap-1 whitespace-nowrap">
-                            <CheckCircle2 className="h-3 w-3" /> Ekstrak AI Siap
-                          </span>
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors line-clamp-2">
+                              {mat.title}
+                            </h4>
+                            {mat.status === "completed" && (
+                              <span className="text-[9px] font-semibold text-[#34C759] bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
+                                Selesai
+                              </span>
+                            )}
+                            {mat.status === "in_progress" && (
+                              <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
+                                Aktif Dipelajari
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] sm:text-xs text-[#6E6E73] line-clamp-2 leading-relaxed">
+                            {mat.description || "Ekstraksi AI komprehensif, visualisasi diagram, dan uji pemahaman."}
+                          </p>
+                          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-[#6E6E73] pt-0.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                              <Clock className="h-3 w-3 text-slate-400" /> {mat.readingTime || "15 mnt"}
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                              <FileText className="h-3 w-3 text-slate-400" /> {mat.pageCount || 24} Halaman
+                            </span>
+                            <span>•</span>
+                            <span className="text-[#007AFF] font-medium inline-flex items-center gap-1 whitespace-nowrap">
+                              <CheckCircle2 className="h-3 w-3" /> Ekstrak AI Siap
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        onClick={() => handleSelectMaterial(mat)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                      >
-                        <Play className="h-3.5 w-3.5 fill-current" />
-                        <span>Pelajari Materi</span>
-                      </button>
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          onClick={() => handleSelectMaterial(mat)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
+                        >
+                          <Play className="h-3.5 w-3.5 fill-current" />
+                          <span>Pelajari Materi</span>
+                        </button>
+                      </div>
                     </div>
+                  );
+                })
+              ) : (
+                <div className="p-8 rounded-2xl bg-white/60 backdrop-blur-md border border-white/80 text-center space-y-2">
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-blue-50 text-[#007AFF] flex items-center justify-center">
+                    <BookOpen className="h-5 w-5" />
                   </div>
-                );
-              })}
+                  <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F]">
+                    Belum Ada Modul Ajar di Mata Pelajaran Ini
+                  </h4>
+                  <p className="text-[11px] text-[#6E6E73] max-w-sm mx-auto">
+                    Mata pelajaran {activeSubject?.name || "ini"} belum memiliki modul materi aktif. Silakan pilih tab mata pelajaran lain di atas yang telah memiliki materi.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -788,7 +841,7 @@ interface QuizQuestionItem {
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Tombol Back Panah Minimalist */}
             <button
-              onClick={() => setSelectedMaterial(null)}
+              onClick={handleBackToShelf}
               className="h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 backdrop-blur-xl border border-white/70 text-[#1D1D1F] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)] shrink-0"
               title="Kembali ke Daftar Materi & Tugas"
             >
@@ -859,6 +912,18 @@ interface QuizQuestionItem {
             >
               <HelpCircle className="h-3.5 w-3.5 text-[#007AFF]" />
               <span>Kuis Interaktif</span>
+            </button>
+
+            <button
+              onClick={() => setStudyMode("calculator")}
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                studyMode === "calculator"
+                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
+                  : "text-[#6E6E73] hover:text-[#1D1D1F]"
+              }`}
+            >
+              <Calculator className="h-3.5 w-3.5 text-[#FF9500]" />
+              <span>Kalkulator & Lab</span>
             </button>
 
             <button
@@ -1275,11 +1340,26 @@ interface QuizQuestionItem {
                 </p>
               </div>
 
+              {!quizSubmitted && (
+                <div className="flex items-center gap-2 bg-blue-50/80 backdrop-blur-md border border-blue-200/60 px-3.5 py-1.5 rounded-2xl">
+                  <Clock className="h-4 w-4 text-[#007AFF] animate-pulse" />
+                  <div className="text-right">
+                    <p className="text-[10px] text-[#86868B] font-medium leading-none">Waktu Berjalan</p>
+                    <p className="text-xs font-mono font-bold text-[#007AFF]">
+                      {Math.floor(quizTimerSeconds / 60).toString().padStart(2, "0")}:
+                      {(quizTimerSeconds % 60).toString().padStart(2, "0")}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {quizSubmitted && (
                 <div className="flex items-center gap-3 bg-emerald-50/80 backdrop-blur-md border border-emerald-200 px-4 py-2 rounded-2xl">
                   <Award className="h-6 w-6 text-[#34C759]" />
                   <div>
-                    <p className="text-xs font-bold text-emerald-900">Skor Kamu: {quizScore}%</p>
+                    <p className="text-xs font-bold text-emerald-900">
+                      Skor Kamu: {quizScore}% ({Math.floor(quizTimerSeconds / 60)}m {quizTimerSeconds % 60}s)
+                    </p>
                     <p className="text-[10px] text-emerald-700">
                       {quizScore >= 70 ? "Pemahaman Kuat! Siap Uji Pemahaman." : "Perlu reviu bab ini lagi."}
                     </p>
@@ -1288,9 +1368,40 @@ interface QuizQuestionItem {
               )}
             </div>
 
+            {/* Filter Questions after submission */}
+            {quizSubmitted && (
+              <div className="flex items-center gap-2 p-1.5 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60 w-fit text-xs">
+                <button
+                  onClick={() => setQuizFilter("all")}
+                  className={`px-3 py-1 rounded-xl font-medium transition-all ${
+                    quizFilter === "all" ? "bg-white text-[#1D1D1F] font-bold shadow-2xs" : "text-[#6E6E73] hover:text-[#1D1D1F]"
+                  }`}
+                >
+                  Semua ({quizQuestions.length})
+                </button>
+                <button
+                  onClick={() => setQuizFilter("correct")}
+                  className={`px-3 py-1 rounded-xl font-medium transition-all ${
+                    quizFilter === "correct" ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/60 shadow-2xs" : "text-[#6E6E73] hover:text-emerald-700"
+                  }`}
+                >
+                  Benar ({quizQuestions.filter((_, idx) => quizAnswers[idx] === quizQuestions[idx]?.correctIndex).length})
+                </button>
+                <button
+                  onClick={() => setQuizFilter("incorrect")}
+                  className={`px-3 py-1 rounded-xl font-medium transition-all ${
+                    quizFilter === "incorrect" ? "bg-rose-50 text-rose-800 font-bold border border-rose-200/60 shadow-2xs" : "text-[#6E6E73] hover:text-rose-700"
+                  }`}
+                >
+                  Salah ({quizQuestions.filter((_, idx) => quizAnswers[idx] !== quizQuestions[idx]?.correctIndex).length})
+                </button>
+              </div>
+            )}
+
             {/* Questions List */}
             <div className="space-y-3">
-              {quizQuestions.map((q, qIdx) => {
+              {displayedQuestions.map((q) => {
+                const qIdx = q.originalIndex;
                 const selectedOpt = quizAnswers[qIdx];
                 const isAnswered = selectedOpt !== undefined;
                 const isCorrect = selectedOpt === q.correctIndex;
@@ -1403,6 +1514,15 @@ interface QuizQuestionItem {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* SUB-MODE 4: KALKULATOR & LAB SIMULASI AKADEMIK                     */}
+        {/* =================================================================== */}
+        {studyMode === "calculator" && (
+          <div className="w-full animate-fade-in pb-16">
+            <InteractiveStudyCalculator />
           </div>
         )}
 
@@ -1599,5 +1719,20 @@ interface QuizQuestionItem {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StudentNotebookPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50/50 backdrop-blur-xl text-slate-500 gap-3">
+          <div className="w-8 h-8 border-3 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-medium text-slate-600">Menyiapkan Ruang Belajar Smart AI...</p>
+        </div>
+      }
+    >
+      <StudentNotebookContent />
+    </Suspense>
   );
 }
