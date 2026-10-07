@@ -94,6 +94,33 @@ export function HermesCopilotWidget() {
     }
   };
 
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined") return;
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      // Hitung tinggi keyboard yang menutupi viewport bawah
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardOffset(offset);
+      if (offset > 0) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 80);
+      }
+    };
+
+    vv.addEventListener("resize", handleResize);
+    vv.addEventListener("scroll", handleResize);
+    return () => {
+      vv.removeEventListener("resize", handleResize);
+      vv.removeEventListener("scroll", handleResize);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -329,17 +356,17 @@ export function HermesCopilotWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-22 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2 sm:gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-1.5 pr-3 sm:pr-4 text-slate-800 shadow-[0_10px_30px_rgba(15,23,42,0.12)] border border-slate-200/90 hover:border-blue-400 hover:shadow-[0_16px_42px_rgba(59,130,246,0.22)] active:scale-[0.98] transition-all duration-300 group"
+          className="fixed bottom-22 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-2 pr-3.5 sm:pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 ring-1 ring-black/[0.04] hover:border-blue-400 hover:shadow-[0_18px_46px_rgba(59,130,246,0.24)] active:scale-[0.98] transition-all duration-300 group"
           title="Buka Smart AI"
         >
-          {/* Wrapped Character Icon ("sedikit dibungkus" & larger size) */}
-          <div className="relative flex h-11 w-11 sm:h-13 sm:w-13 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-inner group-hover:scale-105 transition-transform duration-300">
+          {/* Wrapped Character Icon */}
+          <div className="relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/15 via-sky-400/20 to-indigo-500/15 p-1.5 border border-blue-200/80 shadow-inner group-hover:scale-105 transition-transform duration-300">
             <picture className="h-full w-full flex items-center justify-center">
               <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
               <img
                 src="/assets/hermes-robot.webp"
                 alt="Smart AI"
-                className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.28)] pointer-events-none select-none"
+                className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.3)] pointer-events-none select-none"
                 loading="eager"
               />
             </picture>
@@ -348,10 +375,13 @@ export function HermesCopilotWidget() {
             </span>
           </div>
 
-          <div className="flex flex-col items-start pr-0.5 text-left">
-            <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-              Smart AI
-            </span>
+          <div className="flex flex-col items-start pr-1 text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+                Smart AI
+              </span>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </div>
             <span className="text-[10px] sm:text-[10.5px] font-medium text-slate-500">
               Asisten Cerdas
             </span>
@@ -370,7 +400,8 @@ export function HermesCopilotWidget() {
       {/* Floating Workspace / Mobile Bottom Sheet */}
       {isOpen && (
         <div
-          className={`fixed z-50 flex flex-col bg-white overflow-hidden transition-all duration-300 animate-in ${
+          style={keyboardOffset > 0 ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}
+          className={`fixed z-50 flex flex-col bg-white overflow-hidden transition-all duration-200 animate-in ${
             /* Mobile: Apple Bottom Sheet | Desktop: Floating Card */
             "inset-x-0 bottom-0 h-[88vh] max-h-[88vh] rounded-t-[28px] border-t border-slate-200/90 shadow-[0_-10px_40px_rgba(15,23,42,0.18)] slide-in-from-bottom-full sm:inset-x-auto sm:bottom-6 sm:right-6 sm:rounded-3xl sm:border sm:border-slate-200/90 sm:shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:slide-in-from-bottom-4"
           } ${
@@ -380,18 +411,18 @@ export function HermesCopilotWidget() {
           }`}
         >
           {/* iOS Grab Handle (Mobile Only) */}
-          <div className="mx-auto mt-2.5 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-slate-300/80 sm:hidden" />
+          <div className="mx-auto mt-2 mb-1.5 h-1 w-10 shrink-0 rounded-full bg-slate-300/80 sm:hidden" />
 
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 bg-white/95 backdrop-blur-md px-4 py-2.5 sm:px-5 sm:py-3 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-1 border border-blue-200/70 shadow-2xs">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500/15 via-sky-400/20 to-indigo-500/15 p-1 border border-blue-200/80 shadow-2xs">
                 <picture className="h-full w-full flex items-center justify-center">
                   <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
                   <img
                     src="/assets/hermes-robot.webp"
                     alt="Smart AI"
-                    className="h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(37,99,235,0.22)] pointer-events-none select-none"
+                    className="h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(37,99,235,0.25)] pointer-events-none select-none"
                     loading="eager"
                   />
                 </picture>
@@ -433,7 +464,7 @@ export function HermesCopilotWidget() {
               <button
                 onClick={() => setIsOpen(false)}
                 title="Tutup"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors ml-1"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors ml-1 active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -725,8 +756,8 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Input Bar */}
-          <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md px-3.5 pt-2.5 pb-4 sm:pb-3 shrink-0">
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 py-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-3 focus-within:ring-blue-100 transition-all">
+          <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md px-3.5 pt-2 pb-3.5 sm:pb-3 shrink-0">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-2xs">
               <input
                 ref={inputRef}
                 type="text"
