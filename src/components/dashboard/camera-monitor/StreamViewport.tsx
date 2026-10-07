@@ -147,7 +147,7 @@ export function StreamViewport({
                 ref={videoImgRef}
                 src={
                   typeof window !== "undefined" && window.location.protocol === "https:" && !window.location.hostname.includes("localhost")
-                    ? `/api/camera/stream?target=video_feed&t=${feedTimestamp}`
+                    ? `/api/camera/stream?target=video_feed&t=${feedTimestamp}&tunnel=${encodeURIComponent(edgeServerUrl)}`
                     : `${edgeServerUrl}/video_feed?t=${feedTimestamp}`
                 }
                 alt={`Live Stream ${activeChannel.name}`}

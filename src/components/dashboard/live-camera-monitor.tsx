@@ -222,7 +222,7 @@ export function LiveCameraMonitor() {
         window.location.protocol === "https:" &&
         !window.location.hostname.includes("localhost");
       const targetScanUrl = isCloud
-        ? `/api/camera/stream?target=scan_network_cameras`
+        ? `/api/camera/stream?target=scan_network_cameras&tunnel=${encodeURIComponent(edgeServerUrl)}`
         : `${edgeServerUrl}/scan_network_cameras`;
       const res = await fetch(targetScanUrl, { mode: "cors" });
       if (res.ok) {
@@ -255,7 +255,7 @@ export function LiveCameraMonitor() {
         window.location.protocol === "https:" &&
         !window.location.hostname.includes("localhost");
       const targetSourcesUrl = isCloud
-        ? `/api/camera/stream?target=camera_sources`
+        ? `/api/camera/stream?target=camera_sources&tunnel=${encodeURIComponent(edgeServerUrl)}`
         : `${edgeServerUrl}/camera_sources`;
       const res = await fetch(targetSourcesUrl, { mode: "cors" });
       if (res.ok) {
@@ -284,7 +284,7 @@ export function LiveCameraMonitor() {
         window.location.protocol === "https:" &&
         !window.location.hostname.includes("localhost");
       const targetSwitchUrl = isCloud
-        ? `/api/camera/stream?target=switch_camera&source=${encodeURIComponent(String(newSource).trim())}`
+        ? `/api/camera/stream?target=switch_camera&source=${encodeURIComponent(String(newSource).trim())}&tunnel=${encodeURIComponent(edgeServerUrl)}`
         : `${edgeServerUrl}/switch_camera?source=${encodeURIComponent(String(newSource).trim())}`;
       const res = await fetch(targetSwitchUrl, { mode: "cors" });
       const data = await res.json();
@@ -320,7 +320,7 @@ export function LiveCameraMonitor() {
         window.location.protocol === "https:" &&
         !window.location.hostname.includes("localhost");
       const targetRotateUrl = isCloud
-        ? `/api/camera/stream?target=rotate&deg=${deg}`
+        ? `/api/camera/stream?target=rotate&deg=${deg}&tunnel=${encodeURIComponent(edgeServerUrl)}`
         : `${edgeServerUrl}/rotate?deg=${deg}`;
       await fetch(targetRotateUrl, { mode: "cors" });
     } catch (e) {
@@ -337,7 +337,7 @@ export function LiveCameraMonitor() {
         window.location.protocol === "https:" &&
         !window.location.hostname.includes("localhost");
       const targetFlipUrl = isCloud
-        ? `/api/camera/stream?target=rotate&flip=${nextVal ? "1" : "0"}`
+        ? `/api/camera/stream?target=rotate&flip=${nextVal ? "1" : "0"}&tunnel=${encodeURIComponent(edgeServerUrl)}`
         : `${edgeServerUrl}/rotate?flip=${nextVal ? "1" : "0"}`;
       await fetch(targetFlipUrl, { mode: "cors" });
     } catch (e) {
@@ -352,7 +352,9 @@ export function LiveCameraMonitor() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       const isCloud = typeof window !== "undefined" && window.location.protocol === "https:" && !window.location.hostname.includes("localhost");
-      const targetUrl = isCloud ? "/api/camera/stream?target=status" : `${edgeServerUrl}/status`;
+      const targetUrl = isCloud
+        ? `/api/camera/stream?target=status&tunnel=${encodeURIComponent(edgeServerUrl)}`
+        : `${edgeServerUrl}/status`;
       const res = await fetch(targetUrl, {
         signal: controller.signal,
         mode: "cors",

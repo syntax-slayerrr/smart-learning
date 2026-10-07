@@ -5,8 +5,13 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const target = searchParams.get("target") || "status";
+  const queryTunnel = searchParams.get("tunnel");
+  const headerTunnel = req.headers.get("x-tunnel-url");
   const tunnelUrl =
-    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://bra-boxing-evident-resumes.trycloudflare.com";
+    (queryTunnel && queryTunnel.startsWith("http") ? queryTunnel : null) ||
+    (headerTunnel && headerTunnel.startsWith("http") ? headerTunnel : null) ||
+    process.env.NEXT_PUBLIC_EDGE_SERVER ||
+    "https://bra-boxing-evident-resumes.trycloudflare.com";
 
   try {
     if (target === "video_feed") {
