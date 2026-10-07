@@ -489,10 +489,10 @@ export function CameraSourceModal({
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => updateEdgeServerUrl("http://localhost:5000")}
-                className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                onClick={() => updateEdgeServerUrl("https://bra-boxing-evident-resumes.trycloudflare.com")}
+                className="text-xs text-blue-600 hover:text-blue-700 underline"
               >
-                Reset default (http://localhost:5000)
+                Gunakan URL Cloudflare Tunnel Aktif
               </button>
             </div>
           </div>

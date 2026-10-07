@@ -160,18 +160,23 @@ export function LiveCameraMonitor() {
   const [networkScanSubnet, setNetworkScanSubnet] = useState<string>("");
   const [hasScannedNetwork, setHasScannedNetwork] = useState<boolean>(false);
 
-  // Dynamic Edge Server Base URL (Defaults to localhost:5000, can be set to Tunnel HTTPS URL on Vercel)
-  const [edgeServerUrl, setEdgeServerUrl] = useState<string>("http://localhost:5000");
-  const [customEdgeInput, setCustomEdgeInput] = useState<string>("http://localhost:5000");
+  // Dynamic Edge Server Base URL (Defaults to env variable or Tunnel HTTPS URL on Vercel)
+  const defaultEdgeServer =
+    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://bra-boxing-evident-resumes.trycloudflare.com";
+  const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
+  const [customEdgeInput, setCustomEdgeInput] = useState<string>(defaultEdgeServer);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-      if (saved) {
+      if (saved && !saved.includes("localhost")) {
         setEdgeServerUrl(saved);
         setCustomEdgeInput(saved);
       } else if (window.location.protocol === "https:" && !window.location.hostname.includes("localhost")) {
-        // Mode Vercel / Cloud terdeteksi
+        // Mode Vercel / Cloud terdeteksi: utamakan Tunnel HTTPS daripada localhost
+        setEdgeServerUrl(defaultEdgeServer);
+        setCustomEdgeInput(defaultEdgeServer);
+        localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", defaultEdgeServer);
         setCameraModalTab("cloud");
       }
 
