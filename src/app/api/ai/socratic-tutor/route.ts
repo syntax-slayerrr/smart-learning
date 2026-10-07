@@ -177,7 +177,7 @@ ${highlightedText ? `\nTeks yang Sedang Disorot Siswa di Modul:\n"${highlightedT
     const aiResponse = await call9Router({
       model: ROUTER_MODELS.GEMINI_3_FLASH,
       messages: conversationMessages,
-      temperature: 0.4,
+      temperature: 0.2,
     });
 
     const rawReply = aiResponse.content || "";
