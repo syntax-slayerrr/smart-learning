@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -246,13 +246,39 @@ function StudentNotebookContent() {
     loadAuthStudent();
   }, []);
 
-  const loadNotebookData = useCallback(async (targetMaterialId?: string) => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeFetchingIdRef = useRef<string | null>(null);
+
+  const loadNotebookData = useCallback(async (targetMaterialId?: string, force = false) => {
+    // Hindari fetch ganda jika materi yang sama persis sedang/telah selesai dimuat
+    if (
+      !force &&
+      targetMaterialId &&
+      activeFetchingIdRef.current === targetMaterialId &&
+      notebookData?.material?.id === targetMaterialId &&
+      (notebookData?.chapters?.length ?? 0) > 0
+    ) {
+      return;
+    }
+
+    // Batalkan request fetch sebelumnya jika masih berjalan (cegah race condition)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ac = new AbortController();
+    abortControllerRef.current = ac;
+    activeFetchingIdRef.current = targetMaterialId || "initial";
+
     try {
       setIsLoading(true);
       const url = targetMaterialId
         ? `/api/lms/student/notebook-data?materialId=${targetMaterialId}&studentId=${currentStudentId}`
         : `/api/lms/student/notebook-data?studentId=${currentStudentId}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+        signal: ac.signal,
+      });
       const json = await res.json();
       if (json.success && json.data) {
         setNotebookData(json.data);
@@ -268,37 +294,64 @@ function StudentNotebookContent() {
             setSelectedSubjectId(firstWithMats ? firstWithMats.id : json.data.subjects[0].id);
           }
         }
-      } else {
+      }
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        return; // Request dibatalkan karena perpindahan materi baru, abaikan
+      }
+      console.warn("Jaringan offline atau lambat:", err);
+      if (!targetMaterialId) {
         const cached = await getCachedActiveMaterial();
         if (cached) setNotebookData(cached);
       }
-    } catch (err) {
-      console.warn("Jaringan offline atau lambat, memuat dari cache:", err);
-      const cached = await getCachedActiveMaterial();
-      if (cached) setNotebookData(cached);
     } finally {
-      setIsLoading(false);
+      if (activeFetchingIdRef.current === (targetMaterialId || "initial")) {
+        setIsLoading(false);
+      }
     }
-  }, [currentStudentId]);
+  }, [currentStudentId, notebookData?.material?.id, notebookData?.chapters?.length, selectedSubjectId]);
 
   useEffect(() => {
     const queryMatId = searchParams?.get("materialId") || searchParams?.get("id");
     if (queryMatId) {
-      loadNotebookData(queryMatId);
+      // Hanya panggil jika materi target belum cocok dengan yang aktif
+      if (notebookData?.material?.id !== queryMatId && selectedMaterial?.id !== queryMatId) {
+        loadNotebookData(queryMatId);
+      }
     } else {
-      loadNotebookData();
+      if (!notebookData?.material) {
+        loadNotebookData();
+      }
     }
-  }, [searchParams, loadNotebookData]);
+  }, [searchParams, loadNotebookData, notebookData?.material?.id, selectedMaterial?.id]);
 
   const handleSelectMaterial = (mat: any) => {
+    // 1. Langsung switch material secara optimis agar header & konteks seketika berganti
     setSelectedMaterial(mat);
     setActiveChapterIndex(0);
     setStudyMode("reader");
-    loadNotebookData(mat.id);
+
+    // 2. Bersihkan konten lama (bab, quiz, mindmap) seketika agar tidak bocor ke materi baru
+    setNotebookData((prev: any) => ({
+      subjects: prev?.subjects || [],
+      material: mat,
+      chapters: [],
+      conceptGraph: { nodes: [], edges: [] },
+      examReadiness: prev?.examReadiness || { axes: [], averageScore: 75 },
+      quizQuestions: [],
+    }));
+
+    // 3. Sinkronkan query param URL
     router.replace(`/student/notebook?materialId=${mat.id}`, { scroll: false });
+
+    // 4. Muat detail materi baru dengan fresh abort controller
+    loadNotebookData(mat.id, true);
   };
 
   const handleBackToShelf = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setSelectedMaterial(null);
     router.replace("/student/notebook", { scroll: false });
   };
@@ -312,8 +365,8 @@ function StudentNotebookContent() {
     );
   }, [notebookData, selectedSubjectId]);
 
-  // Fallback active material details
-  const activeMaterialDetails = notebookData?.material || selectedMaterial;
+  // Prioritas active material: selectedMaterial yang baru diklik langsung jadi prioritas utama
+  const activeMaterialDetails = selectedMaterial || notebookData?.material;
   const chapters = notebookData?.chapters || [];
   const activeChapter = chapters[activeChapterIndex] || chapters[0] || null;
   const conceptGraph = notebookData?.conceptGraph || { nodes: [], edges: [] };
@@ -1061,78 +1114,88 @@ interface QuizQuestionItem {
               )}
 
               {/* Dynamic Material Content */}
-              <div className="space-y-4 text-sm text-[#1D1D1F] leading-relaxed">
-                {activeChapter?.isCriticalZone && activeChapter?.criticalZoneLabel && (
-                  <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex items-start gap-2.5">
-                    <HelpCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-amber-900">Perhatian Guru & Siswa</p>
-                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                        {activeChapter.criticalZoneLabel}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Paragraphs */}
-                {(() => {
-                  const rawContent =
-                    activeChapter?.contentSnippet ||
-                    activeMaterialDetails?.aiSummary ||
-                    activeMaterialDetails?.description ||
-                    "Materi ini siap dieksplorasi. Anda dapat membuka modul resmi atau bertanya kepada Smart AI untuk mempelajari bab ini secara interaktif.";
-                  
-                  return rawContent
-                    .split(/\n\n+/)
-                    .filter((p: string) => p.trim().length > 0)
-                    .map((paragraph: string, pIdx: number) => (
-                      <p key={pIdx} className="leading-relaxed text-[#1D1D1F]">
-                        {paragraph.trim()}
-                      </p>
-                    ));
-                })()}
-
-                {/* Key Concepts / Takeaways */}
-                {activeChapter?.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 space-y-2">
-                    <h4 className="text-xs font-bold text-[#007AFF] uppercase tracking-wide flex items-center gap-1.5">
-                      <Lightbulb className="h-3.5 w-3.5" />
-                      Poin Kunci Pembelajaran ({activeChapter.title}):
-                    </h4>
-                    <ul className="text-xs text-[#1D1D1F] space-y-1.5 list-disc list-inside">
-                      {activeChapter.keyTakeaways.map((item: string, iIdx: number) => (
-                        <li key={iIdx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Direct Document Link if PDF exists */}
-                {activeMaterialDetails?.fileUrl && (
-                  <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-200/60">
-                        <FileText className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-[#1D1D1F] truncate">
-                          {activeMaterialDetails.fileName || `${activeMaterialDetails.title}.pdf`}
-                        </h4>
-                        <p className="text-[11px] text-[#6E6E73]">
-                          Modul pembelajaran resmi ({activeMaterialDetails.pageCount || 24} halaman)
+              {isLoading && chapters.length === 0 ? (
+                <div className="space-y-4 py-4 animate-pulse">
+                  <div className="h-4 bg-slate-200/80 rounded-full w-1/4"></div>
+                  <div className="h-4 bg-slate-200/70 rounded-full w-full"></div>
+                  <div className="h-4 bg-slate-200/70 rounded-full w-5/6"></div>
+                  <div className="h-4 bg-slate-200/60 rounded-full w-3/4"></div>
+                  <div className="h-28 bg-slate-100/80 rounded-2xl w-full mt-3"></div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-sm text-[#1D1D1F] leading-relaxed">
+                  {activeChapter?.isCriticalZone && activeChapter?.criticalZoneLabel && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex items-start gap-2.5">
+                      <HelpCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-amber-900">Perhatian Guru & Siswa</p>
+                        <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                          {activeChapter.criticalZoneLabel}
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setStudyMode("pdf")}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all self-start sm:self-auto shrink-0"
-                    >
-                      Buka Dokumen Asli →
-                    </button>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {/* Paragraphs */}
+                  {(() => {
+                    const rawContent =
+                      activeChapter?.contentSnippet ||
+                      activeMaterialDetails?.aiSummary ||
+                      activeMaterialDetails?.description ||
+                      "Materi ini siap dieksplorasi. Anda dapat membuka modul resmi atau bertanya kepada Smart AI untuk mempelajari bab ini secara interaktif.";
+                    
+                    return rawContent
+                      .split(/\n\n+/)
+                      .filter((p: string) => p.trim().length > 0)
+                      .map((paragraph: string, pIdx: number) => (
+                        <p key={pIdx} className="leading-relaxed text-[#1D1D1F]">
+                          {paragraph.trim()}
+                        </p>
+                      ));
+                  })()}
+
+                  {/* Key Concepts / Takeaways */}
+                  {activeChapter?.keyTakeaways && activeChapter.keyTakeaways.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-blue-50/70 backdrop-blur-md border border-blue-200/60 space-y-2">
+                      <h4 className="text-xs font-bold text-[#007AFF] uppercase tracking-wide flex items-center gap-1.5">
+                        <Lightbulb className="h-3.5 w-3.5" />
+                        Poin Kunci Pembelajaran ({activeChapter.title}):
+                      </h4>
+                      <ul className="text-xs text-[#1D1D1F] space-y-1.5 list-disc list-inside">
+                        {activeChapter.keyTakeaways.map((item: string, iIdx: number) => (
+                          <li key={iIdx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Direct Document Link if PDF exists */}
+                  {activeMaterialDetails?.fileUrl && (
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-200/60">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-[#1D1D1F] truncate">
+                            {activeMaterialDetails.fileName || `${activeMaterialDetails.title}.pdf`}
+                          </h4>
+                          <p className="text-[11px] text-[#6E6E73]">
+                            Modul pembelajaran resmi ({activeMaterialDetails.pageCount || 24} halaman)
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStudyMode("pdf")}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all self-start sm:self-auto shrink-0"
+                      >
+                        Buka Dokumen Asli →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* FEATURE HUB 4 KARTU KACA (SESUAI REFERENSI UI LAYAR 4) */}
               <div className="pt-4 border-t border-black/[0.06] space-y-3">
