@@ -40,19 +40,6 @@ const OralDefenseModal = dynamic(
   () => import("@/components/lms/oral-defense-modal").then((mod) => mod.OralDefenseModal),
   { ssr: false }
 );
-
-const InteractiveStudyCalculator = dynamic(
-  () => import("@/components/lms/interactive-study-calculator").then((mod) => mod.InteractiveStudyCalculator),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-96 rounded-3xl bg-white/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/60 animate-pulse text-xs text-[#86868B] gap-2">
-        <div className="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
-        <span>Menyiapkan Kalkulator & Lab Simulasi...</span>
-      </div>
-    ),
-  }
-);
 import {
   ArrowLeft,
   BookOpen,
@@ -85,7 +72,6 @@ import {
   Copy,
   Bookmark,
   Bot,
-  Calculator,
 } from "lucide-react";
 import {
   useOfflineStatus,
@@ -94,7 +80,7 @@ import {
   saveOfflineQuiz,
 } from "@/lib/offline-lms-cache";
 
-type StudySubMode = "reader" | "mindmap" | "quiz" | "calculator" | "chat" | "pdf";
+type StudySubMode = "reader" | "mindmap" | "quiz" | "chat" | "pdf";
 
 interface MaterialItem {
   id: string;
@@ -915,18 +901,6 @@ interface QuizQuestionItem {
             </button>
 
             <button
-              onClick={() => setStudyMode("calculator")}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                studyMode === "calculator"
-                  ? "bg-white/90 backdrop-blur-md text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold border border-white/80"
-                  : "text-[#6E6E73] hover:text-[#1D1D1F]"
-              }`}
-            >
-              <Calculator className="h-3.5 w-3.5 text-[#FF9500]" />
-              <span>Kalkulator & Lab</span>
-            </button>
-
-            <button
               onClick={() => setStudyMode("chat")}
               className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 studyMode === "chat"
@@ -1514,15 +1488,6 @@ interface QuizQuestionItem {
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* =================================================================== */}
-        {/* SUB-MODE 4: KALKULATOR & LAB SIMULASI AKADEMIK                     */}
-        {/* =================================================================== */}
-        {studyMode === "calculator" && (
-          <div className="w-full animate-fade-in pb-16">
-            <InteractiveStudyCalculator />
           </div>
         )}
 

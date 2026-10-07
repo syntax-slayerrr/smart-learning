@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractTextFromPdfBuffer } from "@/lib/pdf/parser";
 
 export const dynamic = "force-dynamic";
 
@@ -79,11 +80,28 @@ export async function POST(request: NextRequest) {
       .from("lms-documents")
       .getPublicUrl(storagePath);
 
+    // Kasus A: Ekstraksi teks digital & jumlah halaman secara serverless
+    let extractedText = "";
+    let detectedPageCount = 1;
+    let pageSnippets: Array<{ pageNumber: number; text: string }> = [];
+
+    try {
+      const extracted = await extractTextFromPdfBuffer(buffer);
+      extractedText = extracted.text || "";
+      detectedPageCount = extracted.pageCount || 1;
+      pageSnippets = (extracted.pages || []).slice(0, 20);
+    } catch (parseErr: any) {
+      console.warn("Peringatan ekstraksi teks PDF digital:", parseErr?.message || parseErr);
+    }
+
     return NextResponse.json({
       success: true,
       fileUrl: urlData.publicUrl,
       fileName: file.name,
       fileSize: file.size,
+      pageCount: detectedPageCount,
+      extractedText: extractedText.slice(0, 20000),
+      pageSnippets,
       storagePath,
     });
   } catch (error: any) {

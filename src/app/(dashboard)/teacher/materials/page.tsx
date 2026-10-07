@@ -170,7 +170,8 @@ export default function TeacherMaterialsPage() {
           fileUrl: uploadJson.fileUrl,
           fileName: uploadJson.fileName,
           fileSizeBytes: uploadJson.fileSize,
-          pageCount: uploadJson.pageCount || 20,
+          pageCount: uploadJson.pageCount || 10,
+          extractedText: uploadJson.extractedText || "",
         }),
       });
       const saveJson = await saveRes.json();

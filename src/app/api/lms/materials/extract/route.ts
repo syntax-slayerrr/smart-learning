@@ -1,26 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { call9Router, ROUTER_MODELS } from "@/lib/ai/9router";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractTextFromPdfBuffer } from "@/lib/pdf/parser";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { materialId, title, subjectId, teacherId, classId, description, rawContent, fullText } = body;
-    const contentToExtract = rawContent || fullText;
-
-    if (!title || !contentToExtract) {
-      return NextResponse.json(
-        { success: false, error: "Title and rawContent/fullText are required" },
-        { status: 400 }
-      );
-    }
+    let { materialId, title, subjectId, teacherId, classId, description, rawContent, fullText, fileUrl } = body;
+    let contentToExtract = rawContent || fullText;
 
     const admin = createAdminClient();
 
     // 1. Simpan atau dapatkan dokumen materi induk
     let materialRecord: any = null;
+    let detectedPageCount = 10;
+
     if (materialId) {
       const { data: existing } = await admin
         .from("course_materials")
@@ -29,7 +25,44 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       if (existing) {
         materialRecord = existing;
+        if (!title) title = existing.title;
+        if (!subjectId) subjectId = existing.subject_id;
+
+        // Jika content belum ada, ekstraksi langsung dari file_url PDF digital (Kasus A)
+        if (!contentToExtract && existing.file_url) {
+          try {
+            const fileRes = await fetch(existing.file_url);
+            if (fileRes.ok) {
+              const arrayBuf = await fileRes.arrayBuffer();
+              const parsed = await extractTextFromPdfBuffer(Buffer.from(arrayBuf));
+              contentToExtract = parsed.text;
+              detectedPageCount = parsed.pageCount;
+            }
+          } catch (e: any) {
+            console.warn("Ekstraksi PDF digital dari URL gagal:", e?.message || e);
+          }
+        }
       }
+    } else if (fileUrl && !contentToExtract) {
+      try {
+        const fileRes = await fetch(fileUrl);
+        if (fileRes.ok) {
+          const arrayBuf = await fileRes.arrayBuffer();
+          const parsed = await extractTextFromPdfBuffer(Buffer.from(arrayBuf));
+          contentToExtract = parsed.text;
+          detectedPageCount = parsed.pageCount;
+        }
+      } catch (e: any) {
+        console.warn("Ekstraksi PDF digital dari fileUrl gagal:", e?.message || e);
+      }
+    }
+
+    if (!title) {
+      title = materialRecord?.title || "Materi Pembelajaran";
+    }
+
+    if (!contentToExtract) {
+      contentToExtract = materialRecord?.description || description || title;
     }
 
     if (!materialRecord) {
