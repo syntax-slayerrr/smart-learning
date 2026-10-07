@@ -165,24 +165,33 @@ export function LiveCameraMonitor() {
   const isCloudHost =
     typeof window !== "undefined" &&
     window.location.protocol === "https:" &&
-    !window.location.hostname.includes("localhost");
+    !window.location.hostname.includes("localhost") &&
+    window.location.hostname !== "127.0.0.1";
 
   const defaultEdgeServer =
-    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://volt-improving-extract-shelf.trycloudflare.com";
+    process.env.NEXT_PUBLIC_EDGE_SERVER ||
+    (typeof window !== "undefined" &&
+    (window.location.hostname.includes("localhost") || window.location.hostname === "127.0.0.1")
+      ? "http://localhost:5000"
+      : "https://volt-improving-extract-shelf.trycloudflare.com");
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
-  const [customEdgeInput, setCustomEdgeInput] = useState<string>(
-    "https://volt-improving-extract-shelf.trycloudflare.com"
-  );
+  const [customEdgeInput, setCustomEdgeInput] = useState<string>(defaultEdgeServer);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const isLocal =
+        window.location.hostname.includes("localhost") || window.location.hostname === "127.0.0.1";
       const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
       if (saved) {
         setEdgeServerUrl(saved);
         setCustomEdgeInput(saved);
+      } else if (isLocal) {
+        setEdgeServerUrl("http://localhost:5000");
+        setCustomEdgeInput("http://localhost:5000");
       } else {
         setEdgeServerUrl(defaultEdgeServer);
+        setCustomEdgeInput(defaultEdgeServer);
       }
 
       // Pulihkan alamat kamera IP terakhir jika tersedia
