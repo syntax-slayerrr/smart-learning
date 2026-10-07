@@ -169,7 +169,7 @@ export function LiveCameraMonitor() {
 
   const defaultEdgeServer = isCloudHost
     ? ""
-    : process.env.NEXT_PUBLIC_EDGE_SERVER || "https://bra-boxing-evident-resumes.trycloudflare.com";
+    : process.env.NEXT_PUBLIC_EDGE_SERVER || "https://volt-improving-extract-shelf.trycloudflare.com";
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
   const [customEdgeInput, setCustomEdgeInput] = useState<string>(

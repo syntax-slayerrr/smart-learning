@@ -290,10 +290,11 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(bingkai_bytes)
                         self.wfile.write(b"\r\n")
+                        self.wfile.flush()
                         terakhir_dikirim = bingkai_bytes
                     except (BrokenPipeError, ConnectionResetError):
                         break
-                time.sleep(0.04)  # Maksimal ~25 FPS untuk mencegah tumpukan antrian TCP buffer
+                time.sleep(0.02)  # Low jitter & flush langsung untuk pangkas buffer lag
             return
 
         self.send_response(404)

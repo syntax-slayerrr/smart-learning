@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
         headers: {
           "Content-Type":
             feedRes.headers.get("Content-Type") || "multipart/x-mixed-replace; boundary=frame",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+          "X-Accel-Buffering": "no",
+          Connection: "keep-alive",
         },
       });
     }
