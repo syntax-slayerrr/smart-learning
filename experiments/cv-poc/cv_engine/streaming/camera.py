@@ -97,12 +97,16 @@ class KameraUtasTerpisah:
 
     def _lingkaran_watchdog(self) -> None:
         """Pondasi 1: Watchdog Heartbeat — mendeteksi kamera macet/freeze & memicu soft reconnect."""
+        # Nonaktifkan force soft-reconnect pada stream jaringan jarak jauh (HTTP/RTSP) agar tidak memicu loop reconnect
+        if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
+            return
+
         while not self.apakah_berhenti:
             time.sleep(1.0)
             if self.apakah_berhenti:
                 break
-            if self.apakah_terhubung and (time.time() - self.waktu_frame_terakhir > 2.8):
-                print(f"[!] Watchdog: Aliran kamera '{self.sumber}' macet (>2.8s). Memicu soft-reconnect...")
+            if self.apakah_terhubung and (time.time() - self.waktu_frame_terakhir > 6.0):
+                print(f"[!] Watchdog: Aliran kamera '{self.sumber}' macet (>6.0s). Memicu soft-reconnect...")
                 with self.kunci_utas:
                     self.apakah_terhubung = False
                     self.is_connected = False
@@ -130,8 +134,10 @@ class KameraUtasTerpisah:
 
             sekarang_ts = time.time()
             with self.kunci_utas:
-                self.apakah_terambil = berhasil
-                self.grabbed = berhasil
+                self.apakah_terhubung = True
+                self.is_connected = True
+                self.apakah_terambil = True
+                self.grabbed = True
                 self.bingkai = frame
                 self.frame = frame
                 self.waktu_frame_terakhir = sekarang_ts
@@ -152,7 +158,9 @@ class KameraUtasTerpisah:
         with self.kunci_utas:
             if not self.apakah_terambil or self.bingkai is None:
                 return False, None
-            return True, self.bingkai.copy()
+            frame = self.bingkai
+            self.apakah_terambil = False
+            return True, frame
 
     def ganti_sumber(self, sumber_baru: Union[int, str]) -> Tuple[bool, str]:
         """

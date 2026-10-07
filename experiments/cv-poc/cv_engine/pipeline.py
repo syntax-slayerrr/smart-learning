@@ -105,9 +105,10 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     status_pekerja_aktif: bool = True
     bingkai_siap_inferensi: Optional[np.ndarray] = None
     sinyal_inferensi = threading.Event()
+    inferensi_sedang_berjalan: bool = False
 
     def lingkaran_kerja_inferensi_ai():
-        nonlocal daftar_landmark_terkini, daftar_kotak_yolo_terkini, latensi_inferensi_ms, bingkai_siap_inferensi
+        nonlocal daftar_landmark_terkini, daftar_kotak_yolo_terkini, latensi_inferensi_ms, bingkai_siap_inferensi, inferensi_sedang_berjalan
         while status_pekerja_aktif:
             sinyal_inferensi.wait(timeout=0.1)
             sinyal_inferensi.clear()
@@ -116,6 +117,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 frame_ai = None if bingkai_siap_inferensi is None else bingkai_siap_inferensi.copy()
 
             if frame_ai is None:
+                inferensi_sedang_berjalan = False
                 continue
 
             waktu_mulai = time.perf_counter()
@@ -142,6 +144,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     latensi_inferensi_ms = waktu_durasi_ms
             except Exception:
                 pass
+            finally:
+                inferensi_sedang_berjalan = False
 
     utas_inferensi = threading.Thread(target=lingkaran_kerja_inferensi_ai, daemon=True)
     utas_inferensi.start()
@@ -220,15 +224,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
         while True:
             berhasil, frame_mentah = kamera_aliran.baca_bingkai()
             if not berhasil or frame_mentah is None:
-                # Tampilkan frame standby jika kamera sedang menyambung ulang
-                frame_siaga = np.full((720, 1280, 3), (25, 27, 32), dtype=np.uint8)
-                cv2.putText(frame_siaga, "MENUNGGU STREAM KAMERA (STANDBY)...", (320, 350),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (220, 220, 220), 2, cv2.LINE_AA)
-                cv2.putText(frame_siaga, f"Sumber: {konfigurasi.source}", (380, 390),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1, cv2.LINE_AA)
-                _, jpeg_siaga = cv2.imencode('.jpg', frame_siaga, [cv2.IMWRITE_JPEG_QUALITY, 76])
-                status_server.perbarui_bingkai(jpeg_siaga.tobytes())
-                time.sleep(0.1)
+                time.sleep(0.005)
                 continue
 
             pencacah_frame += 1
@@ -241,10 +237,12 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
             frame = terapkan_orientasi(frame_mentah, setelan_rotasi, setelan_cermin)
             tinggi_frame, lebar_frame = frame.shape[:2]
 
-            # Kirim frame ke pekerja inferensi asinkronus
+            # Kirim frame ke pekerja inferensi asinkronus (Drop frame jika worker sedang sibuk)
             with kunci_pose_bersama:
-                bingkai_siap_inferensi = frame
-                sinyal_inferensi.set()
+                if not inferensi_sedang_berjalan:
+                    inferensi_sedang_berjalan = True
+                    bingkai_siap_inferensi = frame
+                    sinyal_inferensi.set()
                 pose_aktif = list(daftar_landmark_terkini)
                 kotak_yolo_aktif = list(daftar_kotak_yolo_terkini)
                 latensi_saat_ini = latensi_inferensi_ms

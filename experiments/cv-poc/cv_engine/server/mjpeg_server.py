@@ -294,7 +294,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                         terakhir_dikirim = bingkai_bytes
                     except (BrokenPipeError, ConnectionResetError):
                         break
-                time.sleep(0.02)  # Low jitter & flush langsung untuk pangkas buffer lag
+                time.sleep(0.005)  # Respon instan tanpa tidur 20ms
             return
 
         self.send_response(404)
