@@ -319,7 +319,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
             rekaman_telemetri = []
             for subjek in subjek_aktif:
                 id_subjek = subjek["id"]
-                bx, by, bw, bh = subjek["box"]
+                raw_b = subjek.get("smooth_box", subjek["box"])
+                bx, by, bw, bh = (int(round(raw_b[0])), int(round(raw_b[1])), int(round(raw_b[2])), int(round(raw_b[3])))
                 postur = subjek["posture"]
                 aktivitas = subjek["activity"]
                 keyakinan = subjek["conf"]

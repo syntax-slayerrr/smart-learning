@@ -117,6 +117,7 @@ def gambar_kotak_cerdas(
     Menggambar bounding box bersih & tajam (Hijau/Merah CCTV Style seperti foto referensi).
     Kotak persegi tebal 2px dengan label teks di atas. Sangat enteng dan responsif.
     """
+    x, y, lebar, tinggi = int(round(x)), int(round(y)), int(round(lebar)), int(round(tinggi))
     # 1. Kotak Bounding Box (Gaya Surveillance Cam)
     cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 2)
 

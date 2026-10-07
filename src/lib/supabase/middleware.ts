@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/attendance") || 
     pathname.startsWith("/api/ai") || 
     pathname.startsWith("/api/lms") || 
+    pathname.startsWith("/api/camera") || 
     pathname.startsWith("/brand") || 
     pathname.startsWith("/wasm") || 
     pathname.startsWith("/models") || 
