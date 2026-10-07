@@ -167,9 +167,8 @@ export function LiveCameraMonitor() {
     window.location.protocol === "https:" &&
     !window.location.hostname.includes("localhost");
 
-  const defaultEdgeServer = isCloudHost
-    ? ""
-    : process.env.NEXT_PUBLIC_EDGE_SERVER || "https://volt-improving-extract-shelf.trycloudflare.com";
+  const defaultEdgeServer =
+    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://volt-improving-extract-shelf.trycloudflare.com";
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
   const [customEdgeInput, setCustomEdgeInput] = useState<string>(
@@ -178,17 +177,12 @@ export function LiveCameraMonitor() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const isCloud = window.location.protocol === "https:" && !window.location.hostname.includes("localhost");
-      if (isCloud) {
-        // Mode Vercel / Cloud: gunakan proxy internal same-origin agar 100% tembus
-        setEdgeServerUrl("");
-        localStorage.removeItem("SYNTAX_SLAYER_EDGE_SERVER");
+      const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
+      if (saved) {
+        setEdgeServerUrl(saved);
+        setCustomEdgeInput(saved);
       } else {
-        const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-        if (saved) {
-          setEdgeServerUrl(saved);
-          setCustomEdgeInput(saved);
-        }
+        setEdgeServerUrl(defaultEdgeServer);
       }
 
       // Pulihkan alamat kamera IP terakhir jika tersedia
@@ -197,7 +191,7 @@ export function LiveCameraMonitor() {
         setCustomIpUrl(lastIp);
       }
     }
-  }, []);
+  }, [defaultEdgeServer]);
 
   const updateEdgeServerUrl = (url: string) => {
     const cleaned = url.trim().replace(/\/$/, "");
