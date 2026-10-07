@@ -67,6 +67,8 @@ class KameraUtasTerpisah:
             self.penangkap.set(cv2.CAP_PROP_FPS, self.fps_target)
 
             # Optimasi timeout I/O untuk stream nirkabel (HTTP/RTSP) agar tidak pernah memblokir thread
+            self.penangkap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
             if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
                 try:
                     self.penangkap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
@@ -134,8 +136,6 @@ class KameraUtasTerpisah:
                 self.frame = frame
                 self.waktu_frame_terakhir = sekarang_ts
                 self.last_frame_time = sekarang_ts
-
-            time.sleep(1.0 / (self.fps_target * 1.5))
 
     def berhenti(self) -> None:
         """Menghentikan penangkap kamera dan melepaskan resource fisik."""
