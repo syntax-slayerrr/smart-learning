@@ -145,7 +145,11 @@ export function StreamViewport({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={videoImgRef}
-                src={`${edgeServerUrl}/video_feed?t=${feedTimestamp}`}
+                src={
+                  typeof window !== "undefined" && window.location.protocol === "https:" && !window.location.hostname.includes("localhost")
+                    ? `/api/camera/stream?target=video_feed&t=${feedTimestamp}`
+                    : `${edgeServerUrl}/video_feed?t=${feedTimestamp}`
+                }
                 alt={`Live Stream ${activeChannel.name}`}
                 className="w-full h-full object-contain"
                 onError={() => setStreamOnline(false)}

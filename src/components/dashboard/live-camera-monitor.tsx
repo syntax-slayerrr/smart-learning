@@ -160,24 +160,35 @@ export function LiveCameraMonitor() {
   const [networkScanSubnet, setNetworkScanSubnet] = useState<string>("");
   const [hasScannedNetwork, setHasScannedNetwork] = useState<boolean>(false);
 
-  // Dynamic Edge Server Base URL (Defaults to env variable or Tunnel HTTPS URL on Vercel)
-  const defaultEdgeServer =
-    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://bra-boxing-evident-resumes.trycloudflare.com";
+  // Dynamic Edge Server Base URL
+  // Di cloud (Vercel HTTPS), gunakan rute internal /api/camera/stream agar lolos CORS & mixed-content
+  const isCloudHost =
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    !window.location.hostname.includes("localhost");
+
+  const defaultEdgeServer = isCloudHost
+    ? ""
+    : process.env.NEXT_PUBLIC_EDGE_SERVER || "https://bra-boxing-evident-resumes.trycloudflare.com";
+
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
-  const [customEdgeInput, setCustomEdgeInput] = useState<string>(defaultEdgeServer);
+  const [customEdgeInput, setCustomEdgeInput] = useState<string>(
+    "https://bra-boxing-evident-resumes.trycloudflare.com"
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-      if (saved && !saved.includes("localhost")) {
-        setEdgeServerUrl(saved);
-        setCustomEdgeInput(saved);
-      } else if (window.location.protocol === "https:" && !window.location.hostname.includes("localhost")) {
-        // Mode Vercel / Cloud terdeteksi: utamakan Tunnel HTTPS daripada localhost
-        setEdgeServerUrl(defaultEdgeServer);
-        setCustomEdgeInput(defaultEdgeServer);
-        localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", defaultEdgeServer);
-        setCameraModalTab("cloud");
+      const isCloud = window.location.protocol === "https:" && !window.location.hostname.includes("localhost");
+      if (isCloud) {
+        // Mode Vercel / Cloud: gunakan proxy internal same-origin agar 100% tembus
+        setEdgeServerUrl("");
+        localStorage.removeItem("SYNTAX_SLAYER_EDGE_SERVER");
+      } else {
+        const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
+        if (saved) {
+          setEdgeServerUrl(saved);
+          setCustomEdgeInput(saved);
+        }
       }
 
       // Pulihkan alamat kamera IP terakhir jika tersedia
@@ -306,7 +317,8 @@ export function LiveCameraMonitor() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const targetUrl = `${edgeServerUrl}/status`;
+      const isCloud = typeof window !== "undefined" && window.location.protocol === "https:" && !window.location.hostname.includes("localhost");
+      const targetUrl = isCloud ? "/api/camera/stream?target=status" : `${edgeServerUrl}/status`;
       const res = await fetch(targetUrl, {
         signal: controller.signal,
         mode: "cors",
