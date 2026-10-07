@@ -178,11 +178,15 @@ export function LiveCameraMonitor() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-      if (saved) {
+      if (saved && !saved.includes("volt-improving") && !saved.includes("bra-boxing")) {
         setEdgeServerUrl(saved);
         setCustomEdgeInput(saved);
       } else {
         setEdgeServerUrl(defaultEdgeServer);
+        setCustomEdgeInput(defaultEdgeServer);
+        if (saved) {
+          localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", defaultEdgeServer);
+        }
       }
 
       // Pulihkan alamat kamera IP terakhir jika tersedia

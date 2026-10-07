@@ -36,7 +36,8 @@ class KameraUtasTerpisah:
         self.apakah_terambil: bool = False
         self.apakah_terhubung: bool = False
         self.apakah_berhenti: bool = False
-        self.kunci_utas = threading.Lock()
+        self.kunci_utas: threading.Lock = threading.Lock()
+        self.kunci_penangkap: threading.Lock = threading.Lock()
         self.waktu_frame_terakhir: float = time.time()
         self.utas_watchdog: Optional[threading.Thread] = None
 
@@ -54,38 +55,38 @@ class KameraUtasTerpisah:
 
     def hubungkan(self) -> None:
         """Membuka atau menyambung ulang koneksi ke sumber video."""
-        if self.penangkap is not None:
-            try:
-                self.penangkap.release()
-            except Exception:
-                pass
-
-        try:
-            self.penangkap = cv2.VideoCapture(self.sumber)
-            self.cap = self.penangkap
-            self.penangkap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-            self.penangkap.set(cv2.CAP_PROP_FPS, self.fps_target)
-
-            # Optimasi timeout I/O untuk stream nirkabel (HTTP/RTSP) agar tidak pernah memblokir thread
-            self.penangkap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
-            if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
+        with self.kunci_penangkap:
+            if self.penangkap is not None:
                 try:
-                    self.penangkap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
-                    self.penangkap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500)
+                    self.penangkap.release()
                 except Exception:
                     pass
+                self.penangkap = None
 
-            self.apakah_terhubung = self.penangkap.isOpened()
-            self.is_connected = self.apakah_terhubung
-            if self.apakah_terhubung:
-                self.waktu_frame_terakhir = time.time()
-                self.last_frame_time = self.waktu_frame_terakhir
-                print(f"[+] Berhasil terhubung ke sumber video: {self.sumber}")
-        except Exception as e:
-            print(f"[!] Gagal menghubungkan ke kamera {self.sumber}: {e}")
-            self.apakah_terhubung = False
-            self.is_connected = False
+            try:
+                self.penangkap = cv2.VideoCapture(self.sumber)
+                self.cap = self.penangkap
+                self.penangkap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                self.penangkap.set(cv2.CAP_PROP_FPS, self.fps_target)
+
+                # Optimasi timeout I/O untuk stream nirkabel (HTTP/RTSP) agar tidak pernah memblokir thread
+                if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
+                    try:
+                        self.penangkap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
+                        self.penangkap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2500)
+                    except Exception:
+                        pass
+
+                self.apakah_terhubung = self.penangkap.isOpened()
+                self.is_connected = self.apakah_terhubung
+                if self.apakah_terhubung:
+                    self.waktu_frame_terakhir = time.time()
+                    self.last_frame_time = self.waktu_frame_terakhir
+                    print(f"[+] Berhasil terhubung ke sumber video: {self.sumber}")
+            except Exception as e:
+                print(f"[!] Gagal menghubungkan ke kamera {self.sumber}: {e}")
+                self.apakah_terhubung = False
+                self.is_connected = False
 
     def mulai(self) -> "KameraUtasTerpisah":
         """Memulai utas penangkapan bingkai video dan watchdog di latar belakang."""
@@ -125,7 +126,15 @@ class KameraUtasTerpisah:
                 time.sleep(0.1)
                 continue
 
-            berhasil, frame = self.penangkap.read()
+            with self.kunci_penangkap:
+                if self.penangkap is None or not self.penangkap.isOpened():
+                    berhasil, frame = False, None
+                else:
+                    try:
+                        berhasil, frame = self.penangkap.read()
+                    except Exception:
+                        berhasil, frame = False, None
+
             if not berhasil or frame is None:
                 self.apakah_terhubung = False
                 self.is_connected = False
@@ -167,7 +176,18 @@ class KameraUtasTerpisah:
         Mengganti sumber kamera aktif secara dinamis dan aman tanpa me-restart engine.
         Mendukung indeks USB webcam lokal (0, 1, 2) maupun URL stream jaringan (RTSP/HTTP).
         """
-        sumber_terkonversi = int(sumber_baru) if str(sumber_baru).isdigit() else str(sumber_baru).strip()
+        if str(sumber_baru).isdigit():
+            sumber_terkonversi = int(sumber_baru)
+        else:
+            s = str(sumber_baru).strip()
+            # Otomatis koreksi https ke http untuk IP lokal (IP Webcam tidak ada valid SSL)
+            if s.startswith("https://10.") or s.startswith("https://192.168.") or s.startswith("https://127.0.0.1") or s.startswith("https://localhost"):
+                s = "http://" + s[8:]
+            # Otomatis lengkapi path /video untuk IP Webcam port 8080 jika belum ada path
+            if ":8080" in s and not any(s.endswith(p) for p in ("/video", "/videofeed", "/shot.jpg", "/live")):
+                s = s.rstrip("/") + "/video"
+            sumber_terkonversi = s
+
         print(f"[*] Mengalihkan sumber video dari '{self.sumber}' ke '{sumber_terkonversi}'...")
 
         with self.kunci_utas:
