@@ -275,12 +275,14 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "multipart/x-mixed-replace; boundary=frame")
             self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-cache, private")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
             self.end_headers()
 
+            terakhir_dikirim = None
             while not state.peristiwa_berhenti.is_set():
                 bingkai_bytes = state.ambil_bingkai()
-                if bingkai_bytes is not None:
+                if bingkai_bytes is not None and bingkai_bytes is not terakhir_dikirim:
                     try:
                         self.wfile.write(b"--frame\r\n")
                         self.send_header("Content-type", "image/jpeg")
@@ -288,9 +290,10 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(bingkai_bytes)
                         self.wfile.write(b"\r\n")
+                        terakhir_dikirim = bingkai_bytes
                     except (BrokenPipeError, ConnectionResetError):
                         break
-                time.sleep(0.025)  # Batas laju kirim stabil 40 FPS
+                time.sleep(0.04)  # Maksimal ~25 FPS untuk mencegah tumpukan antrian TCP buffer
             return
 
         self.send_response(404)

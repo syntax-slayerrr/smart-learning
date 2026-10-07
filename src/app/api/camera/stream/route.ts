@@ -28,6 +28,26 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (target === "switch_camera") {
+      const source = searchParams.get("source") || "0";
+      const switchRes = await fetch(`${tunnelUrl}/switch_camera?source=${encodeURIComponent(source)}`, {
+        cache: "no-store",
+      });
+      const data = await switchRes.json();
+      return NextResponse.json(data);
+    }
+
+    if (target === "rotate") {
+      const deg = searchParams.get("deg");
+      const flip = searchParams.get("flip");
+      const q = new URLSearchParams();
+      if (deg) q.set("deg", deg);
+      if (flip) q.set("flip", flip);
+      const rotateRes = await fetch(`${tunnelUrl}/rotate?${q.toString()}`, { cache: "no-store" });
+      const data = await rotateRes.json();
+      return NextResponse.json(data);
+    }
+
     // Default: proxy /status
     const statusRes = await fetch(`${tunnelUrl}/status`, {
       cache: "no-store",

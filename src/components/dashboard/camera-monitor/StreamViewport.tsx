@@ -152,7 +152,10 @@ export function StreamViewport({
                 }
                 alt={`Live Stream ${activeChannel.name}`}
                 className="w-full h-full object-contain"
-                onError={() => setStreamOnline(false)}
+                onError={() => {
+                  // Jangan langsung matikan stream jika hanya satu frame/network glitch;
+                  // biarkan polling checkStreamStatus yang mengontrol status online
+                }}
               />
 
               {/* Top HUD Overlay */}

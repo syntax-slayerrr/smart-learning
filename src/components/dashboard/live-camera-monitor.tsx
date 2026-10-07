@@ -217,7 +217,14 @@ export function LiveCameraMonitor() {
     setIsScanningNetwork(true);
     setCameraSwitchNotice(null);
     try {
-      const res = await fetch(`${edgeServerUrl}/scan_network_cameras`, { mode: "cors" });
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const targetScanUrl = isCloud
+        ? `/api/camera/stream?target=scan_network_cameras`
+        : `${edgeServerUrl}/scan_network_cameras`;
+      const res = await fetch(targetScanUrl, { mode: "cors" });
       if (res.ok) {
         const data = await res.json();
         if (data?.success) {
@@ -235,7 +242,7 @@ export function LiveCameraMonitor() {
         setCameraSwitchNotice("Gagal memindai jaringan. Pastikan engine Python aktif.");
       }
     } catch {
-      setCameraSwitchNotice(`Gagal menghubungi server kamera di ${edgeServerUrl}. Pastikan engine aktif.`);
+      setCameraSwitchNotice(`Gagal menghubungi server kamera. Pastikan engine aktif.`);
     } finally {
       setIsScanningNetwork(false);
     }
@@ -243,7 +250,14 @@ export function LiveCameraMonitor() {
 
   const fetchAvailableCameras = async () => {
     try {
-      const res = await fetch(`${edgeServerUrl}/camera_sources`, { mode: "cors" });
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const targetSourcesUrl = isCloud
+        ? `/api/camera/stream?target=camera_sources`
+        : `${edgeServerUrl}/camera_sources`;
+      const res = await fetch(targetSourcesUrl, { mode: "cors" });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.available_cameras)) {
@@ -265,8 +279,14 @@ export function LiveCameraMonitor() {
     setIsSwitchingCamera(true);
     setCameraSwitchNotice(null);
     try {
-      const encoded = encodeURIComponent(String(newSource).trim());
-      const res = await fetch(`${edgeServerUrl}/switch_camera?source=${encoded}`, { mode: "cors" });
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const targetSwitchUrl = isCloud
+        ? `/api/camera/stream?target=switch_camera&source=${encodeURIComponent(String(newSource).trim())}`
+        : `${edgeServerUrl}/switch_camera?source=${encodeURIComponent(String(newSource).trim())}`;
+      const res = await fetch(targetSwitchUrl, { mode: "cors" });
       const data = await res.json();
       if (data?.success) {
         setCurrentCameraSource(data.current_source ?? newSource);
@@ -286,7 +306,7 @@ export function LiveCameraMonitor() {
         setCameraSwitchNotice(data?.message || "Gagal mengalihkan sumber kamera.");
       }
     } catch (err) {
-      setCameraSwitchNotice(`Gagal menghubungi server kamera di ${edgeServerUrl}. Pastikan engine aktif.`);
+      setCameraSwitchNotice(`Gagal menghubungi server kamera. Pastikan engine aktif.`);
     } finally {
       setIsSwitchingCamera(false);
     }
@@ -295,7 +315,14 @@ export function LiveCameraMonitor() {
   const rotateCamera = async (deg: string) => {
     setCameraRotation(deg);
     try {
-      await fetch(`${edgeServerUrl}/rotate?deg=${deg}`, { mode: "cors" });
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const targetRotateUrl = isCloud
+        ? `/api/camera/stream?target=rotate&deg=${deg}`
+        : `${edgeServerUrl}/rotate?deg=${deg}`;
+      await fetch(targetRotateUrl, { mode: "cors" });
     } catch (e) {
       console.warn("[LiveCameraMonitor] Gagal mengirim rotasi ke server:", e);
     }
@@ -305,7 +332,14 @@ export function LiveCameraMonitor() {
     const nextVal = !isFlipped;
     setIsFlipped(nextVal);
     try {
-      await fetch(`${edgeServerUrl}/rotate?flip=${nextVal ? "1" : "0"}`, { mode: "cors" });
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const targetFlipUrl = isCloud
+        ? `/api/camera/stream?target=rotate&flip=${nextVal ? "1" : "0"}`
+        : `${edgeServerUrl}/rotate?flip=${nextVal ? "1" : "0"}`;
+      await fetch(targetFlipUrl, { mode: "cors" });
     } catch (e) {
       console.warn("[LiveCameraMonitor] Gagal mengirim mirror ke server:", e);
     }

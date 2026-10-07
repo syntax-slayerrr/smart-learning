@@ -404,8 +404,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 latensi_inferensi_ms=latensi_saat_ini
             )
 
-            # Kompresi Turbo JPEG untuk Streaming Video MJPEG
-            _, jpeg_kompresi = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 76, cv2.IMWRITE_JPEG_OPTIMIZE, 1])
+            # Kompresi Turbo JPEG untuk Streaming Video MJPEG (Optimasi Latensi Rendah: Quality 50, Faster Encoding)
+            _, jpeg_kompresi = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50, cv2.IMWRITE_JPEG_OPTIMIZE, 0])
             status_server.perbarui_bingkai(jpeg_kompresi.tobytes())
 
             # Pengiriman Telemetri Berkala ke Next.js Backend
