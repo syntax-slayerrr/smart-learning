@@ -103,8 +103,8 @@ MINIMAL_VOTING_IDENTITAS            = 2      # Akumulasi kecocokan ArcFace bertu
 
 # Guardrail 4: Filter Penghalus Koordinat & Reduksi Jitter (One Euro Filter + EMA Sub-pixel)
 FAKTOR_EMA_SMOOTHING                = 0.22   # Fallback bobot koordinat baru
-ONE_EURO_MIN_CUTOFF                 = 0.25   # Frekuensi cutoff minimum (Hz) saat objek diam (reduksi jitter >95%)
-ONE_EURO_BETA                       = 0.012  # Koefisien responsivitas kecepatan (menghilangkan lag gerakan cepat)
+ONE_EURO_MIN_CUTOFF                 = 1.2    # Frekuensi cutoff minimum (Hz) untuk respons cepat tanpa lag
+ONE_EURO_BETA                       = 0.08   # Koefisien responsivitas kecepatan tinggi agar tracking real-time mulus
 ONE_EURO_D_CUTOFF                   = 1.0    # Cutoff derivatif kecepatan
 
 # Guardrail 5: Toleransi Retensi & Eliminasi Ghost Box

@@ -168,11 +168,11 @@ export function LiveCameraMonitor() {
     !window.location.hostname.includes("localhost");
 
   const defaultEdgeServer =
-    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://volt-improving-extract-shelf.trycloudflare.com";
+    process.env.NEXT_PUBLIC_EDGE_SERVER || "https://kid-earned-floors-blogging.trycloudflare.com";
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
   const [customEdgeInput, setCustomEdgeInput] = useState<string>(
-    "https://volt-improving-extract-shelf.trycloudflare.com"
+    "https://kid-earned-floors-blogging.trycloudflare.com"
   );
 
   useEffect(() => {
