@@ -183,7 +183,12 @@ export function LiveCameraMonitor() {
       const isLocal =
         window.location.hostname.includes("localhost") || window.location.hostname === "127.0.0.1";
       const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-      if (saved && !saved.includes("volt-improving") && !saved.includes("bra-boxing")) {
+      if (
+        saved &&
+        (!isLocal || !saved.includes("trycloudflare.com")) &&
+        !saved.includes("volt-improving") &&
+        !saved.includes("bra-boxing")
+      ) {
         setEdgeServerUrl(saved);
         setCustomEdgeInput(saved);
       } else if (isLocal) {
