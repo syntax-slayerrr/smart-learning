@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     (queryTunnel && queryTunnel.startsWith("http") ? queryTunnel : null) ||
     (headerTunnel && headerTunnel.startsWith("http") ? headerTunnel : null) ||
     process.env.NEXT_PUBLIC_EDGE_SERVER ||
-    "https://bra-boxing-evident-resumes.trycloudflare.com";
+    "https://volt-improving-extract-shelf.trycloudflare.com";
 
   try {
     if (target === "video_feed") {

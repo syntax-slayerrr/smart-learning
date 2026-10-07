@@ -173,7 +173,7 @@ export function LiveCameraMonitor() {
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
   const [customEdgeInput, setCustomEdgeInput] = useState<string>(
-    "https://bra-boxing-evident-resumes.trycloudflare.com"
+    "https://volt-improving-extract-shelf.trycloudflare.com"
   );
 
   useEffect(() => {
