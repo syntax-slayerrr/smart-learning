@@ -12,6 +12,7 @@ Modul ini mengelola rasterisasi grafis antarmuka cyberpunk / EduAI:
 """
 
 from typing import List, Tuple, Dict, Any, Optional
+from datetime import datetime
 import cv2
 import numpy as np
 
@@ -67,12 +68,18 @@ def gambar_kerangka_neon(
     status_tidur: bool = False
 ) -> None:
     """
-    Menggambar kerangka anatomi neon berlapis (Glow Effect) untuk visualisasi pergerakan siswa.
-    Lengan yang terangkat otomatis memancarkan pendar emas amber.
+    Menggambar kerangka anatomi ringan (Yellow Pose lines seperti sistem CCTV akademik).
+    Ultra-lightweight: single-pass direct line & joints, zero CPU overhead.
     """
     tinggi_frame, lebar_frame = frame.shape[:2]
+    warna_tulang = (0, 230, 255)  # Kuning CCTV (Yellow) seperti pada foto referensi
 
-    # 1. Gambar Ruas Tulang (Bone Connections)
+    if tangan_terangkat:
+        warna_tulang = WARNA_AMBER
+    elif status_tidur:
+        warna_tulang = WARNA_MERAH
+
+    # 1. Gambar Ruas Tulang (Bone Connections) - Single Pass 2px
     for idx_sendi_1, idx_sendi_2 in KONEKSI_SENDI_ANATOMI:
         if idx_sendi_1 < len(daftar_sendi) and idx_sendi_2 < len(daftar_sendi):
             sendi_1 = daftar_sendi[idx_sendi_1]
@@ -80,42 +87,18 @@ def gambar_kerangka_neon(
             visibilitas_1 = getattr(sendi_1, 'visibility', 0.5)
             visibilitas_2 = getattr(sendi_2, 'visibility', 0.5)
 
-            if visibilitas_1 > 0.22 and visibilitas_2 > 0.22:
+            if visibilitas_1 > 0.25 and visibilitas_2 > 0.25:
                 titik_1 = (int(sendi_1.x * lebar_frame), int(sendi_1.y * tinggi_frame))
                 titik_2 = (int(sendi_2.x * lebar_frame), int(sendi_2.y * tinggi_frame))
+                cv2.line(frame, titik_1, titik_2, warna_tulang, 2)
 
-                warna_tulang = warna
-                apakah_ruas_lengan = (
-                    (idx_sendi_1 in (11, 13, 15) and idx_sendi_2 in (11, 13, 15)) or
-                    (idx_sendi_1 in (12, 14, 16) and idx_sendi_2 in (12, 14, 16))
-                )
-
-                if tangan_terangkat and apakah_ruas_lengan:
-                    warna_tulang = WARNA_AMBER
-                elif status_tidur:
-                    warna_tulang = WARNA_MERAH
-
-                # Lapisan luar tipis putih + inti neon berwarna (Anti-Aliased)
-                cv2.line(frame, titik_1, titik_2, WARNA_PUTIH, 3, cv2.LINE_AA)
-                cv2.line(frame, titik_1, titik_2, warna_tulang, 2, cv2.LINE_AA)
-
-    # 2. Gambar Simpul Sendi Anatomi (Joint Nodes)
-    for indeks_simpul, sendi in enumerate(daftar_sendi[:25]):
+    # 2. Gambar Simpul Sendi Anatomi (Joint Nodes) - Single circle
+    for sendi in daftar_sendi[:23]:
         visibilitas = getattr(sendi, 'visibility', 0.5)
-        if visibilitas > 0.22:
+        if visibilitas > 0.3:
             pusat_x = int(sendi.x * lebar_frame)
             pusat_y = int(sendi.y * tinggi_frame)
-            warna_simpul = warna
-            radius_simpul = 5
-
-            if tangan_terangkat and indeks_simpul in (15, 16):
-                warna_simpul = WARNA_AMBER
-                radius_simpul = 8  # Denyut pulsa pada pergelangan tangan yang bertanya
-            elif status_tidur:
-                warna_simpul = WARNA_MERAH
-
-            cv2.circle(frame, (pusat_x, pusat_y), radius_simpul, warna_simpul, -1, cv2.LINE_AA)
-            cv2.circle(frame, (pusat_x, pusat_y), max(2, radius_simpul - 3), WARNA_PUTIH, -1, cv2.LINE_AA)
+            cv2.circle(frame, (pusat_x, pusat_y), 3, (0, 180, 255), -1)
 
 
 def gambar_kotak_cerdas(
@@ -131,48 +114,28 @@ def gambar_kotak_cerdas(
     kotak_tangan: Optional[Tuple[int, int, int, int]] = None
 ) -> None:
     """
-    Menggambar kotak pembatas presisi bergaya cyberpunk dengan sudut siku beraksen tebal.
+    Menggambar bounding box bersih & tajam (Hijau/Merah CCTV Style seperti foto referensi).
+    Kotak persegi tebal 2px dengan label teks di atas. Sangat enteng dan responsif.
     """
-    panjang_sudut = min(22, lebar // 4, tinggi // 4)
+    # 1. Kotak Bounding Box (Gaya Surveillance Cam)
+    cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 2)
 
-    # Gambar Aksen 4 Sudut Kotak
-    cv2.line(frame, (x, y), (x + panjang_sudut, y), warna, 2)
-    cv2.line(frame, (x, y), (x, y + panjang_sudut), warna, 2)
-    cv2.line(frame, (x + lebar, y), (x + lebar - panjang_sudut, y), warna, 2)
-    cv2.line(frame, (x + lebar, y), (x + lebar, y + panjang_sudut), warna, 2)
-    cv2.line(frame, (x, y + tinggi), (x + panjang_sudut, y + tinggi), warna, 2)
-    cv2.line(frame, (x, y + tinggi), (x, y + tinggi - panjang_sudut), warna, 2)
-    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar - panjang_sudut, y + tinggi), warna, 2)
-    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar, y + tinggi - panjang_sudut), warna, 2)
+    # 2. Lencana Teks Label di Atas Kotak (e.g. attentive, distracted, talking, using_phone)
+    teks_utama = f"{label.lower()}"
+    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_utama, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+    posisi_y_teks = max(tinggi_teks + 4, y - 4)
 
-    cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 1, cv2.LINE_AA)
+    # Background kotak teks solid
+    cv2.rectangle(frame, (x, posisi_y_teks - tinggi_teks - 4), (x + lebar_teks + 8, posisi_y_teks + 2), warna, -1)
+    cv2.putText(frame, teks_utama, (x + 4, posisi_y_teks - 2),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 0), 1, cv2.LINE_AA)
 
-    # Lencana Label & Persentase Keyakinan
-    teks_lencana = f"{label} {int(keyakinan * 100)}%"
-    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_lencana, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
-    posisi_y_lencana = max(0, y - tinggi_teks - 8)
-    cv2.rectangle(frame, (x, posisi_y_lencana), (x + lebar_teks + 12, y), WARNA_GELAP, -1)
-    cv2.rectangle(frame, (x, posisi_y_lencana), (x + lebar_teks + 12, y), warna, 1)
-    cv2.putText(frame, teks_lencana, (x + 6, y - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.42, WARNA_PUTIH, 1, cv2.LINE_AA)
-
-    # Sub-lencana Detail (Postur, Tatapan, Atensi)
+    # 3. Sub-label jika ada
     if sub_label:
-        (lebar_sub, tinggi_sub), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.36, 1)
-        sub_y1 = y + tinggi
-        sub_y2 = sub_y1 + tinggi_sub + 8
-        if sub_y2 < frame.shape[0]:
-            cv2.rectangle(frame, (x, sub_y1), (x + lebar_sub + 10, sub_y2), (25, 27, 32), -1)
-            cv2.rectangle(frame, (x, sub_y1), (x + lebar_sub + 10, sub_y2), (60, 64, 72), 1)
-            cv2.putText(frame, sub_label, (x + 5, sub_y2 - 4),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 215, 225), 1, cv2.LINE_AA)
-
-    # Sorotan Kotak Tangan Mengangkat
-    if kotak_tangan is not None:
-        tx, ty, tw, th = kotak_tangan
-        cv2.rectangle(frame, (tx, ty), (tx + tw, ty + th), WARNA_AMBER, 2, cv2.LINE_AA)
-        cv2.putText(frame, "HAND [ANGKAT]", (tx, max(12, ty - 4)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, WARNA_AMBER, 1, cv2.LINE_AA)
+        (lebar_sub, tinggi_sub), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
+        cv2.rectangle(frame, (x, y + tinggi + 2), (x + lebar_sub + 6, y + tinggi + tinggi_sub + 6), (20, 20, 20), -1)
+        cv2.putText(frame, sub_label, (x + 3, y + tinggi + tinggi_sub + 3),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.36, (220, 220, 220), 1, cv2.LINE_AA)
 
 
 def gambar_banner_hud(
@@ -185,23 +148,21 @@ def gambar_banner_hud(
     latensi_inferensi_ms: float = 0.0
 ) -> None:
     """
-    Menggambar bilah status HUD atas dengan indikator operasional real-time.
+    Menggambar header CCTV minimalis tanpa frame copying / alpha blending.
+    Watermark CCTV Timestamp di pojok atas persis gaya kamera pengawas.
     """
     tinggi_frame, lebar_frame = frame.shape[:2]
-    lapisan_transparan = frame.copy()
-    cv2.rectangle(lapisan_transparan, (0, 0), (lebar_frame, 36), WARNA_GELAP, -1)
-    cv2.addWeighted(lapisan_transparan, 0.78, frame, 0.22, 0, frame)
 
-    # Indikator Status Aktif
-    cv2.circle(frame, (16, 18), 5, WARNA_EMERALD, -1)
-    cv2.putText(frame, "AI CLASSROOM v4.1 (YOLO26 + MediaPipe Heavy + ArcFace)", (28, 22),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.44, WARNA_PUTIH, 1, cv2.LINE_AA)
+    # Timestamp & Status CCTV di pojok atas (tanpa addWeighted copy yang berat)
+    cv2.rectangle(frame, (0, 0), (lebar_frame, 24), (15, 15, 15), -1)
 
-    jumlah_subjek = statistik.get("total", 0)
-    info_telemetri = f"{fps:.1f} FPS ({latensi_inferensi_ms:.0f}ms) | {jumlah_subjek} Subjek | Rot: {info_rotasi} | Sync: {status_sinkronisasi}"
-    (lebar_info, _), _ = cv2.getTextSize(info_telemetri, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
-    cv2.putText(frame, info_telemetri, (max(10, lebar_frame - lebar_info - 16), 22),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 225, 185), 1, cv2.LINE_AA)
+    info_kiri = f"IP CAM LIVE | {statistik.get('total', 0)} Siswa | {fps:.1f} FPS"
+    cv2.putText(frame, info_kiri, (8, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 180), 1, cv2.LINE_AA)
+
+    waktu_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    (lebar_waktu, _), _ = cv2.getTextSize(waktu_str, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+    cv2.putText(frame, waktu_str, (lebar_frame - lebar_waktu - 8, 16),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
 
 
 # Alias kompatibilitas bahasa Inggris

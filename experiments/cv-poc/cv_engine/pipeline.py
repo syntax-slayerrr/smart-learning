@@ -329,24 +329,25 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
                 terkenal = subjek.get("is_recognized", False)
 
-                # Kalibrasi Warna Indikator Perilaku Pedagogis
+                # Kalibrasi Warna Indikator Sesuai Surveillance Kelas (Hijau: Aktif, Merah: Distracted/Sleep)
                 if subjek["is_sleep"]:
-                    warna_indikator = WARNA_MERAH
-                    tag_aktivitas = "[TIDUR]"
+                    warna_indikator = (0, 0, 255)  # Merah BGR
+                    tag_aktivitas = "distracted"
                 elif subjek["is_hand_raised"]:
-                    warna_indikator = WARNA_AMBER
-                    tag_aktivitas = "[ANGKAT TANGAN]"
+                    warna_indikator = (0, 200, 255)  # Kuning Amber BGR
+                    tag_aktivitas = "asking_question"
                 elif aktivitas == "writing":
-                    warna_indikator = WARNA_LANGIT_SKY
-                    tag_aktivitas = "[FOKUS MEJA]"
+                    warna_indikator = (0, 255, 0)  # Hijau BGR
+                    tag_aktivitas = "writing"
                 elif postur == "standing":
-                    warna_indikator = WARNA_BIRU
-                    tag_aktivitas = "[BERDIRI]"
+                    warna_indikator = (255, 200, 0)  # Biru/Cyan
+                    tag_aktivitas = "standing"
                 else:
-                    warna_indikator = WARNA_EMERALD
-                    tag_aktivitas = "[FOKUS BELAJAR]"
+                    warna_indikator = (0, 255, 0)  # Hijau BGR
+                    tag_aktivitas = "attentive"
 
-                label_tampilan = f"{nama_siswa} • {tag_aktivitas}" if terkenal else f"#{id_subjek} {tag_aktivitas}"
+                label_tampilan = tag_aktivitas
+                sub_label_tampilan = nama_siswa if terkenal else f"Student #{id_subjek}"
 
                 # 1. Gambar Kerangka Anatomi Neon Bercahaya (MediaPipe Heavy 3D)
                 if landmarks:
@@ -358,14 +359,14 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                         status_tidur=subjek["is_sleep"]
                     )
 
-                # 2. Gambar Kotak Pembatas Cerdas (Cyber-HUD)
+                # 2. Gambar Kotak Pembatas Cerdas (Surveillance Style)
                 gambar_kotak_cerdas(
                     frame,
                     bx, by, bw, bh,
                     warna_indikator,
                     label_tampilan,
                     keyakinan,
-                    sub_label=sub_label,
+                    sub_label=sub_label_tampilan,
                     kotak_tangan=kotak_tangan
                 )
 
