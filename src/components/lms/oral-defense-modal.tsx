@@ -212,7 +212,7 @@ export function OralDefenseModal({
         studentAnswer: updatedAnswers[q.id] || "",
       }));
 
-      fetch("/api/lms/defense/evaluate", {
+      fetch("/api/lms/uji-lisan/evaluasi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

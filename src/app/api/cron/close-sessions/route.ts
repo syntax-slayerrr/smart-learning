@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyAbsentParents } from "@/app/(dashboard)/teacher/attendance/actions";
 import { sendPushNotification } from "@/lib/web-push";
+import { verifyCronAuthorization } from "@/lib/security";
 
 export const maxDuration = 60; // Allow cron job to run up to 60 seconds
 
@@ -11,10 +12,9 @@ export const maxDuration = 60; // Allow cron job to run up to 60 seconds
  * to automatically close expired attendance sessions and notify parents.
  */
 export async function GET(request: NextRequest) {
-  // Security check: Verify a secret key to prevent unauthorized execution
-  const authHeader = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Security check: Verify secret key to prevent unauthorized execution
+  if (!verifyCronAuthorization(request)) {
+    return NextResponse.json({ error: "Unauthorized: Invalid or missing CRON_SECRET" }, { status: 401 });
   }
 
   const adminClient = createAdminClient();

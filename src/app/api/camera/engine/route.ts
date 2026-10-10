@@ -22,10 +22,23 @@ async function isEngineRunning(): Promise<boolean> {
 function startEngineProcess(): boolean {
   try {
     const rootDir = process.cwd();
-    const pythonExe = path.join(rootDir, ".venv312", "Scripts", "python.exe");
+    const envPython = process.env.PYTHON_PATH;
+    const venvDir = [rootDir, ".venv" + "312"].join(path.sep);
+    const winExe = [venvDir, "Scripts", "python.exe"].join(path.sep);
+    const linuxExe = [venvDir, "bin", "python"].join(path.sep);
+
+    let pythonExe = "python3";
+    if (envPython && fs.existsSync(envPython)) {
+      pythonExe = envPython;
+    } else if (process.platform === "win32" && fs.existsSync(winExe)) {
+      pythonExe = winExe;
+    } else if (fs.existsSync(linuxExe)) {
+      pythonExe = linuxExe;
+    }
+
     const scriptPath = path.join(rootDir, "experiments", "cv-poc", "main.py");
 
-    if (!fs.existsSync(pythonExe) || !fs.existsSync(scriptPath)) {
+    if (!fs.existsSync(scriptPath)) {
       return false;
     }
 

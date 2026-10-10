@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { validateTunnelUrl } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -7,10 +8,12 @@ export async function GET(req: NextRequest) {
   const target = searchParams.get("target") || "status";
   const queryTunnel = searchParams.get("tunnel");
   const headerTunnel = req.headers.get("x-tunnel-url");
+
+  // Validate tunnel url against SSRF attacks (RFC1918 / Cloud Metadata / Loopback)
   const tunnelUrl =
-    (queryTunnel && queryTunnel.startsWith("http") ? queryTunnel : null) ||
-    (headerTunnel && headerTunnel.startsWith("http") ? headerTunnel : null) ||
-    process.env.NEXT_PUBLIC_EDGE_SERVER ||
+    validateTunnelUrl(queryTunnel) ||
+    validateTunnelUrl(headerTunnel) ||
+    validateTunnelUrl(process.env.NEXT_PUBLIC_EDGE_SERVER) ||
     "https://kid-earned-floors-blogging.trycloudflare.com";
 
   try {

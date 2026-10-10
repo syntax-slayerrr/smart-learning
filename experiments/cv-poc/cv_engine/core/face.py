@@ -10,8 +10,6 @@ dengan perataan afinitas 5 titik wajah kanonis.
 """
 
 import os
-import threading
-os.environ['GLOG_minloglevel'] = '2'  # Meredam spam C++ logging framework
 from typing import Optional, Tuple, Any, List
 import cv2
 import numpy as np
@@ -124,20 +122,16 @@ class MesinBiometrikArcFace:
     @staticmethod
     def hitung_kemiripan_kosinus(vektor_a: Any, vektor_b: Any) -> float:
         """
-        Menghitung kesamaan kosinus (Cosine Similarity) antara 2 vektor biometrik dengan normalisasi L2.
+        Menghitung kesamaan kosinus (Cosine Similarity) antara 2 vektor biometrik.
         Rentang: -1.0 (sangat berbeda) hingga 1.0 (identik sempurna).
         """
         if vektor_a is None or vektor_b is None:
             return 0.0
-        v1 = np.asarray(vektor_a, dtype=np.float32).flatten()
-        v2 = np.asarray(vektor_b, dtype=np.float32).flatten()
+        v1 = np.asarray(vektor_a, dtype=np.float32)
+        v2 = np.asarray(vektor_b, dtype=np.float32)
         if v1.shape != v2.shape:
             return 0.0
-        n1 = float(np.linalg.norm(v1))
-        n2 = float(np.linalg.norm(v2))
-        if n1 < 1e-6 or n2 < 1e-6:
-            return 0.0
-        return float(np.dot(v1, v2) / (n1 * n2))
+        return float(np.dot(v1, v2))
 
     # Alias kompatibilitas bahasa Inggris
     is_available = apakah_siap
@@ -171,8 +165,8 @@ class SaluranPipaDeteksiWajah:
                     model=yp,
                     config="",
                     input_size=(320, 240),
-                    score_threshold=0.20,
-                    nms_threshold=0.35
+                    score_threshold=0.38,
+                    nms_threshold=0.30
                 )
                 print("[+] Detektor Wajah YuNet Siap!")
             except Exception as e:
@@ -181,7 +175,6 @@ class SaluranPipaDeteksiWajah:
         # Inisialisasi Cadangan SFace (128-d)
         sp = jalur_sface or SFACE_ONNX_PATH
         self.pengenal_sface = None
-        self.kunci_yunet = threading.Lock()
         if os.path.exists(sp) and hasattr(cv2, "FaceRecognizerSF"):
             try:
                 self.pengenal_sface = cv2.FaceRecognizerSF.create(model=sp, config="")
@@ -214,27 +207,25 @@ class SaluranPipaDeteksiWajah:
         skala_x = lebar_asli / float(lebar_resize)
         skala_y = tinggi_asli / float(tinggi_resize)
 
-        with self.kunci_yunet:
-            self.detektor_yunet.setInputSize((lebar_resize, tinggi_resize))
-            _, wajah_terdeteksi = self.detektor_yunet.detect(citra_kecil)
+        self.detektor_yunet.setInputSize((lebar_resize, tinggi_resize))
+        _, wajah_terdeteksi = self.detektor_yunet.detect(citra_kecil)
 
         daftar_hasil = []
         if wajah_terdeteksi is None or len(wajah_terdeteksi) == 0:
             return daftar_hasil
 
         for wajah_mentah in wajah_terdeteksi:
-            if float(wajah_mentah[-1]) < 0.20:
+            if float(wajah_mentah[-1]) < 0.38:
                 continue
 
-            wajah_skala = np.zeros(15, dtype=np.float32)
-            wajah_skala[0] = float(wajah_mentah[0]) * skala_x
-            wajah_skala[1] = float(wajah_mentah[1]) * skala_y
-            wajah_skala[2] = float(wajah_mentah[2]) * skala_x
-            wajah_skala[3] = float(wajah_mentah[3]) * skala_y
+            wajah_skala = wajah_mentah.copy()
+            wajah_skala[0] *= skala_x
+            wajah_skala[1] *= skala_y
+            wajah_skala[2] *= skala_x
+            wajah_skala[3] *= skala_y
             for idx_titik in range(4, 14, 2):
-                wajah_skala[idx_titik] = float(wajah_mentah[idx_titik]) * skala_x
-                wajah_skala[idx_titik + 1] = float(wajah_mentah[idx_titik + 1]) * skala_y
-            wajah_skala[14] = float(wajah_mentah[14])
+                wajah_skala[idx_titik] *= skala_x
+                wajah_skala[idx_titik + 1] *= skala_y
 
             vektor_fitur = None
             if self.mesin_arcface.apakah_siap():
@@ -250,63 +241,16 @@ class SaluranPipaDeteksiWajah:
 
             if vektor_fitur is None and self.pengenal_sface is not None:
                 wajah_terpotong = self.pengenal_sface.alignCrop(frame, wajah_skala)
-                # Pondasi 4: Terapkan normalisasi kontras adaptif CLAHE agar tahan silau proyektor & bayangan
-                wajah_terkoreksi = normalisasi_cahaya_clahe(wajah_terpotong)
-                vektor_fitur = self.pengenal_sface.feature(wajah_terkoreksi).flatten()
+                vektor_fitur = self.pengenal_sface.feature(wajah_terpotong).flatten()
 
             if vektor_fitur is not None:
                 daftar_hasil.append((wajah_skala, vektor_fitur))
 
         return daftar_hasil
 
-    def deteksi_kotak_wajah_saja(
-        self,
-        frame: np.ndarray,
-        lebar_inferensi: int = 480
-    ) -> List[Tuple[float, float, float, float, float]]:
-        """
-        Deteksi cepat koordinat kotak wajah via YuNet tanpa ekstraksi biometrik.
-        Sangat ringan (~2-4 ms di CPU) untuk melengkapi deteksi siswa yang duduk di samping / terhalang pose tubuh.
-        
-        Mengembalikan:
-        --------------
-        Daftar tuple: (x, y, w, h, keyakinan)
-        """
-        if self.detektor_yunet is None or frame is None:
-            return []
-
-        tinggi_asli, lebar_asli = frame.shape[:2]
-        lebar_resize = min(lebar_asli, lebar_inferensi)
-        tinggi_resize = int(lebar_resize * tinggi_asli / float(lebar_asli))
-        citra_kecil = cv2.resize(frame, (lebar_resize, tinggi_resize))
-
-        skala_x = lebar_asli / float(lebar_resize)
-        skala_y = tinggi_asli / float(tinggi_resize)
-
-        with self.kunci_yunet:
-            self.detektor_yunet.setInputSize((lebar_resize, tinggi_resize))
-            _, wajah_terdeteksi = self.detektor_yunet.detect(citra_kecil)
-
-        daftar_kotak = []
-        if wajah_terdeteksi is None or len(wajah_terdeteksi) == 0:
-            return daftar_kotak
-
-        for wajah in wajah_terdeteksi:
-            skor = float(wajah[-1])
-            if skor < 0.20:
-                continue
-            fx = float(wajah[0] * skala_x)
-            fy = float(wajah[1] * skala_y)
-            fw = float(wajah[2] * skala_x)
-            fh = float(wajah[3] * skala_y)
-            daftar_kotak.append((fx, fy, fw, fh, skor))
-
-        return daftar_kotak
-
     # Alias kompatibilitas bahasa Inggris
     is_available = apakah_siap
     detect_and_extract = deteksi_dan_ekstraksi_wajah
-    detect_faces_only = deteksi_kotak_wajah_saja
 
 
 # Alias kelas

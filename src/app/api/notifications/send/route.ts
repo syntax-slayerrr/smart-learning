@@ -3,11 +3,22 @@ import { createClient } from "@/lib/supabase/server";
 import { sendWhatsAppMessage } from "@/services/whatsapp";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { logNotificationEvent } from "@/lib/audit";
+import { verifyCronAuthorization, verifyEdgeDeviceAuthorization } from "@/lib/security";
 
 const MAX_RETRIES = 3;
 
 export async function POST(request: NextRequest) {
   try {
+    const isCronOrEdge = verifyCronAuthorization(request) || verifyEdgeDeviceAuthorization(request);
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!isCronOrEdge && !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Rate limit check
     const clientIp = getClientIp(request);
     const rateCheck = checkRateLimit(`notif:${clientIp}`, RATE_LIMITS.NOTIFICATION);
@@ -17,8 +28,6 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: { "Retry-After": String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)) } }
       );
     }
-
-    const supabase = await createClient();
 
     // Get pending notifications
     const { data: pending } = await supabase

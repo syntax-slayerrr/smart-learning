@@ -443,7 +443,7 @@ export function LiveCameraMonitor({
   const fetchHermesNudge = async (latestTele: TelemetryPoint, currentSubjects: DetectedSubject[]) => {
     try {
       setIsNudgeLoading(true);
-      const res = await fetch("/api/ai/pedagogical-nudge", {
+      const res = await fetch("/api/ai/saran-belajar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

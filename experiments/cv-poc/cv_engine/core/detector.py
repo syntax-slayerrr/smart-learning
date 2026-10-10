@@ -127,8 +127,8 @@ class DetektorYOLO26:
             lebar_piksel = min(lebar_asli - koordinat_x, int(round(lebar_kotak / r_skala)))
             tinggi_piksel = min(tinggi_asli - koordinat_y, int(round(tinggi_kotak / r_skala)))
 
-            # Filter ukuran adaptif jarak 3-8 meter (siswa di baris belakang CCTV tetap terdeteksi)
-            if lebar_piksel >= 16 and tinggi_piksel >= 24:
+            # Filter ukuran minimum proporsional agar tidak memproses noise
+            if lebar_piksel > 30 and tinggi_piksel > 45:
                 kotak_calon.append([koordinat_x, koordinat_y, lebar_piksel, tinggi_piksel])
                 skor_calon.append(float(skor))
 

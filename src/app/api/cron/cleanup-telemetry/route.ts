@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { verifyCronAuthorization, verifyEdgeDeviceAuthorization } from "@/lib/security";
 
 export const maxDuration = 60; // Izinkan cron berjalan hingga 60 detik
 
@@ -16,20 +17,10 @@ export const maxDuration = 60; // Izinkan cron berjalan hingga 60 detik
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const edgeSecretHeader = request.headers.get("x-edge-device-key");
-    const envCronSecret = process.env.CRON_SECRET;
-    const envEdgeSecret = process.env.EDGE_DEVICE_SECRET || "dev-edge-secret-key-2026";
+    let isAuthorized = verifyCronAuthorization(request) || verifyEdgeDeviceAuthorization(request);
 
-    let isAuthorized = false;
-
-    // 1. Otorisasi via CRON_SECRET atau Edge Device Secret
-    if (envCronSecret && authHeader === `Bearer ${envCronSecret}`) {
-      isAuthorized = true;
-    } else if (edgeSecretHeader && edgeSecretHeader === envEdgeSecret) {
-      isAuthorized = true;
-    } else {
-      // 2. Otorisasi via Sesi Admin
+    // Jika tidak via secret header, cek apakah sesi user adalah Admin
+    if (!isAuthorized) {
       const supabase = await createClient();
       const {
         data: { user },

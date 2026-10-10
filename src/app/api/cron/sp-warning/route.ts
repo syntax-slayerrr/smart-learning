@@ -1,16 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsAppBatch } from '@/services/whatsapp';
 import { sendPushNotification } from '@/lib/web-push';
+import { verifyCronAuthorization } from '@/lib/security';
 
 export const maxDuration = 60;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!verifyCronAuthorization(request)) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

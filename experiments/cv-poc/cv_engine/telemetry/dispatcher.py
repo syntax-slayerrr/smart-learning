@@ -100,31 +100,28 @@ class PengirimTelemetriAsinkron:
             daftar_target_url.append(self.url_cloud)
 
         while not self.peristiwa_berhenti.is_set():
+            # Cek apakah ada muatan yang perlu di-retry dari spool kegagalan jika jaringan pulih
+            sekarang = time.time()
             muatan = None
-            try:
-                # Ambil muatan dari antrean (timeout 0.3s)
-                muatan = self.antrean_paket.get(timeout=0.3)
-                # Kuras antrean jika ada frame menumpuk: selalu ambil FRAME TERAKHIR (Zero-Lag Realtime)
-                while not self.antrean_paket.empty():
-                    try:
-                        muatan_terbaru = self.antrean_paket.get_nowait()
-                        self.antrean_paket.task_done()
-                        muatan = muatan_terbaru
-                    except queue.Empty:
-                        break
-            except queue.Empty:
-                continue
+
+            if self.spool_gagal and sekarang >= self.waktu_retry_berikutnya and self.antrean_paket.empty():
+                try:
+                    muatan = self.spool_gagal.popleft()
+                except IndexError:
+                    muatan = None
 
             if muatan is None:
-                continue
+                try:
+                    muatan = self.antrean_paket.get(timeout=0.5)
+                except queue.Empty:
+                    continue
 
             data_bytes = json.dumps(muatan, default=serialisasi_json_khusus).encode("utf-8")
             daftar_status = []
+            semua_sukses = True
 
             for target_url in daftar_target_url:
-                is_lokal = "127.0.0.1" in target_url or "localhost" in target_url
-                tag_label = "Lokal" if is_lokal else "Cloud"
-                timeout_val = 0.8 if is_lokal else 1.0
+                tag_label = "Lokal" if "127.0.0.1" in target_url or "localhost" in target_url else "Cloud"
                 try:
                     permintaan = urllib.request.Request(
                         target_url,
@@ -134,12 +131,22 @@ class PengirimTelemetriAsinkron:
                             "x-edge-device-key": self.kunci_perangkat
                         }
                     )
-                    with urllib.request.urlopen(permintaan, timeout=timeout_val) as respon:
+                    with urllib.request.urlopen(permintaan, timeout=2.0) as respon:
                         daftar_status.append(f"{tag_label}:{respon.status}")
                 except urllib.error.HTTPError as error_http:
                     daftar_status.append(f"{tag_label}:{error_http.code}")
+                    semua_sukses = False
                 except Exception:
                     daftar_status.append(f"{tag_label}:off")
+                    semua_sukses = False
+
+            if not semua_sukses:
+                # Simpan ke spool offline untuk retry otomatis dengan exponential backoff
+                self.spool_gagal.append(muatan)
+                self.jeda_backoff = min(self.jeda_backoff * 1.5, 10.0)
+                self.waktu_retry_berikutnya = time.time() + self.jeda_backoff
+            else:
+                self.jeda_backoff = 1.0
 
             with self.kunci_status:
                 self.status_sinkronisasi_terakhir = " | ".join(daftar_status) if daftar_status else "Standby"

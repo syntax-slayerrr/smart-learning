@@ -350,7 +350,7 @@ export function SocraticDocumentViewer({
         content: m.text,
       }));
 
-      const res = await fetch("/api/ai/socratic-tutor", {
+      const res = await fetch("/api/ai/tutor-cerdas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

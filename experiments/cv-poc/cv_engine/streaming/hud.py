@@ -101,17 +101,6 @@ def gambar_kerangka_neon(
             cv2.circle(frame, (pusat_x, pusat_y), 3, (0, 180, 255), -1)
 
 
-KAMUS_AKTIVITAS = {
-    "attentive": "Fokus Menyimak",
-    "hand_raised": "Bertanya",
-    "writing": "Mencatat",
-    "sleep": "Mengantuk",
-    "standing": "Berdiri",
-    "teaching": "Guru Mengajar",
-    "normal": "Normal"
-}
-
-
 def gambar_kotak_cerdas(
     frame: np.ndarray,
     x: int,
@@ -125,78 +114,29 @@ def gambar_kotak_cerdas(
     kotak_tangan: Optional[Tuple[int, int, int, int]] = None
 ) -> None:
     """
-    Menggambar bounding box cerdas (Academic Surveillance Style) dengan:
-    1. Bounding box 2px dan 4 corner brackets reticle tajam.
-    2. Smart Anti-Clipping Badge (berpindah ke dalam jika posisi berada di tepi atas).
-    3. Reticle lingkaran fokus khusus pada pergelangan/tangan yang terangkat.
+    Menggambar bounding box bersih & tajam (Hijau/Merah CCTV Style seperti foto referensi).
+    Kotak persegi tebal 2px dengan label teks di atas. Sangat enteng dan responsif.
     """
     x, y, lebar, tinggi = int(round(x)), int(round(y)), int(round(lebar)), int(round(tinggi))
-    tinggi_frame, lebar_frame = frame.shape[:2]
-
-    # Pastikan koordinat dalam batas frame
-    x = max(0, min(lebar_frame - 10, x))
-    y = max(0, min(tinggi_frame - 10, y))
-    lebar = max(10, min(lebar_frame - x, lebar))
-    tinggi = max(10, min(tinggi_frame - y, tinggi))
-
     # 1. Kotak Bounding Box (Gaya Surveillance Cam)
     cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 2)
 
-    # Corner brackets reticle di 4 sudut kotak (SenseTime / Megvii Academic Style)
-    siku = min(16, max(6, lebar // 6), max(6, tinggi // 6))
-    # Sudut Kiri Atas
-    cv2.line(frame, (x, y), (x + siku, y), warna, 3)
-    cv2.line(frame, (x, y), (x, y + siku), warna, 3)
-    # Sudut Kanan Atas
-    cv2.line(frame, (x + lebar, y), (x + lebar - siku, y), warna, 3)
-    cv2.line(frame, (x + lebar, y), (x + lebar, y + siku), warna, 3)
-    # Sudut Kiri Bawah
-    cv2.line(frame, (x, y + tinggi), (x + siku, y + tinggi), warna, 3)
-    cv2.line(frame, (x, y + tinggi), (x, y + tinggi - siku), warna, 3)
-    # Sudut Kanan Bawah
-    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar - siku, y + tinggi), warna, 3)
-    cv2.line(frame, (x + lebar, y + tinggi), (x + lebar, y + tinggi - siku), warna, 3)
+    # 2. Lencana Teks Label di Atas Kotak (e.g. attentive, distracted, talking, using_phone)
+    teks_utama = f"{label.lower()}"
+    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_utama, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+    posisi_y_teks = max(tinggi_teks + 4, y - 4)
 
-    # 2. Lokalisasi Status Aktivitas & Format Identitas
-    aktivitas_teks = KAMUS_AKTIVITAS.get(label.lower(), label.capitalize())
+    # Background kotak teks solid
+    cv2.rectangle(frame, (x, posisi_y_teks - tinggi_teks - 4), (x + lebar_teks + 8, posisi_y_teks + 2), warna, -1)
+    cv2.putText(frame, teks_utama, (x + 4, posisi_y_teks - 2),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 0), 1, cv2.LINE_AA)
+
+    # 3. Sub-label jika ada
     if sub_label:
-        if sub_label.startswith("[ID] "):
-            nama_siswa = sub_label[5:]
-            teks_utama = f"[HADIR] {nama_siswa} | {aktivitas_teks}"
-        elif sub_label.startswith("[GURU]"):
-            teks_utama = f"{sub_label} | {aktivitas_teks}"
-        else:
-            teks_utama = f"{sub_label} | {aktivitas_teks}"
-    else:
-        teks_utama = f"{aktivitas_teks}"
-
-    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_utama, cv2.FONT_HERSHEY_SIMPLEX, 0.40, 1)
-
-    # 3. Smart Anti-Clipping Badge (Mencegah teks tertutup banner atas di y < 28)
-    if y < 28:
-        posisi_y_badge = y
-        cv2.rectangle(frame, (x, posisi_y_badge), (x + lebar_teks + 8, posisi_y_badge + tinggi_teks + 8), warna, -1)
-        cv2.putText(frame, teks_utama, (x + 4, posisi_y_badge + tinggi_teks + 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 0, 0), 1, cv2.LINE_AA)
-    else:
-        posisi_y_badge = max(tinggi_teks + 6, y - 4)
-        cv2.rectangle(frame, (x, posisi_y_badge - tinggi_teks - 5), (x + lebar_teks + 8, posisi_y_badge + 3), warna, -1)
-        cv2.putText(frame, teks_utama, (x + 4, posisi_y_badge - 2),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 0, 0), 1, cv2.LINE_AA)
-
-    # 4. Reticle Fokus Tangan Terangkat (Jika Terdeteksi)
-    if kotak_tangan is not None:
-        hx, hy, hw, hh = kotak_tangan
-        if hw > 8 and hh > 8:
-            cx_tangan = int(hx + hw / 2)
-            cy_tangan = int(hy + hh / 2)
-            r_tangan = max(14, int(max(hw, hh) / 2))
-            cv2.circle(frame, (cx_tangan, cy_tangan), r_tangan, (0, 215, 255), 2)
-            cv2.circle(frame, (cx_tangan, cy_tangan), 3, (0, 215, 255), -1)
-            (tw_h, th_h), _ = cv2.getTextSize("BERTANYA", cv2.FONT_HERSHEY_SIMPLEX, 0.32, 1)
-            badge_y = max(th_h + 4, hy - 4)
-            cv2.rectangle(frame, (hx, badge_y - th_h - 3), (hx + tw_h + 6, badge_y + 2), (0, 215, 255), -1)
-            cv2.putText(frame, "BERTANYA", (hx + 3, badge_y - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.30, (0, 0, 0), 1, cv2.LINE_AA)
+        (lebar_sub, tinggi_sub), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
+        cv2.rectangle(frame, (x, y + tinggi + 2), (x + lebar_sub + 6, y + tinggi + tinggi_sub + 6), (20, 20, 20), -1)
+        cv2.putText(frame, sub_label, (x + 3, y + tinggi + tinggi_sub + 3),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.36, (220, 220, 220), 1, cv2.LINE_AA)
 
 
 def gambar_banner_hud(
@@ -209,47 +149,21 @@ def gambar_banner_hud(
     latensi_inferensi_ms: float = 0.0
 ) -> None:
     """
-    Menggambar header CCTV enterprise minimalis, ringkasan kelas real-time & watermark sekolah.
+    Menggambar header CCTV minimalis tanpa frame copying / alpha blending.
+    Watermark CCTV Timestamp di pojok atas persis gaya kamera pengawas.
     """
     tinggi_frame, lebar_frame = frame.shape[:2]
 
-    # Bar Header Atas (Hitam Solid 26px dengan Garis Hairline Pemisah)
-    cv2.rectangle(frame, (0, 0), (lebar_frame, 26), (15, 15, 18), -1)
-    cv2.line(frame, (0, 26), (lebar_frame, 26), (40, 40, 45), 1)
+    # Timestamp & Status CCTV di pojok atas (tanpa addWeighted copy yang berat)
+    cv2.rectangle(frame, (0, 0), (lebar_frame, 24), (15, 15, 15), -1)
 
-    # Indikator Status Rekam / Live Aktif
-    cv2.circle(frame, (12, 13), 4, (0, 240, 140), -1)
+    info_kiri = f"IP CAM LIVE | {statistik.get('total', 0)} Siswa | {fps:.1f} FPS"
+    cv2.putText(frame, info_kiri, (8, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 180), 1, cv2.LINE_AA)
 
-    # Ringkasan Dinamis Kondisi Kelas
-    total_siswa = statistik.get('total', 0)
-    bertanya = statistik.get('hands_raised', 0)
-    tertidur = statistik.get('sleep_detected', 0)
-    fokus = statistik.get('desk_focused', 0)
-    guru_hadir = statistik.get('teacher_present', False)
-
-    ringkasan_detail = []
-    if fokus > 0:
-        ringkasan_detail.append(f"{fokus} Fokus")
-    if bertanya > 0:
-        ringkasan_detail.append(f"{bertanya} Bertanya")
-    if tertidur > 0:
-        ringkasan_detail.append(f"{tertidur} Mengantuk")
-    if guru_hadir:
-        ringkasan_detail.append("Guru Aktif")
-
-    teks_detail = f" ({', '.join(ringkasan_detail)})" if ringkasan_detail else ""
-    info_kiri = f"LIVE CAM | KELAS XI RPL 1 | {total_siswa} Siswa{teks_detail} | {fps:.1f} FPS"
-    cv2.putText(frame, info_kiri, (22, 17), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 245, 195), 1, cv2.LINE_AA)
-
-    # Timestamp Jam & Tanggal Presisi di Pojok Kanan Atas
     waktu_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    (lebar_waktu, _), _ = cv2.getTextSize(waktu_str, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
-    cv2.putText(frame, waktu_str, (lebar_frame - lebar_waktu - 8, 17),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.38, (230, 230, 230), 1, cv2.LINE_AA)
-
-    # Watermark Formal Institusi Sekolah di Pojok Kiri Bawah
-    cv2.putText(frame, "SMK TI SYNTAX SLAYER | SMART CLASSROOM AI", (8, tinggi_frame - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.34, (140, 140, 140), 1, cv2.LINE_AA)
+    (lebar_waktu, _), _ = cv2.getTextSize(waktu_str, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+    cv2.putText(frame, waktu_str, (lebar_frame - lebar_waktu - 8, 16),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
 
 
 # Alias kompatibilitas bahasa Inggris

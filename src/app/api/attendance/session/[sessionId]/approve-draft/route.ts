@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { AttendanceStatus } from "@/types/domain";
 
 interface RouteParams {
   params: Promise<{
@@ -23,11 +24,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized", success: false }, { status: 401 });
     }
 
+    // Authorization guard: Only teacher or admin can approve attendance drafts
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.role !== "admin" && profile?.role !== "teacher") {
+      return NextResponse.json(
+        { error: "Forbidden: Only teachers or admins can approve attendance drafts", success: false },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const { records } = body as {
       records: Array<{
         student_id: string;
-        status?: "present" | "late" | "sick" | "excused" | "absent";
+        status?: AttendanceStatus;
         notes?: string;
       }>;
     };

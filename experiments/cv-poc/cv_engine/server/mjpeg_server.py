@@ -17,7 +17,6 @@ import json
 import threading
 import time
 import urllib.parse
-import urllib.request
 from typing import Optional, Callable, Dict, Any, Tuple
 
 from cv_engine.telemetry.gallery import ManajerGaleriWajah
@@ -46,8 +45,6 @@ class StatusServerStreaming:
         self.rotasi: str = "auto"
         self.cermin_h: bool = False
         self.kunci_rotasi = threading.Lock()
-        self.telemetri_terakhir: Optional[Dict[str, Any]] = None
-        self.kunci_telemetri = threading.Lock()
 
         # Alias kompatibilitas bahasa Inggris
         self.camera = self.kamera
@@ -64,16 +61,6 @@ class StatusServerStreaming:
         """Menautkan instans KameraUtasTerpisah agar endpoint REST dapat mengontrol sumber secara dinamis."""
         self.kamera = kamera
         self.camera = kamera
-
-    def perbarui_telemetri(self, muatan_dict: Dict[str, Any]) -> None:
-        """Menyimpan snapshot telemetri frame terkini untuk akses instan zero-latency."""
-        with self.kunci_telemetri:
-            self.telemetri_terakhir = muatan_dict
-
-    def ambil_telemetri(self) -> Optional[Dict[str, Any]]:
-        """Mengambil snapshot telemetri frame terkini."""
-        with self.kunci_telemetri:
-            return self.telemetri_terakhir
 
     def perbarui_bingkai(self, data_bytes_jpeg: bytes) -> None:
         """Memperbarui frame terkini untuk disiarkan ke seluruh klien yang terhubung."""
@@ -152,8 +139,8 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
         jalur_url = diurai.path
         parameter = urllib.parse.parse_qs(diurai.query)
 
-        # 1. Endpoint Status Sistem & Telemetri Terkini
-        if jalur_url in ("/status", "/telemetry"):
+        # 1. Endpoint Status Sistem
+        if jalur_url == "/status":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -173,7 +160,6 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                 "cloud_sync": sinkron_val,
                 "current_source": sumber_aktif,
                 "camera_connected": kamera_konek,
-                "latest_telemetry": state.ambil_telemetri(),
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             self.wfile.write(json.dumps(muatan).encode("utf-8"))
@@ -272,46 +258,6 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        # 3b. Endpoint Sinkronisasi Roster Biometrik Kelas dari Next.js / Supabase (P4 Enterprise)
-        if jalur_url in ("/sync_roster", "/roster/sync"):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-
-            class_id = parameter.get("class_id", ["00000000-0000-0000-0000-000000000001"])[0]
-            api_base = parameter.get("api_url", ["http://127.0.0.1:3000"])[0]
-
-            try:
-                target_url = f"{api_base}/api/classes/{class_id}/face-roster"
-                req = urllib.request.Request(
-                    target_url,
-                    headers={
-                        "x-edge-device-key": "dev-edge-secret-key-2026",
-                        "User-Agent": "SyntaxSlayer-EdgeCVEngine/4.0"
-                    }
-                )
-                with urllib.request.urlopen(req, timeout=3.5) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                    roster_list = data.get("roster", [])
-                    termuat = state.manajer_galeri.perbarui_dari_roster_api(roster_list)
-                    jawaban = {
-                        "success": True,
-                        "class_id": class_id,
-                        "loaded_profiles": termuat,
-                        "total_in_roster": len(roster_list),
-                        "message": f"Berhasil sinkronisasi {termuat} profil biometrik dari Supabase Cloud!"
-                    }
-            except Exception as e:
-                jawaban = {
-                    "success": False,
-                    "class_id": class_id,
-                    "error": str(e),
-                    "message": "Gagal menghubungi API roster Next.js. Menggunakan cache lokal."
-                }
-            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
-            return
-
         # 4. Endpoint Galeri Siswa Terdaftar
         if jalur_url == "/gallery":
             self.send_response(200)
@@ -349,103 +295,6 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                     except (BrokenPipeError, ConnectionResetError):
                         break
                 time.sleep(0.005)  # Respon instan tanpa tidur 20ms
-            return
-
-        self.send_response(404)
-        self.end_headers()
-
-    def do_OPTIONS(self):
-        """Menangani CORS pre-flight browser untuk endpoint pendaftaran biometrik."""
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, x-edge-device-key")
-        self.end_headers()
-
-    def do_POST(self):
-        state = self.state
-        if state is None:
-            self.send_response(500)
-            self.end_headers()
-            return
-
-        diurai = urllib.parse.urlparse(self.path)
-        jalur_url = diurai.path
-
-        # Endpoint Ekstraksi Fitur Biometrik Multi-Sudut dari HP Siswa
-        if jalur_url in ("/extract_embedding", "/biometrics/extract"):
-            panjang_konten = int(self.headers.get("Content-Length", 0))
-            body_mentah = self.rfile.read(panjang_konten).decode("utf-8") if panjang_konten > 0 else "{}"
-            try:
-                muatan = json.loads(body_mentah)
-            except Exception:
-                muatan = {}
-
-            gambar_list = muatan.get("images", [])
-            nama_siswa = muatan.get("name") or muatan.get("studentName") or "Siswa Terdaftar"
-
-            from cv_engine.core.face import SaluranPipaDeteksiWajah
-            import base64
-            import cv2
-            import numpy as np
-
-            saluran_wajah = getattr(state, "saluran_wajah", None)
-            if saluran_wajah is None:
-                saluran_wajah = SaluranPipaDeteksiWajah()
-                setattr(state, "saluran_wajah", saluran_wajah)
-
-            vektor_koleksi = []
-            for img_str in gambar_list:
-                try:
-                    if "," in img_str:
-                        img_str = img_str.split(",", 1)[1]
-                    byte_data = base64.b64decode(img_str)
-                    np_arr = np.frombuffer(byte_data, dtype=np.uint8)
-                    frame_bgr = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-                    if frame_bgr is not None:
-                        hasil = saluran_wajah.deteksi_dan_ekstraksi_wajah(frame_bgr, lebar_inferensi=400)
-                        if hasil and len(hasil) > 0:
-                            terbesar = max(hasil, key=lambda hw: hw[0][2] * hw[0][3])
-                            v = np.asarray(terbesar[1], dtype=np.float32).flatten()
-                            norm = float(np.linalg.norm(v))
-                            if norm > 1e-6:
-                                vektor_koleksi.append(v / norm)
-                except Exception:
-                    continue
-
-            if len(vektor_koleksi) > 0:
-                # Rolling Mean Ensemble dari seluruh sudut wajah
-                vektor_rerata = np.mean(vektor_koleksi, axis=0)
-                norm_rerata = float(np.linalg.norm(vektor_rerata))
-                if norm_rerata > 1e-6:
-                    vektor_rerata = vektor_rerata / norm_rerata
-
-                final_embedding = vektor_rerata.tolist()
-                quality = 98.5 + min(1.3, len(vektor_koleksi) * 0.4)
-
-                if nama_siswa and state.manajer_galeri:
-                    state.manajer_galeri.daftarkan_wajah(nama_siswa, final_embedding)
-
-                jawaban = {
-                    "success": True,
-                    "faces_extracted": len(vektor_koleksi),
-                    "embedding": final_embedding,
-                    "quality_score": round(quality, 2),
-                    "message": f"Berhasil mengekstrak {len(vektor_koleksi)} sudut biometrik untuk {nama_siswa}!"
-                }
-            else:
-                jawaban = {
-                    "success": False,
-                    "faces_extracted": 0,
-                    "error": "Tidak ada wajah terdeteksi pada citra yang dikirim.",
-                    "message": "Pastikan pencahayaan cukup dan wajah terlihat jelas di kamera."
-                }
-
-            self.send_response(200 if jawaban["success"] else 400)
-            self.send_header("Content-type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
         self.send_response(404)

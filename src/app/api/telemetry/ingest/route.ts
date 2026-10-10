@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { verifyEdgeDeviceAuthorization } from "@/lib/security";
 
 const telemetryIngestSchema = z.object({
   session_id: z.string().uuid("Invalid session UUID"),
@@ -38,16 +39,12 @@ if (!globalThis.__ATTENDANCE_DRAFT__) {
 
 export async function POST(request: NextRequest) {
   try {
-    const edgeSecretHeader = request.headers.get("x-edge-device-key");
     const adminClient = createAdminClient();
 
     // 1. Authorization: Edge Device Key OR Authenticated Teacher/Admin
-    let isAuthorized = false;
-    const envSecret = process.env.EDGE_DEVICE_SECRET || "dev-edge-secret-key-2026";
+    let isAuthorized = verifyEdgeDeviceAuthorization(request);
 
-    if (edgeSecretHeader && edgeSecretHeader === envSecret) {
-      isAuthorized = true;
-    } else {
+    if (!isAuthorized) {
       // Check user session
       const supabase = await createClient();
       const {

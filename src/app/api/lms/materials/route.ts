@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { call9Router, ROUTER_MODELS } from "@/lib/ai/9router";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.role !== "admin" && profile?.role !== "teacher") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Hanya guru atau admin yang dapat mengunggah materi." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       title,
