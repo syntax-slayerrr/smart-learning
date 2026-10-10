@@ -38,13 +38,13 @@ export function FaceIdStatusBadge({
           {isEnrolled ? (
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span>Face ID: Aktif</span>
+              <span>Biometrik: Aktif</span>
               <span className="text-[10px] opacity-70 font-mono">({qualityScore}%)</span>
             </>
           ) : (
             <>
               <ScanFace className="h-3 w-3 stroke-[2] opacity-80" />
-              <span>Face ID: Siap Didaftarkan</span>
+              <span>Biometrik: Belum Terdaftar</span>
             </>
           )}
         </button>
@@ -86,7 +86,7 @@ export function FaceIdStatusBadge({
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-xs font-semibold">
-              <span>{isEnrolled ? "Biometrik Face ID Aktif" : "Biometrik Belum Didaftarkan"}</span>
+              <span>{isEnrolled ? "Biometrik Wajah Aktif" : "Biometrik Belum Didaftarkan"}</span>
               {isEnrolled && (
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 inline" />
               )}
@@ -94,7 +94,7 @@ export function FaceIdStatusBadge({
             <p className="text-[11px] text-muted-foreground line-clamp-1">
               {isEnrolled
                 ? "Presensi otomatis & liveness terverifikasi"
-                : "Daftarkan wajah untuk presensi kilat berbasis AI"}
+                : "Daftarkan biometrik wajah untuk presensi otomatis"}
             </p>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
   TelemetryPoint,
   DetectedSubject,
   NetworkCameraDevice,
+  ScheduleContext,
 } from "./camera-monitor/types";
 import { MonitorHeader } from "./camera-monitor/MonitorHeader";
 import { MultiCameraGrid } from "./camera-monitor/MultiCameraGrid";
@@ -17,12 +18,12 @@ import { CameraSourceModal } from "./camera-monitor/CameraSourceModal";
 const DEFAULT_CHANNELS: CameraChannel[] = [
   {
     id: "cam-1",
-    name: "Kamera HP (IP Webcam)",
-    subject: "Monitoring Sesi Langsung",
-    teacher: "Operator AI",
+    name: "Ruang Teori XI RPL 1",
+    subject: "Pemrograman Web & Mobile",
+    teacher: "Budi Santoso, S.Kom",
     streamUrl: "http://localhost:5000/video_feed",
     statusUrl: "http://localhost:5000/status",
-    ipAddress: "Kamera HP -> OpenCV AI Engine (:5000)",
+    ipAddress: "Kamera Kelas Utama (OpenCV AI Engine :5000)",
     port: 8080,
     studentsCount: 0,
     sittingCount: 0,
@@ -33,12 +34,12 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
   },
   {
     id: "cam-2",
-    name: "Ruang 10-IPA-2",
-    subject: "Matematika",
-    teacher: "Guru Kelas",
+    name: "Laboratorium Komputer 2",
+    subject: "Basis Data & Cloud",
+    teacher: "Siti Rahmawati, M.Kom",
     streamUrl: "http://localhost:5001/video_feed",
     statusUrl: "http://localhost:5001/status",
-    ipAddress: "192.168.1.102:8080 (Wi-Fi HP #2)",
+    ipAddress: "Kamera Lab 2 (RTSP Stream :5001)",
     port: 5001,
     studentsCount: 0,
     sittingCount: 0,
@@ -49,12 +50,12 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
   },
   {
     id: "cam-3",
-    name: "Ruang 11-RPL-1",
-    subject: "Pemrograman Web",
-    teacher: "Guru Kelas",
+    name: "Ruang Kelas XI RPL 2",
+    subject: "Pemodelan Perangkat Lunak",
+    teacher: "Hendro Wijaya, S.Pd",
     streamUrl: "http://localhost:5002/video_feed",
     statusUrl: "http://localhost:5002/status",
-    ipAddress: "192.168.1.103:8080 (Wi-Fi HP #3)",
+    ipAddress: "Kamera Ruang XI RPL 2 (:5002)",
     port: 5002,
     studentsCount: 0,
     sittingCount: 0,
@@ -65,12 +66,12 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
   },
   {
     id: "cam-4",
-    name: "Ruang 12-TKJ-1",
-    subject: "Jaringan Komputer",
-    teacher: "Guru Kelas",
+    name: "Laboratorium TKJ 1",
+    subject: "Infrastruktur Jaringan",
+    teacher: "Ahmad Fauzi, M.T",
     streamUrl: "http://localhost:5003/video_feed",
     statusUrl: "http://localhost:5003/status",
-    ipAddress: "192.168.1.104:8080 (Wi-Fi HP #4)",
+    ipAddress: "Kamera Lab TKJ 1 (:5003)",
     port: 5003,
     studentsCount: 0,
     sittingCount: 0,
@@ -83,7 +84,21 @@ const DEFAULT_CHANNELS: CameraChannel[] = [
 
 const LATEST_API_URL = "/api/telemetry/latest?sessionId=00000000-0000-0000-0000-000000000001";
 
-export function LiveCameraMonitor() {
+export interface LiveCameraMonitorProps {
+  role?: "admin" | "teacher";
+  teacherId?: string;
+  lockedClassId?: string;
+  lockedClassName?: string;
+  lockedSubjectName?: string;
+}
+
+export function LiveCameraMonitor({
+  role = "admin",
+  teacherId,
+  lockedClassId,
+  lockedClassName,
+  lockedSubjectName,
+}: LiveCameraMonitorProps = {}) {
   const [viewMode, setViewMode] = useState<"single" | "quad">("single");
   const [rightTab, setRightTab] = useState<"digital_twin" | "analytics" | "attendance">("digital_twin");
   const [activeCamIndex, setActiveCamIndex] = useState<number>(0);
@@ -125,6 +140,10 @@ export function LiveCameraMonitor() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [hermesNudge, setHermesNudge] = useState<string | null>(null);
   const [isNudgeLoading, setIsNudgeLoading] = useState<boolean>(false);
+  const [scheduleContext, setScheduleContext] = useState<ScheduleContext | null>(null);
+  const [isScheduleLoading, setIsScheduleLoading] = useState<boolean>(true);
+  const [classesList, setClassesList] = useState<{ id: string; name: string }[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoImgRef = useRef<HTMLImageElement>(null);
@@ -244,9 +263,9 @@ export function LiveCameraMonitor() {
           setNetworkScanSubnet(data.subnet || "WiFi");
           setHasScannedNetwork(true);
           if (cams.length > 0) {
-            setCameraSwitchNotice(`Ditemukan ${cams.length} kamera HP di jaringan WiFi! Tekan 'Hubungkan' untuk menyambungkan.`);
+            setCameraSwitchNotice(`Ditemukan ${cams.length} kamera di jaringan lokal sekolah! Tekan 'Hubungkan' untuk menyambungkan.`);
           } else {
-            setCameraSwitchNotice(`Tidak ada kamera terdeteksi di subnet ${data.subnet || "WiFi"}. Pastikan aplikasi HP aktif dan tekan 'Start Server'.`);
+            setCameraSwitchNotice(`Tidak ada kamera terdeteksi di subnet ${data.subnet || "WiFi"}. Pastikan perangkat kamera aktif dan engine menyala.`);
           }
         }
       } else {
@@ -356,7 +375,29 @@ export function LiveCameraMonitor() {
     }
   };
 
-  const activeChannel = DEFAULT_CHANNELS[activeCamIndex] || DEFAULT_CHANNELS[0];
+  const effectiveChannels: CameraChannel[] =
+    role === "teacher"
+      ? [
+          {
+            id: "cam-teacher-active",
+            name: lockedClassName ? `Ruang ${lockedClassName}` : "Ruang Kelas Anda",
+            subject: lockedSubjectName || "Mata Pelajaran Aktif",
+            teacher: "Anda (Guru Pengampu)",
+            streamUrl: "http://localhost:5000/video_feed",
+            statusUrl: "http://localhost:5000/status",
+            ipAddress: "Kamera Kelas Aktif (:5000)",
+            port: 5000,
+            studentsCount: 0,
+            sittingCount: 0,
+            standingCount: 0,
+            handRaiseCount: 0,
+            sleepCount: 0,
+            isOnline: true,
+          },
+        ]
+      : DEFAULT_CHANNELS;
+
+  const activeChannel = effectiveChannels[activeCamIndex] || effectiveChannels[0];
 
   const checkStreamStatus = async () => {
     try {
@@ -381,6 +422,9 @@ export function LiveCameraMonitor() {
           if (typeof data?.flip_h === "boolean") setIsFlipped(data.flip_h);
           if (data?.current_source !== undefined) setCurrentCameraSource(data.current_source);
           if (typeof data?.camera_connected === "boolean") setIsCameraHardwareConnected(data.camera_connected);
+          if (data?.latest_telemetry) {
+            applyTelemetry(data.latest_telemetry);
+          }
         } catch {}
       } else {
         failedStatusCountRef.current += 1;
@@ -424,64 +468,116 @@ export function LiveCameraMonitor() {
     }
   };
 
+  const fetchScheduleContext = async (classId?: string) => {
+    try {
+      const targetId = role === "teacher" && lockedClassId ? lockedClassId : (classId || selectedClassId);
+      const url = targetId
+        ? `/api/telemetry/schedule-context?classId=${encodeURIComponent(targetId)}`
+        : "/api/telemetry/schedule-context";
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success) {
+          setScheduleContext(data);
+          if (data.class_id && !selectedClassId) {
+            setSelectedClassId(data.class_id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[LiveCameraMonitor] Gagal memuat konteks jadwal:", err);
+    } finally {
+      setIsScheduleLoading(false);
+    }
+  };
+
+  const fetchClassesList = async () => {
+    if (role === "teacher" && lockedClassId) {
+      setClassesList([{ id: lockedClassId, name: lockedClassName || "Kelas Aktif" }]);
+      setSelectedClassId(lockedClassId);
+      return;
+    }
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from("classes").select("id, name").order("name");
+      if (data && data.length > 0) {
+        setClassesList(data);
+      }
+    } catch (err) {
+      console.warn("[LiveCameraMonitor] Gagal memuat daftar kelas:", err);
+    }
+  };
+
+  const applyTelemetry = (latest: any) => {
+    if (!latest) return;
+    setTelemetry(latest);
+    setLastSyncTime(new Date());
+
+    // Map real detected tracks from edge vision engine
+    const rawTracks =
+      latest.anonymized_tracks ||
+      (latest.spatial_distribution as any)?.tracks ||
+      [];
+
+    if (Array.isArray(rawTracks) && rawTracks.length > 0) {
+      const mapped: DetectedSubject[] = rawTracks.map((t: any, idx: number) => {
+        const cleanName = (t.student_name || t.label || `Siswa #${idx + 1}`).replace(/\s*\(.*?\)/, "").trim();
+        return {
+          id: t.id || `P-${idx + 1}`,
+          anonymous_id: t.anonymous_id || `P${idx + 1}`,
+          label: cleanName,
+          student_name: cleanName,
+          is_recognized: !!t.is_recognized,
+          student_id: t.student_id,
+          seat_latched: !!t.seat_latched,
+          posture: t.posture || "sitting",
+          activity: t.activity || (t.sleep ? "sleep" : t.hand_raised ? "hand_raised" : "attentive"),
+          action_text: t.action_text || (t.sleep ? "Tidur di Meja" : t.hand_raised ? "Bertanya (Angkat Tangan)" : t.activity === "writing" ? "Fokus Menulis" : "Fokus Menyimak"),
+          confidence: typeof t.confidence === "number" ? t.confidence : 0.95,
+          row: t.row || "Area Kamera",
+          location: t.posture === "standing" ? "Berdiri" : "Duduk di Meja",
+          hand_raised: !!t.hand_raised,
+          sleep: !!t.sleep,
+          head_tilt_deg: typeof t.head_tilt_deg === "number" ? t.head_tilt_deg : 0,
+          gaze_direction: t.gaze_direction || "Depan / Layar",
+          attention_score: typeof t.attention_score === "number" ? t.attention_score : 95,
+        };
+      });
+      setSubjects(mapped);
+    } else if (latest.detected_students_count > 0) {
+      const generated: DetectedSubject[] = [];
+      for (let i = 0; i < latest.detected_students_count; i++) {
+        const isSleep = i < (latest.sleep_detected_count || 0);
+        const isHand = !isSleep && i < (latest.hand_raise_count || 0);
+        const isStand = !isSleep && !isHand && i < (latest.standing_count || 0);
+        generated.push({
+          id: `P-${i + 1}`,
+          anonymous_id: `P${i + 1}`,
+          label: `Siswa #${i + 1}`,
+          student_name: `Siswa #${i + 1}`,
+          posture: isStand ? "standing" : "sitting",
+          activity: isSleep ? "sleep" : isHand ? "hand_raised" : "attentive",
+          action_text: isSleep ? "Tidur di Meja" : isHand ? "Bertanya (Angkat Tangan)" : "Fokus Menyimak",
+          confidence: 0.93,
+          row: "Area Kamera",
+          location: isStand ? "Berdiri" : "Duduk di Meja",
+          hand_raised: isHand,
+          sleep: isSleep,
+        });
+      }
+      setSubjects(generated);
+    } else {
+      setSubjects([]);
+    }
+  };
+
   const fetchTelemetry = async () => {
     try {
       const res = await fetch(LATEST_API_URL, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (data?.success && data.latest) {
-        const latest: TelemetryPoint = data.latest;
-        setTelemetry(latest);
-        setLastSyncTime(new Date());
-
-        // Map real detected tracks from edge vision engine
-        const rawTracks =
-          latest.anonymized_tracks ||
-          (latest.spatial_distribution as any)?.tracks ||
-          [];
-
-        if (Array.isArray(rawTracks) && rawTracks.length > 0) {
-          const mapped: DetectedSubject[] = rawTracks.map((t: any, idx: number) => ({
-            id: t.id || `P-${idx + 1}`,
-            anonymous_id: t.anonymous_id || `P${idx + 1}`,
-            label: t.label || `Subjek #${idx + 1}`,
-            posture: t.posture || "sitting",
-            activity: t.activity || (t.sleep ? "sleep" : t.hand_raised ? "hand_raised" : "attentive"),
-            action_text: t.action_text || (t.sleep ? "Tidur di Meja" : t.hand_raised ? "Angkat Tangan" : t.activity === "writing" ? "Fokus Laptop/Meja" : "Fokus Belajar"),
-            confidence: typeof t.confidence === "number" ? t.confidence : 0.95,
-            row: t.row || "Area Kamera",
-            location: t.posture === "standing" ? "Berdiri" : "Duduk di Meja",
-            hand_raised: !!t.hand_raised,
-            sleep: !!t.sleep,
-            head_tilt_deg: typeof t.head_tilt_deg === "number" ? t.head_tilt_deg : 0,
-            gaze_direction: t.gaze_direction || "Depan / Layar",
-            attention_score: typeof t.attention_score === "number" ? t.attention_score : 95,
-          }));
-          setSubjects(mapped);
-        } else if (latest.detected_students_count > 0) {
-          // Synthetic real-count representation when detailed tracks array is empty
-          const generated: DetectedSubject[] = [];
-          for (let i = 0; i < latest.detected_students_count; i++) {
-            const isSleep = i < (latest.sleep_detected_count || 0);
-            const isHand = !isSleep && i < (latest.hand_raise_count || 0);
-            const isStand = !isSleep && !isHand && i < (latest.standing_count || 0);
-            generated.push({
-              id: `P-${i + 1}`,
-              anonymous_id: `P${i + 1}`,
-              label: `Subjek Terdeteksi #${i + 1}`,
-              posture: isStand ? "standing" : "sitting",
-              activity: isSleep ? "sleep" : isHand ? "hand_raised" : isStand ? "attentive" : "writing",
-              confidence: 0.93,
-              row: "Area Kamera",
-              location: isStand ? "Berdiri" : "Duduk di Meja",
-              hand_raised: isHand,
-              sleep: isSleep,
-            });
-          }
-          setSubjects(generated);
-        } else {
-          setSubjects([]);
-        }
+        applyTelemetry(data.latest);
 
         if (Array.isArray(data.history) && data.history.length > 0) {
           const chartPoints = data.history.map((pt: TelemetryPoint, idx: number) => {
@@ -529,6 +625,9 @@ export function LiveCameraMonitor() {
       )
       .subscribe();
 
+    fetchClassesList();
+    fetchScheduleContext(role === "teacher" && lockedClassId ? lockedClassId : undefined);
+
     const interval = setInterval(() => {
       checkStreamStatus();
       // Watchdog polling: Jika websocket aktif mengirim data dalam 5 detik terakhir, abaikan polling untuk cegah jitter/race condition
@@ -542,16 +641,21 @@ export function LiveCameraMonitor() {
       fetchHermesNudge(telemetry, subjects);
     }, 15000);
 
+    const scheduleInterval = setInterval(() => {
+      fetchScheduleContext(role === "teacher" && lockedClassId ? lockedClassId : undefined);
+    }, 60000);
+
     return () => {
       supabase.removeChannel(channel);
       clearInterval(interval);
       clearInterval(nudgeInterval);
+      clearInterval(scheduleInterval);
     };
   }, []);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([checkStreamStatus(), fetchTelemetry()]);
+    await Promise.all([checkStreamStatus(), fetchTelemetry(), fetchScheduleContext()]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -576,19 +680,19 @@ export function LiveCameraMonitor() {
   const getStatusBadge = (activity: DetectedSubject["activity"]) => {
     switch (activity) {
       case "attentive":
-        return { label: "Fokus / Menyimak", bg: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20", dot: "bg-emerald-500" };
+        return { label: "Fokus", bg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20", dot: "bg-emerald-500" };
       case "writing":
-        return { label: "Menulis / Laptop", bg: "bg-sky-500/10 text-sky-700 border-sky-500/20", dot: "bg-sky-500" };
+        return { label: "Mencatat", bg: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20", dot: "bg-sky-500" };
       case "using_phone":
-        return { label: "Gadget Terdeteksi", bg: "bg-red-500/15 text-red-700 border-red-500/30 font-bold", dot: "bg-red-600" };
+        return { label: "Gadget", bg: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30 font-medium", dot: "bg-red-600" };
       case "sleep":
-        return { label: "Menunduk / Tidur", bg: "bg-red-500/15 text-red-700 border-red-500/30 animate-pulse font-bold", dot: "bg-red-600" };
+        return { label: "Tidur", bg: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30 animate-pulse font-medium", dot: "bg-red-600" };
       case "hand_raised":
-        return { label: "Angkat Tangan", bg: "bg-amber-500/15 text-amber-800 border-amber-500/30 font-bold", dot: "bg-amber-500" };
+        return { label: "Bertanya", bg: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30 font-medium", dot: "bg-amber-500" };
       case "distracted":
-        return { label: "Kurang Fokus", bg: "bg-orange-500/10 text-orange-700 border-orange-500/20", dot: "bg-orange-500" };
+        return { label: "Distraksi", bg: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20", dot: "bg-orange-500" };
       default:
-        return { label: "Aktif", bg: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20", dot: "bg-emerald-500" };
+        return { label: "Aktif", bg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20", dot: "bg-emerald-500" };
     }
   };
 
@@ -615,8 +719,10 @@ export function LiveCameraMonitor() {
   if (!telemetry.hand_raise_count) counts.hand_raised = hitunganAngkatTanganLokal;
   if (!telemetry.sleep_detected_count) counts.sleep = hitunganTidurLokal;
 
+  // Siswa yang kondusif adalah seluruh siswa yang menyimak, menulis, atau aktif bertanya (TIDAK tidur dan TIDAK main HP)
+  const nonKondusif = counts.sleep + counts.using_phone;
   const rawFocusIndex = totalDetected > 0
-    ? Math.min(100, Math.round(((counts.attentive + counts.writing) / Math.max(1, totalDetected)) * 100))
+    ? Math.max(0, Math.min(100, Math.round(((totalDetected - nonKondusif) / totalDetected) * 100)))
     : 100;
 
   // Smoothing Exponential Moving Average (EMA) untuk mencegah lonjakan/flicker HUD
@@ -644,17 +750,18 @@ export function LiveCameraMonitor() {
         handleManualRefresh={handleManualRefresh}
         isFullscreen={isFullscreen}
         toggleFullscreen={toggleFullscreen}
-        channels={DEFAULT_CHANNELS}
+        channels={effectiveChannels}
         activeCamIndex={activeCamIndex}
         setActiveCamIndex={setActiveCamIndex}
         focusIndex={focusIndex}
         totalDetected={totalDetected}
+        role={role}
       />
 
       {/* VIEW MODE 1: MULTI-CAMERA GRID */}
-      {viewMode === "quad" ? (
+      {viewMode === "quad" && role !== "teacher" ? (
         <MultiCameraGrid
-          channels={DEFAULT_CHANNELS}
+          channels={effectiveChannels}
           streamOnline={streamOnline}
           totalDetected={totalDetected}
           focusIndex={focusIndex}
@@ -706,6 +813,14 @@ export function LiveCameraMonitor() {
             history={history}
             hermesNudge={hermesNudge}
             isNudgeLoading={isNudgeLoading}
+            scheduleContext={scheduleContext}
+            isScheduleLoading={isScheduleLoading}
+            classes={classesList}
+            selectedClassId={selectedClassId}
+            onSelectClass={(id) => {
+              setSelectedClassId(id);
+              fetchScheduleContext(id);
+            }}
           />
         </div>
       )}

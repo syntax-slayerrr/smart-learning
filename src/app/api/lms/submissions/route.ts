@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { call9Router, ROUTER_MODELS } from "@/lib/ai/9router";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       textContent,
       oralDefensePassed = true,
       oralDefenseScore = 90,
+      oralDefenseFeedback,
       skipAi = false,
     } = body;
 
@@ -89,11 +91,44 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Resolusi fallback student jika belum ditentukan
-    let finalStudentId = studentId;
+    // 1. Verifikasi Autentikasi Pengguna & Resolusi Siswa Resmi
+    let finalStudentId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: currentStudent } = await admin
+          .from("students")
+          .select("id")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+
+        if (currentStudent?.id) {
+          finalStudentId = currentStudent.id;
+        }
+      }
+    } catch (authErr) {
+      console.warn("Auth check fallback:", authErr);
+    }
+
+    // Fallback eksplisit jika dipanggil dari internal testing
+    if (!finalStudentId && studentId) {
+      finalStudentId = studentId;
+    }
+
     if (!finalStudentId) {
       const { data: s } = await admin.from("students").select("id").limit(1).maybeSingle();
-      finalStudentId = s?.id || "51d15a3b-f681-425d-81a9-ca177b8f77ce";
+      finalStudentId = s?.id || null;
+    }
+
+    if (!finalStudentId) {
+      return NextResponse.json(
+        { success: false, error: "Identitas siswa tidak terdaftar di sistem." },
+        { status: 401 }
+      );
     }
 
     // Ambil info assignment untuk referensi evaluasi AI
@@ -103,8 +138,8 @@ export async function POST(request: NextRequest) {
       .eq("id", assignmentId)
       .single();
 
-    let aiScore = oralDefenseScore || 90;
-    let aiFeedback = "Penguasaan konsep dan analisis teknis sangat baik. Berkas PDF terstruktur rapi dan argumentasi logis.";
+    let aiScore = Number(oralDefenseScore) || 90;
+    let aiFeedback = oralDefenseFeedback || "Penguasaan konsep dan analisis teknis sangat baik. Berkas PDF terstruktur rapi dan argumentasi logis.";
 
     // Jika AI evaluasi diaktifkan, jalankan via 9Router Gemini
     if (!skipAi && assignment) {
@@ -192,7 +227,7 @@ Format balasan JSON:
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { submissionId, teacherScore, teacherNotes } = body;
+    const { submissionId, teacherScore, teacherNotes, status: newStatus = "graded" } = body;
 
     if (!submissionId) {
       return NextResponse.json(
@@ -203,14 +238,19 @@ export async function PATCH(request: NextRequest) {
 
     const admin = createAdminClient();
 
+    const updatePayload: Record<string, any> = {
+      teacher_notes: teacherNotes || "",
+      status: newStatus === "returned" ? "returned" : "graded",
+      graded_at: new Date().toISOString(),
+    };
+
+    if (newStatus !== "returned" && teacherScore !== undefined && teacherScore !== null) {
+      updatePayload.teacher_score = Number(teacherScore);
+    }
+
     const { data: updated, error } = await admin
       .from("assignment_submissions")
-      .update({
-        teacher_score: Number(teacherScore),
-        teacher_notes: teacherNotes || "",
-        status: "graded",
-        graded_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", submissionId)
       .select(`
         id,

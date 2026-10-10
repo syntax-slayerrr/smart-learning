@@ -7,7 +7,7 @@ export interface FaceEvaluation {
   isCentered: boolean;
   isGoodSize: boolean;
   statusMessage: string;
-  headPose: "center" | "tilted" | "unknown";
+  headPose: "center" | "left" | "right" | "tilted" | "unknown";
   confidence: number;
   eyesState?: "open" | "closed" | "unknown";
   eyeMetrics?: {
@@ -394,9 +394,16 @@ function evaluateViaCanvasCV(
   }
 
   const totalSides = leftSkin + rightSkin;
-  const diffRatio = totalSides > 0 ? Math.abs(leftSkin - rightSkin) / totalSides : 0;
-  // Deteksi miring kepala / menoleh jika distribusi simetri berbeda > 16%
-  const headPose: "center" | "tilted" = diffRatio > 0.16 ? "tilted" : "center";
+  // Perbedaan simetri distribusi kulit kiri vs kanan untuk estimasi tolehan wajah
+  const signedDiff = totalSides > 0 ? (leftSkin - rightSkin) / totalSides : 0;
+  let headPose: "center" | "left" | "right" | "tilted" = "center";
+  if (signedDiff > 0.14) {
+    headPose = "left";
+  } else if (signedDiff < -0.14) {
+    headPose = "right";
+  } else {
+    headPose = "center";
+  }
 
   const estimatedRightEye = {
     x: Math.max(0.1, Math.min(0.9, (meanX - 0.55 * stdX) / w)),
@@ -417,9 +424,19 @@ function evaluateViaCanvasCV(
   let statusMessage = "Wajah pas! Tahan posisi...";
   if (expectedStep === "frontal") {
     statusMessage =
-      headPose === "tilted"
-        ? "Hadap lurus ke kamera."
-        : "Wajah pas! Tahan posisi...";
+      headPose !== "center"
+        ? "Hadap lurus ke depan kamera."
+        : "Wajah frontal pas! Tahan posisi...";
+  } else if (expectedStep === "turn_left") {
+    statusMessage =
+      headPose === "left"
+        ? "Sudut kiri pas! Tahan 1 detik..."
+        : "Tolehkan kepala perlahan ke KIRI (~20°)";
+  } else if (expectedStep === "turn_right") {
+    statusMessage =
+      headPose === "right"
+        ? "Sudut kanan pas! Tahan 1 detik..."
+        : "Tolehkan kepala perlahan ke KANAN (~20°)";
   } else if (expectedStep === "angle") {
     statusMessage =
       headPose === "center"
@@ -517,12 +534,12 @@ export function evaluateVideoFace(
         }
 
         // Estimasi pose kepala dan status mata dari keypoints MediaPipe
-        let headPose: "center" | "tilted" = "center";
+        let headPose: "center" | "left" | "right" | "tilted" = "center";
         let eyesState: "open" | "closed" | "unknown" = "unknown";
         const keypoints = det.keypoints;
         if (keypoints && keypoints.length >= 6) {
-          const rightEye = keypoints[0]; // Kanan subjek
-          const leftEye = keypoints[1];  // Kiri subjek
+          const rightEye = keypoints[0]; // Kanan subjek (koordinat x lebih kecil)
+          const leftEye = keypoints[1];  // Kiri subjek (koordinat x lebih besar)
           const noseTip = keypoints[2];
 
           if (rightEye && leftEye && noseTip) {
@@ -532,10 +549,19 @@ export function evaluateVideoFace(
 
             const eyeMidX = (rightEye.x + leftEye.x) / 2;
             const eyeDist = Math.hypot(dx, dy);
-            const yawOffset = eyeDist > 0 ? Math.abs(noseTip.x - eyeMidX) / eyeDist : 0;
+            // Nilai yaw bertanda (signed yaw):
+            // Positif = Menoleh ke kiri subjek (hidung bergeser ke arah mata kiri)
+            // Negatif = Menoleh ke kanan subjek (hidung bergeser ke arah mata kanan)
+            const signedYaw = eyeDist > 0 ? (noseTip.x - eyeMidX) / eyeDist : 0;
 
-            if (rollAngle > 10 || yawOffset > 0.18) {
+            if (signedYaw > 0.12) {
+              headPose = "left";
+            } else if (signedYaw < -0.12) {
+              headPose = "right";
+            } else if (rollAngle > 14) {
               headPose = "tilted";
+            } else {
+              headPose = "center";
             }
 
             let eyeMetrics:
@@ -555,9 +581,19 @@ export function evaluateVideoFace(
             let statusMessage = "Wajah pas! Tahan posisi...";
             if (expectedStep === "frontal") {
               statusMessage =
-                headPose === "tilted"
-                  ? "Hadap lurus ke kamera."
-                  : "Wajah pas! Tahan posisi...";
+                headPose !== "center"
+                  ? "Hadap lurus ke depan kamera."
+                  : "Wajah frontal pas! Tahan posisi...";
+            } else if (expectedStep === "turn_left") {
+              statusMessage =
+                headPose === "left"
+                  ? "Sudut kiri pas! Tahan 1 detik..."
+                  : "Tolehkan kepala perlahan ke KIRI (~20°)";
+            } else if (expectedStep === "turn_right") {
+              statusMessage =
+                headPose === "right"
+                  ? "Sudut kanan pas! Tahan 1 detik..."
+                  : "Tolehkan kepala perlahan ke KANAN (~20°)";
             } else if (expectedStep === "angle") {
               statusMessage =
                 headPose === "center"

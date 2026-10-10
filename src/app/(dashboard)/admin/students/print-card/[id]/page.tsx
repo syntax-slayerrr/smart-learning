@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { StaticQRCard } from "@/components/attendance/static-qr-card";
 import { Printer, User, IdCard, Scan, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+import { SCHOOL_NAME } from "@/lib/constants";
 
 export default async function PrintStudentCard({
   params,
@@ -77,7 +78,7 @@ export default async function PrintStudentCard({
                   <Image src="/brand/syntax-slayer-logo.png" alt="Logo" width={22} height={22} className="object-contain rounded-md" />
                   <div className="flex flex-col">
                     <h2 className="text-[7.5px] font-bold text-slate-800 leading-tight">Smart Learning</h2>
-                    <span className="text-[5.5px] font-bold tracking-wider text-orange-600 uppercase">SYNTAX SLAYER</span>
+                    <span className="text-[5.5px] font-bold tracking-wider text-orange-600 uppercase truncate max-w-[120px]">{SCHOOL_NAME}</span>
                   </div>
                 </div>
 

@@ -4,9 +4,11 @@ import { useState, useMemo } from "react";
 import { 
   Search, 
   FileSpreadsheet, 
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { SCHOOL_NAME } from "@/lib/constants";
 
 interface Student {
   id: string;
@@ -150,15 +152,15 @@ export default function MatrixRecapClient({
 
   return (
     <div className="space-y-5">
-      {/* 1. Filter Bar with Apple-style Glass Inset */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-[var(--shadow-3d-card)] backdrop-blur-xl space-y-3.5">
+      {/* 1. Filter Bar with Apple Precision Inset */}
+      <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs space-y-3.5 print:hidden">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 ml-1">Kelas</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Kelas</label>
             <select 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
+              className="h-9 w-full rounded-lg border border-border bg-background px-2.5 text-xs font-semibold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none shadow-xs transition-colors"
             >
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -204,13 +206,23 @@ export default function MatrixRecapClient({
               className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none shadow-xs transition-colors"
             />
           </div>
-          <button 
-            onClick={handleExport}
-            className="flex h-9 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-4 text-xs font-semibold text-white shadow-xs transition-all"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            <span>Export Excel</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button 
+              onClick={() => window.print()}
+              className="flex h-9 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-95 px-3.5 text-xs font-semibold text-slate-700 shadow-2xs transition-all"
+              title="Cetak format cetak A4 atau simpan PDF"
+            >
+              <Printer className="h-3.5 w-3.5 text-slate-500" />
+              <span>Cetak / PDF</span>
+            </button>
+            <button 
+              onClick={handleExport}
+              className="flex h-9 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-4 text-xs font-semibold text-white shadow-xs transition-all"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span>Export Excel</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -227,8 +239,21 @@ export default function MatrixRecapClient({
         </div>
       )}
 
+      {/* Print Official Letterhead (Hanya tampil saat dicetak ke printer / PDF) */}
+      <div className="hidden print:block mb-4 border-b-2 border-slate-900 pb-2">
+        <h2 className="text-base font-bold uppercase tracking-tight text-slate-900">
+          {SCHOOL_NAME}
+        </h2>
+        <p className="text-xs font-semibold text-slate-700">
+          LEMBAR REKAPITULASI PRESENSI PEMBELAJARAN SISWA
+        </p>
+        <p className="text-[10px] font-mono text-slate-600 mt-1">
+          Kelas: {classes.find((c) => c.id === selectedClass)?.name || "-"} • Mata Pelajaran: {selectedSubject} • Dicetak: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+        </p>
+      </div>
+
       {/* 2. Matrix Table Card */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white/95 shadow-[var(--shadow-3d-card)] backdrop-blur-xl overflow-hidden">
+      <div className="rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden print:border-none print:shadow-none">
         {/* Mobile scroll hint */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-slate-50/50 sm:hidden">
           <span className="text-[11px] font-medium text-slate-500">

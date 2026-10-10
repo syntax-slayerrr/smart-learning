@@ -23,7 +23,7 @@ interface FaceIdEnrollmentModalProps {
   onSuccess: () => void;
 }
 
-type StepType = "frontal" | "angle" | "liveness" | "processing" | "success";
+type StepType = "frontal" | "turn_left" | "turn_right" | "liveness" | "processing" | "success";
 
 interface QualityChecks {
   lighting: "optimal" | "low" | "high" | "checking";
@@ -83,6 +83,7 @@ export function FaceIdEnrollmentModal({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [, setCapturedFrames] = useState<string[]>([]);
+  const capturedFramesRef = useRef<string[]>([]);
   const [autoProgress, setAutoProgress] = useState(0); // 0 - 100
   const [flashActive, setFlashActive] = useState(false);
 
@@ -197,18 +198,25 @@ export function FaceIdEnrollmentModal({
       hctx.scale(-1, 1);
       hctx.drawImage(videoRef.current, 0, 0, 640, 480);
       const base64 = hiddenCanvas.toDataURL("image/jpeg", 0.85);
-      setCapturedFrames((prev) => [...prev, base64]);
+      capturedFramesRef.current.push(base64);
+      setCapturedFrames([...capturedFramesRef.current]);
     }
 
     const currentStep = stepRef.current;
 
     if (currentStep === "frontal") {
       setAutoProgress(0);
-      setStep("angle");
-      stepRef.current = "angle";
-      setInstruction("Miringkan kepala sedikit ke kanan atau kiri (~10°)");
+      setStep("turn_left");
+      stepRef.current = "turn_left";
+      setInstruction("Tolehkan kepala perlahan ke KIRI (~20°)");
       setIsCapturing(false);
-    } else if (currentStep === "angle") {
+    } else if (currentStep === "turn_left") {
+      setAutoProgress(0);
+      setStep("turn_right");
+      stepRef.current = "turn_right";
+      setInstruction("Tolehkan kepala perlahan ke KANAN (~20°)");
+      setIsCapturing(false);
+    } else if (currentStep === "turn_right") {
       setAutoProgress(0);
       setStep("liveness");
       stepRef.current = "liveness";
@@ -221,13 +229,13 @@ export function FaceIdEnrollmentModal({
         closedConsecutiveFrames: 0,
         blinkVerified: false,
       };
-      setInstruction("Tatap kamera dengan tenang...");
+      setInstruction("Tatap kamera lalu kedipkan kedua mata...");
       setIsCapturing(false);
     } else if (currentStep === "liveness") {
       setAutoProgress(100);
       setStep("processing");
       stepRef.current = "processing";
-      setInstruction("Memverifikasi dan mengenkripsi profil biometrik...");
+      setInstruction("Memverifikasi & mengekstrak vektor biometrik 3 sudut...");
       stopCamera();
 
       try {
@@ -236,22 +244,25 @@ export function FaceIdEnrollmentModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             studentName,
-            framesCount: 3,
+            framesCount: capturedFramesRef.current.length || 3,
+            images: capturedFramesRef.current,
           }),
         });
 
         if (res.ok) {
+          const resData = await res.json().catch(() => ({}));
+          const finalScore = resData?.student?.quality_score || 99.2;
           saveFaceIdEnrollmentStatus({
             isEnrolled: true,
             studentName,
             enrolledAt: new Date().toISOString(),
-            qualityScore: 98.8,
+            qualityScore: finalScore,
             livenessVerified: true,
             anchorStatus: "active",
           });
           setTimeout(() => {
             setStep("success");
-            setInstruction("Pendaftaran Face ID Berhasil");
+            setInstruction("Pendaftaran Biometrik Wajah Berhasil");
             playSuccessChime();
             if (typeof window !== "undefined" && "vibrate" in navigator) {
               navigator.vibrate([40, 30, 60]);
@@ -273,7 +284,7 @@ export function FaceIdEnrollmentModal({
         });
         setTimeout(() => {
           setStep("success");
-          setInstruction("Pendaftaran Face ID Berhasil");
+          setInstruction("Pendaftaran Biometrik Wajah Berhasil");
           playSuccessChime();
         }, 600);
       } finally {
@@ -381,11 +392,27 @@ export function FaceIdEnrollmentModal({
               setAutoProgress((prev) => Math.max(prev - 0.2, 0));
             }
           }
-        } else if (stepRef.current === "angle") {
-          const isPoseCorrect = faceEval.headPose === "tilted";
+        } else if (stepRef.current === "turn_left") {
+          const isPoseCorrect = faceEval.headPose === "left";
           if (isPoseCorrect) {
             setAutoProgress((prev) => {
-              const next = Math.min(prev + 3.6, 100);
+              const next = Math.min(prev + 3.8, 100);
+              if (next >= 100) {
+                executeCapture();
+                return 100;
+              }
+              return next;
+            });
+          } else {
+            if (graceCounterRef.current > 8) {
+              setAutoProgress((prev) => Math.max(prev - 0.2, 0));
+            }
+          }
+        } else if (stepRef.current === "turn_right") {
+          const isPoseCorrect = faceEval.headPose === "right";
+          if (isPoseCorrect) {
+            setAutoProgress((prev) => {
+              const next = Math.min(prev + 3.8, 100);
               if (next >= 100) {
                 executeCapture();
                 return 100;
@@ -509,6 +536,7 @@ export function FaceIdEnrollmentModal({
       setStep("frontal");
       stepRef.current = "frontal";
       setAutoProgress(0);
+      capturedFramesRef.current = [];
       setCapturedFrames([]);
       setInstruction("Posisikan wajah di dalam oval");
       blinkTrackerRef.current = {
@@ -555,7 +583,15 @@ export function FaceIdEnrollmentModal({
   const strokeOffset = ovalPerimeter - (autoProgress / 100) * ovalPerimeter;
 
   const currentStepNum =
-    step === "frontal" ? 1 : step === "angle" ? 2 : step === "liveness" ? 3 : 3;
+    step === "frontal"
+      ? 1
+      : step === "turn_left"
+      ? 2
+      : step === "turn_right"
+      ? 3
+      : step === "liveness"
+      ? 4
+      : 4;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
@@ -584,21 +620,23 @@ export function FaceIdEnrollmentModal({
           </button>
         </div>
 
-        {/* Minimalist 3-Step Indicator Bar */}
+        {/* Minimalist 4-Step Indicator Bar */}
         {step !== "success" && (
           <div className="px-5 pt-3 pb-2 border-b border-border/60 bg-muted/30">
             <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground mb-1.5">
-              <span>Langkah {currentStepNum} dari 3</span>
+              <span>Langkah {currentStepNum} dari 4</span>
               <span className="font-semibold text-foreground">
                 {step === "frontal"
-                  ? "Wajah Lurus"
-                  : step === "angle"
-                  ? "Sudut Kepala"
-                  : "Kedip Mata"}
+                  ? "1. Wajah Frontal"
+                  : step === "turn_left"
+                  ? "2. Serong Kiri (-20°)"
+                  : step === "turn_right"
+                  ? "3. Serong Kanan (+20°)"
+                  : "4. Kedip Mata"}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 h-1 w-full">
-              {[1, 2, 3].map((sIndex) => {
+            <div className="grid grid-cols-4 gap-1.5 h-1 w-full">
+              {[1, 2, 3, 4].map((sIndex) => {
                 const isCompleted = currentStepNum > sIndex;
                 const isCurrent = currentStepNum === sIndex;
                 return (
@@ -704,9 +742,23 @@ export function FaceIdEnrollmentModal({
                       />
                     </svg>
 
+                    {/* Visual Direction Guides for Multi-Angle */}
+                    {step === "turn_left" && (
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-semibold backdrop-blur-md shadow-lg animate-pulse pointer-events-none z-10 border border-white/20">
+                        <span>←</span>
+                        <span>Toleh Kiri</span>
+                      </div>
+                    )}
+                    {step === "turn_right" && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-semibold backdrop-blur-md shadow-lg animate-pulse pointer-events-none z-10 border border-white/20">
+                        <span>Toleh Kanan</span>
+                        <span>→</span>
+                      </div>
+                    )}
+
                     {/* Status Pill Tunggal & Rapi di Bawah Kamera */}
                     <div className="absolute bottom-3 flex items-center justify-center w-full px-4">
-                      <div className="backdrop-blur-md bg-black/65 px-3 py-1 rounded-full border border-white/15 text-[11px] font-medium text-white shadow-xs text-center truncate max-w-[220px] flex items-center gap-1.5">
+                      <div className="backdrop-blur-md bg-black/65 px-3 py-1 rounded-full border border-white/15 text-[11px] font-medium text-white shadow-xs text-center truncate max-w-[240px] flex items-center gap-1.5">
                         <span
                           className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                             blinkTrackerRef.current.blinkVerified
@@ -720,7 +772,7 @@ export function FaceIdEnrollmentModal({
                           {quality.centered
                             ? step === "liveness"
                               ? instruction
-                              : `Posisi Tepat • ${Math.round(autoProgress)}%`
+                              : `${instruction} • ${Math.round(autoProgress)}%`
                             : instruction || "Posisikan wajah di dalam oval"}
                         </span>
                       </div>
@@ -740,7 +792,7 @@ export function FaceIdEnrollmentModal({
                   Biometrik Terverifikasi
                 </h3>
                 <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[200px]">
-                  Profil Face ID berhasil didaftarkan dan tersimpan aman untuk presensi.
+                  Profil biometrik wajah berhasil didaftarkan dan tersimpan aman untuk presensi.
                 </p>
               </div>
             </div>

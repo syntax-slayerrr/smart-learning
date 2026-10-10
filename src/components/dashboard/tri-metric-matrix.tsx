@@ -85,7 +85,7 @@ export function TriMetricMatrix({
 
             {/* Value */}
             <span
-              className={`text-base sm:text-lg font-extrabold tracking-tight tabular ${colorStyles.valColor}`}
+              className={`text-base sm:text-lg font-extrabold tracking-tight font-mono tabular-nums ${colorStyles.valColor}`}
             >
               {m.value}
             </span>

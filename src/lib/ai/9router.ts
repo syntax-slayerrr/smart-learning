@@ -160,8 +160,7 @@ async function callOpenRouterCloud(options: AIChatOptions) {
 
 export async function call9Router(options: AIChatOptions) {
   const baseUrl = process.env.NINEROUTER_BASE_URL || "http://127.0.0.1:20128/v1";
-  const apiKey =
-    process.env.NINEROUTER_API_KEY || "sk-e31d4e410b9854cebb43e867bb408eb3f30999557bfa16da08527a2995b07d38";
+  const apiKey = (process.env.NINEROUTER_API_KEY || "").trim();
   const model =
     options.model ||
     process.env.NINEROUTER_DEFAULT_MODEL ||

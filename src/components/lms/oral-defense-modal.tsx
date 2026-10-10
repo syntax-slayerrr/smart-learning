@@ -261,9 +261,9 @@ export function OralDefenseModal({
         {/* Top Floating App Bar (Ella Reference Style) */}
         <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 pt-5 pb-2">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#007AFF]" />
-            <span className="text-xs font-semibold text-[#007AFF] uppercase tracking-wider">
-              Smart AI • Verifikasi Lisan
+            <span className="w-2 h-2 rounded-full bg-orange-600" />
+            <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+              Uji Lisan Pemahaman Siswa
             </span>
           </div>
 
@@ -521,7 +521,7 @@ export function OralDefenseModal({
                 className="flex-1 h-11 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-2 shadow-md shadow-emerald-500/20 transition-all active:scale-95"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Submit Resmi ke Guru Sekarang</span>
+                <span>Kirimkan Tugas Resmi ke Guru</span>
               </Button>
             </div>
           )}

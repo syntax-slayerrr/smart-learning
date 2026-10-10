@@ -49,4 +49,6 @@ experiments/cv-poc/test_skeleton_output.jpg
 *.task
 *.pt
 experiments/cv-poc/insightface_models/
-
+experiments/cv-poc/*.png
+experiments/cv-poc/*.jpg
+*.tsbuildinfo

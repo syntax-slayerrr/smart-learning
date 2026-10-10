@@ -8,6 +8,11 @@ import {
   Moon,
   CheckCircle2,
   Radio,
+  X,
+  Printer,
+  Volume2,
+  VolumeX,
+  FileText,
 } from "lucide-react";
 import {
   AreaChart,
@@ -17,8 +22,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { DetectedSubject } from "./types";
+import { DetectedSubject, ScheduleContext } from "./types";
 import { AiAttendanceDraftView } from "./AiAttendanceDraftView";
+import { ScheduleContextBar } from "./ScheduleContextBar";
+import { SCHOOL_NAME } from "@/lib/constants";
+
+// Synthesizer Audio Chime Halus saat Siswa Mengangkat Tangan (Apple-style gentle chime)
+function playHandRaiseChime() {
+  try {
+    const AudioCtx =
+      typeof window !== "undefined"
+        ? window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        : null;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    // Dual pleasant notes (D5 to A5)
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // blocked by browser audio policy or unsupported
+  }
+}
 
 interface TelemetryPanelProps {
   rightTab: "digital_twin" | "analytics" | "attendance";
@@ -50,6 +84,11 @@ interface TelemetryPanelProps {
   }[];
   hermesNudge: string | null;
   isNudgeLoading: boolean;
+  scheduleContext?: ScheduleContext | null;
+  isScheduleLoading?: boolean;
+  classes?: { id: string; name: string }[];
+  selectedClassId?: string | null;
+  onSelectClass?: (classId: string) => void;
 }
 
 export function TelemetryPanel({
@@ -66,26 +105,112 @@ export function TelemetryPanel({
   history,
   hermesNudge,
   isNudgeLoading,
+  scheduleContext,
+  isScheduleLoading,
+  classes = [],
+  selectedClassId,
+  onSelectClass,
 }: TelemetryPanelProps) {
+  const [filterMode, setFilterMode] = React.useState<"all" | "hand_raised" | "attention">("all");
+  const [showSummaryModal, setShowSummaryModal] = React.useState<boolean>(false);
+  const [chimeEnabled, setChimeEnabled] = React.useState<boolean>(true);
+  const [awardedMap, setAwardedMap] = React.useState<Record<string, boolean>>({});
+
+  const handleAwardStudent = async (st: DetectedSubject, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const idKey = st.student_id || st.id;
+    setAwardedMap((prev) => ({ ...prev, [idKey]: true }));
+    try {
+      await fetch("/api/ai/copilot/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "award_points",
+          targetId: st.student_id || st.id,
+          metadata: {
+            points: 10,
+            studentName: st.student_name || st.label,
+            reason: `Apresiasi keaktifan langsung dari kamera monitor: ${st.action_text || "Fokus Menyimak"}`,
+          },
+        }),
+      });
+    } catch (err) {
+      console.warn("[Award Student Telemetry Failed]:", err);
+    }
+  };
+
+  // Debounce Audio Chime saat jumlah siswa yang angkat tangan bertambah
+  const lastHandRaisedRef = React.useRef(0);
+  const lastChimeTimeRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const now = Date.now();
+    if (
+      chimeEnabled &&
+      counts.hand_raised > lastHandRaisedRef.current &&
+      now - lastChimeTimeRef.current > 7000
+    ) {
+      playHandRaiseChime();
+      lastChimeTimeRef.current = now;
+    }
+    lastHandRaisedRef.current = counts.hand_raised;
+  }, [counts.hand_raised, chimeEnabled]);
+
+  const filteredSubjects = subjects.filter((st) => {
+    if (filterMode === "hand_raised") return Boolean(st.hand_raised);
+    if (filterMode === "attention") {
+      return (
+        st.activity === "sleep" ||
+        st.activity === "using_phone" ||
+        (typeof st.attention_score === "number" && st.attention_score < 70)
+      );
+    }
+    return true;
+  });
+
   return (
-    <div className="lg:col-span-5 xl:col-span-4 p-4 sm:p-5 space-y-4 bg-card flex flex-col justify-between">
-      <div className="space-y-3.5">
+    <div className="lg:col-span-5 xl:col-span-4 p-3 sm:p-4 space-y-2.5 bg-card flex flex-col justify-between relative">
+      <div className="space-y-2.5">
         {/* Header & Segmented Mode Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
-              Dinamika Kelas
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Analisis atensi & keterlibatan siswa real-time
-            </p>
+        <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Activity className="h-4 w-4 text-primary shrink-0" />
+              <h3 className="text-xs font-bold text-foreground tracking-tight truncate">
+                Dinamika Kelas
+              </h3>
+            </div>
+
+            {/* Audio Chime Bel Tanya Toggle */}
+            <button
+              type="button"
+              onClick={() => setChimeEnabled((prev) => !prev)}
+              title={
+                chimeEnabled
+                  ? "Bel Tanya: Aktif (bunyikan chime saat siswa angkat tangan). Klik untuk senyap."
+                  : "Bel Tanya: Senyap. Klik untuk aktifkan bel."
+              }
+              className={`p-1 rounded-md border text-[10px] font-mono inline-flex items-center gap-1 transition-all ${
+                chimeEnabled
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                  : "bg-muted/40 border-border text-muted-foreground opacity-60 hover:opacity-100"
+              }`}
+            >
+              {chimeEnabled ? (
+                <Volume2 className="h-3 w-3 stroke-[2]" />
+              ) : (
+                <VolumeX className="h-3 w-3 stroke-[2]" />
+              )}
+              <span className="hidden sm:inline text-[9px] font-sans">
+                {chimeEnabled ? "Bel On" : "Senyap"}
+              </span>
+            </button>
           </div>
 
-          <div className="inline-flex items-center rounded-xl border border-border bg-muted/60 p-1 shadow-inner">
+          <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5 shadow-inner">
             <button
               onClick={() => setRightTab("digital_twin")}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all touch-manipulation ${
+              className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-all ${
                 rightTab === "digital_twin"
                   ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -95,7 +220,7 @@ export function TelemetryPanel({
             </button>
             <button
               onClick={() => setRightTab("analytics")}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all touch-manipulation ${
+              className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-all ${
                 rightTab === "analytics"
                   ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -105,61 +230,57 @@ export function TelemetryPanel({
             </button>
             <button
               onClick={() => setRightTab("attendance")}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all touch-manipulation flex items-center gap-1.5 ${
+              className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-all flex items-center gap-1 ${
                 rightTab === "attendance"
                   ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Presensi AI
+              Presensi
             </button>
           </div>
         </div>
 
-        {/* Clean Focus Index Strip (Reduced Card Surface) */}
-        <div className="rounded-xl border border-border/80 bg-muted/30 p-3 shadow-2xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-primary" /> Indeks Atensi
+        {/* Konteks Jam Pelajaran Aktif (1 Baris Kompak dengan Class Selector & Rangkum) */}
+        <ScheduleContextBar
+          schedule={scheduleContext ?? null}
+          isLoading={Boolean(isScheduleLoading)}
+          classes={classes}
+          selectedClassId={selectedClassId}
+          onSelectClass={onSelectClass}
+          onOpenSessionSummary={() => setShowSummaryModal(true)}
+        />
+
+        {/* Telemetry Strip Kompak 4-Kolom (Kondusif, Menyimak, Mencatat, Perhatian) */}
+        <div className="grid grid-cols-4 gap-1 p-1 rounded-lg border border-border/70 bg-muted/20">
+          <div className="text-center py-1 px-0.5">
+            <span className="text-[10px] text-muted-foreground block truncate">Kondusif</span>
+            <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+              {focusIndex}%
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                {focusIndex >= 85
-                  ? "Sangat Kondusif"
-                  : focusIndex >= 70
-                  ? "Kondusif"
-                  : focusIndex >= 50
-                  ? "Cukup Baik"
-                  : "Perlu Pendampingan"}
-              </span>
-              <span className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {focusIndex}%
-              </span>
-            </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            {totalDetected > 0 ? (
-              <>
-                <div
-                  style={{ width: `${(counts.attentive / totalDetected) * 100}%` }}
-                  className="bg-emerald-500 transition-all duration-700 ease-out"
-                  title="Fokus / Menyimak"
-                />
-                <div
-                  style={{ width: `${(counts.writing / totalDetected) * 100}%` }}
-                  className="bg-primary transition-all duration-700 ease-out"
-                  title="Mencatat / Praktik"
-                />
-                <div
-                  style={{ width: `${(counts.sleep / totalDetected) * 100}%` }}
-                  className="bg-amber-500 transition-all duration-700 ease-out"
-                  title="Perlu Pendampingan"
-                />
-              </>
-            ) : (
-              <div style={{ width: "100%" }} className="bg-muted-foreground/20" title="Standby" />
-            )}
+          <div className="text-center py-1 px-0.5 border-l border-border/50">
+            <span className="text-[10px] text-muted-foreground block truncate">Fokus</span>
+            <span className="text-xs font-bold font-mono text-foreground tabular-nums">
+              {counts.attentive}
+            </span>
+          </div>
+          <div className="text-center py-1 px-0.5 border-l border-border/50">
+            <span className="text-[10px] text-muted-foreground block truncate">Catat</span>
+            <span className="text-xs font-bold font-mono text-primary tabular-nums">
+              {counts.writing}
+            </span>
+          </div>
+          <div className="text-center py-1 px-0.5 border-l border-border/50">
+            <span className="text-[10px] text-muted-foreground block truncate">Perhatian</span>
+            <span
+              className={`text-xs font-bold font-mono tabular-nums ${
+                counts.sleep + counts.using_phone > 0 ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
+              {counts.sleep + counts.using_phone}
+            </span>
           </div>
         </div>
 
@@ -167,15 +288,59 @@ export function TelemetryPanel({
         {rightTab === "attendance" ? (
           <AiAttendanceDraftView sessionId={sessionId} />
         ) : rightTab === "digital_twin" ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground px-1">
-              <span className="text-[11px] tracking-wider uppercase">Subjek Terpantau</span>
-              <span className="tabular-nums font-semibold text-foreground">{totalDetected} Siswa Aktif</span>
+          <div className="space-y-1.5">
+            {/* Header List Siswa & Quick Filter Chips */}
+            <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground px-0.5">
+              <span className="uppercase tracking-wider">Daftar Siswa</span>
+              <span className="tabular-nums font-semibold text-foreground">
+                {filteredSubjects.length} / {totalDetected} Siswa
+              </span>
             </div>
 
-            {subjects.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-0.5">
-                {subjects.map((st) => {
+            {/* Quick Filter Chips (Semua • Bertanya • Perhatian) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setFilterMode("all")}
+                className={`rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[26px] ${
+                  filterMode === "all"
+                    ? "bg-foreground text-background font-semibold"
+                    : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Semua ({subjects.length})
+              </button>
+              {counts.hand_raised > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterMode("hand_raised")}
+                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[26px] flex items-center gap-1 ${
+                    filterMode === "hand_raised"
+                      ? "bg-amber-600 text-white font-semibold"
+                      : "bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+                  }`}
+                >
+                  <span>✋ Bertanya ({counts.hand_raised})</span>
+                </button>
+              )}
+              {counts.sleep + counts.using_phone > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterMode("attention")}
+                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[26px] flex items-center gap-1 ${
+                    filterMode === "attention"
+                      ? "bg-destructive text-white font-semibold"
+                      : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  }`}
+                >
+                  <span>⚠️ Perhatian ({counts.sleep + counts.using_phone})</span>
+                </button>
+              )}
+            </div>
+
+            {filteredSubjects.length > 0 ? (
+              <div className="space-y-1 max-h-60 sm:max-h-68 overflow-y-auto pr-0.5">
+                {filteredSubjects.map((st) => {
                   const badge = getStatusBadge(st.activity);
                   const isAlert = st.activity === "sleep" || st.activity === "using_phone";
                   const isSelected = selectedSubject?.id === st.id;
@@ -185,40 +350,66 @@ export function TelemetryPanel({
                       key={st.id}
                       type="button"
                       onClick={() => setSelectedSubject(isSelected ? null : st)}
-                      className={`w-full rounded-xl border p-2.5 text-left transition-all active:scale-[0.99] cursor-pointer ${
+                      className={`w-full rounded-lg border px-2.5 py-1.5 text-left transition-all duration-150 active:scale-[0.98] cursor-pointer flex flex-col gap-1 ${
                         isAlert
-                          ? "border-destructive/40 bg-destructive/5 shadow-2xs"
+                          ? "border-destructive/40 bg-destructive/5"
                           : isSelected
-                          ? "border-primary bg-primary/5 shadow-xs"
-                          : "border-border/80 bg-background hover:bg-muted/50"
+                          ? "border-primary bg-primary/5"
+                          : "border-border/70 bg-background hover:bg-muted/40"
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-mono font-bold text-foreground">
-                          #{st.anonymous_id || st.id}
-                        </span>
-                        <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border ${badge.bg}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
-                          {badge.label}
-                        </span>
+                      {/* Baris Utama: ID, Nama, Atensi %, Badge Status (No Wrapping) */}
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs font-mono font-bold text-foreground shrink-0">
+                            #{st.anonymous_id || st.id}
+                          </span>
+                          <span className="text-xs font-medium text-foreground truncate">
+                            {(st.student_name || st.label || "Siswa").replace(/\s*\(.*?\)/, "").trim()}
+                          </span>
+                          {st.hand_raised && (
+                            <span className="text-xs shrink-0" title="Mengangkat Tangan">
+                              ✋
+                            </span>
+                          )}
+                          {st.posture === "standing" && (
+                            <span className="text-[10px] text-muted-foreground shrink-0" title="Berdiri">
+                              🧍
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+                            {st.attention_score || 95}%
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border whitespace-nowrap ${badge.bg}`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                            {badge.label}
+                          </span>
+                        </div>
                       </div>
 
-                      <p className="text-xs font-semibold text-foreground truncate">
-                        {st.action_text || st.label}
-                      </p>
-
-                      <div className="mt-1.5 pt-1.5 border-t border-border/60 grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-                        <span className="truncate">
-                          Fokus: <strong className="text-foreground font-mono">{st.attention_score || 95}%</strong>
-                        </span>
-                        <span className="truncate text-right">
-                          Postur: <span className="font-semibold text-foreground">{st.posture === "standing" ? "Berdiri" : "Duduk"}</span>
-                        </span>
-                      </div>
-
-                      {st.hand_raised && (
-                        <div className="mt-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                          <span>✋ Mengangkat Tangan</span>
+                      {/* Detail Tambahan & Aksi Cepat Saat Dipilih */}
+                      {(isSelected || isAlert) && (
+                        <div className="pt-1.5 mt-0.5 border-t border-border/50 flex items-center justify-between gap-2 text-[10px]">
+                          <span className="truncate text-muted-foreground">
+                            Aktivitas: <span className="font-semibold text-foreground">{st.action_text || st.label}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleAwardStudent(st, e)}
+                            disabled={awardedMap[st.student_id || st.id]}
+                            className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-medium transition-all active:scale-95 flex items-center gap-1 ${
+                              awardedMap[st.student_id || st.id]
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20"
+                                : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 cursor-pointer"
+                            }`}
+                          >
+                            <span>{awardedMap[st.student_id || st.id] ? "✓ Poin Diberikan" : "⭐ +10 Poin"}</span>
+                          </button>
                         </div>
                       )}
                     </button>
@@ -226,36 +417,34 @@ export function TelemetryPanel({
                 })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-border bg-muted/20">
-                <Users className="h-6 w-6 text-muted-foreground/60 mb-1.5" />
-                <p className="text-xs font-semibold text-foreground">Belum Ada Subjek Terdeteksi</p>
-                <p className="text-[11px] text-muted-foreground max-w-xs mt-0.5 leading-relaxed">
-                  Kamera standby memindai. Subjek yang berada dalam jangkauan akan terdaftar otomatis.
+              <div className="flex flex-col items-center justify-center p-4 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                <Users className="h-5 w-5 text-muted-foreground/60 mb-1" />
+                <p className="text-xs font-semibold text-foreground">Standby Memindai</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Siswa di depan kamera akan terdeteksi otomatis.
                 </p>
               </div>
             )}
           </div>
         ) : (
           /* TAB 2: CLEAN FRAMELESS ACTIVITY TIMELINE */
-          <div className="rounded-xl border border-border/80 bg-muted/20 p-3 shadow-2xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-foreground">
-                Tren Dinamika Atensi
-              </span>
-              <div className="flex items-center gap-2.5 text-[11px] font-medium">
+          <div className="rounded-lg border border-border/80 bg-muted/20 p-2.5">
+            <div className="flex items-center justify-between mb-1.5 text-xs">
+              <span className="font-semibold text-foreground">Tren Atensi</span>
+              <div className="flex items-center gap-2 text-[10px]">
                 <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Fokus
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Fokus
                 </span>
                 <span className="flex items-center gap-1 text-primary">
-                  <span className="h-2 w-2 rounded-full bg-primary" /> Mencatat
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Catat
                 </span>
               </div>
             </div>
 
             {history.length > 1 ? (
-              <div className="h-40 w-full">
+              <div className="h-36 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={history} margin={{ top: 5, right: 5, left: -22, bottom: 0 }}>
+                  <AreaChart data={history} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorFokus" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
@@ -284,11 +473,10 @@ export function TelemetryPanel({
                         if (active && payload && payload.length) {
                           const d = payload[0].payload;
                           return (
-                            <div className="rounded-xl border border-border bg-card/95 backdrop-blur-md p-2.5 text-xs shadow-md font-sans">
-                              <p className="font-bold text-foreground mb-1">{d.time}</p>
-                              <p className="text-emerald-600 font-medium">Fokus: {d.attentive} siswa</p>
-                              <p className="text-primary font-medium">Mencatat: {d.writing} siswa</p>
-                              {d.sleeping > 0 && <p className="text-amber-600 font-semibold">Perhatian: {d.sleeping}</p>}
+                            <div className="rounded-lg border border-border bg-card/95 backdrop-blur-md p-2 text-xs shadow-md">
+                              <p className="font-bold text-foreground mb-0.5">{d.time}</p>
+                              <p className="text-emerald-600 font-medium text-[11px]">Fokus: {d.attentive} siswa</p>
+                              <p className="text-primary font-medium text-[11px]">Mencatat: {d.writing} siswa</p>
                             </div>
                           );
                         }
@@ -315,71 +503,211 @@ export function TelemetryPanel({
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-40 w-full flex flex-col items-center justify-center text-center text-xs text-muted-foreground">
-                <Activity className="h-5 w-5 text-muted-foreground/50 mb-1 animate-pulse" />
-                <span>Menunggu data telemetri stream...</span>
+              <div className="h-36 w-full flex flex-col items-center justify-center text-center text-xs text-muted-foreground">
+                <Activity className="h-4 w-4 text-muted-foreground/50 mb-1 animate-pulse" />
+                <span className="text-[11px]">Menunggu data telemetri stream...</span>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Pedagogical Insights & Status Footnote */}
-      <div className="pt-3 border-t border-border/60 space-y-2">
-        {hermesNudge && (
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-start gap-2.5 shadow-2xs">
-            <div className="rounded-lg bg-primary/10 p-1.5 text-primary shrink-0 mt-0.5">
-              <BrainCircuit className="h-4 w-4" />
-            </div>
+      {/* Status & Pedagogical Footnote (Ramping & Kompak) */}
+      <div className="pt-2 border-t border-border/60">
+        {hermesNudge ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-2 flex items-start gap-2 text-xs shadow-2xs">
+            <BrainCircuit className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  Rekomendasi Interaksi Kelas
-                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
-                    Real-time
-                  </span>
-                </span>
-                {isNudgeLoading && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
                 {hermesNudge}
               </p>
             </div>
+            {isNudgeLoading && (
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0 mt-1" />
+            )}
           </div>
-        )}
-
-        {counts.sleep > 0 ? (
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 shadow-2xs">
-            <div className="rounded-md bg-amber-500/20 p-1 text-amber-600 shrink-0">
-              <Moon className="h-3.5 w-3.5" />
-            </div>
-            <div>
-              <span className="font-semibold block">
-                Atensi Menurun: {counts.sleep} siswa lelah / menunduk
-              </span>
-              <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 mt-0.5">
-                Rekomendasi: Lakukan interaksi tanya jawab atau ice-breaking singkat.
-              </p>
-            </div>
+        ) : counts.sleep > 0 ? (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-300">
+            <Moon className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+            <span className="truncate">Perhatian: {counts.sleep} siswa lelah / menunduk</span>
           </div>
         ) : totalDetected > 0 ? (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span className="text-xs font-medium truncate">
-              {totalDetected} subjek terpantau aktif dan kondusif
-            </span>
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 flex items-center gap-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+            <span className="truncate">{totalDetected} siswa terpantau kondusif</span>
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-muted/30 p-2.5 flex items-center gap-2 text-xs text-muted-foreground">
-            <Radio className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-            <span className="text-xs font-medium truncate">
-              Kamera Standby • Siap mendeteksi kehadiran di kelas
-            </span>
+          <div className="rounded-lg border border-border bg-muted/20 px-2.5 py-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <Radio className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+            <span className="truncate">Kamera Standby • Siap mendeteksi kelas</span>
           </div>
         )}
       </div>
+
+      {/* Session Exit Summary Modal */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-4 space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-border/60">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">
+                    Ringkasan Jam Pelajaran
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    {scheduleContext?.active
+                      ? `${scheduleContext.active.subject_name} (Jam ke-${scheduleContext.active.period_number})`
+                      : "Sesi Berlangsung"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSummaryModal(false)}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Statistik Sesi */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
+                <span className="text-[10px] text-muted-foreground block">Rata-rata Atensi</span>
+                <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {focusIndex}%
+                </span>
+              </div>
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
+                <span className="text-[10px] text-muted-foreground block">Interaksi Tanya</span>
+                <span className="text-sm font-bold font-mono text-amber-600">
+                  {counts.hand_raised} siswa
+                </span>
+              </div>
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
+                <span className="text-[10px] text-muted-foreground block">Butuh Bantuan</span>
+                <span
+                  className={`text-sm font-bold font-mono ${
+                    counts.sleep + counts.using_phone > 0 ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                >
+                  {counts.sleep + counts.using_phone} siswa
+                </span>
+              </div>
+            </div>
+
+            {/* Informasi Pengajar */}
+            {scheduleContext?.active && (
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-semibold text-foreground block text-[11px]">
+                    {scheduleContext.active.teacher_name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Waktu: {scheduleContext.active.start_time} - {scheduleContext.active.end_time}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                  AKTIF
+                </span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted active:scale-98 transition-all"
+                title="Cetak atau Simpan PDF Laporan Sesi"
+              >
+                <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Cetak Laporan</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSummaryModal(false)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSummaryModal(false);
+                    setRightTab("attendance");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-xs transition-all active:scale-98"
+                >
+                  Buka Presensi AI →
+                </button>
+              </div>
+            </div>
+
+            {/* Hidden Print-Ready Sheet (Hanya Tampil saat Cetak / PDF) */}
+            <div className="hidden print:block fixed inset-0 bg-white text-black p-8 z-[9999] text-xs">
+              <div className="border-b-2 border-black pb-3 mb-4">
+                <h1 className="text-base font-bold uppercase tracking-tight">{SCHOOL_NAME}</h1>
+                <h2 className="text-sm font-semibold">REKAPITULASI SESI BELAJAR & TELEMETRI KELAS</h2>
+                <p className="text-[10px] text-gray-600 mt-1">
+                  Dicetak secara otomatis melalui Sistem Smart Learning AI Vision • {new Date().toLocaleDateString("id-ID", { dateStyle: "full" })}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4 text-[11px]">
+                <div>
+                  <p><strong>Mata Pelajaran:</strong> {scheduleContext?.active?.subject_name || "—"}</p>
+                  <p><strong>Guru Pengampu:</strong> {scheduleContext?.active?.teacher_name || "—"}</p>
+                </div>
+                <div>
+                  <p><strong>Waktu Sesi:</strong> {scheduleContext?.active?.start_time || "—"} - {scheduleContext?.active?.end_time || "—"} WIB</p>
+                  <p><strong>Indeks Atensi Kelas:</strong> {focusIndex}% • Siswa Bertanya: {counts.hand_raised}</p>
+                </div>
+              </div>
+
+              <table className="w-full border-collapse border border-gray-400 text-[10px] mb-6">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 p-1.5 text-left">No</th>
+                    <th className="border border-gray-400 p-1.5 text-left">Nama Siswa</th>
+                    <th className="border border-gray-400 p-1.5 text-left">Bangku</th>
+                    <th className="border border-gray-400 p-1.5 text-left">Aktivitas</th>
+                    <th className="border border-gray-400 p-1.5 text-left">Atensi</th>
+                    <th className="border border-gray-400 p-1.5 text-left">Keaktifan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjects.map((st, idx) => (
+                    <tr key={st.id || idx}>
+                      <td className="border border-gray-400 p-1">{idx + 1}</td>
+                      <td className="border border-gray-400 p-1 font-semibold">{st.student_name || st.label}</td>
+                      <td className="border border-gray-400 p-1 font-mono">{st.location || `Baris ${st.row}`}</td>
+                      <td className="border border-gray-400 p-1 capitalize">{st.activity || "menyimak"}</td>
+                      <td className="border border-gray-400 p-1 font-mono">{st.attention_score ?? 90}%</td>
+                      <td className="border border-gray-400 p-1">{st.hand_raised ? "✋ Aktif Bertanya" : "Menyimak"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="flex justify-end pt-8">
+                <div className="text-center w-48">
+                  <p className="text-[11px] mb-12">Guru Pengampu Mata Pelajaran,</p>
+                  <p className="font-bold underline text-[11px]">{scheduleContext?.active?.teacher_name || "Guru Pengampu"}</p>
+                  <p className="text-[10px] text-gray-500">NIP. —</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

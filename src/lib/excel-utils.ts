@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { SCHOOL_NAME, SCHOOL_TAGLINE } from './constants';
 
 export interface ExportColumn {
   header: string;
@@ -32,8 +33,8 @@ function getColumnLetter(colIndex: number): string {
 
 export const exportProfessionalExcel = async ({
   title,
-  subtitle = "SYNTAX SLAYER — AI Smart Learning Ecosystem",
-  institution = "SYNTAX SLAYER ACADEMIC ECOSYSTEM",
+  subtitle = `${SCHOOL_NAME} — ${SCHOOL_TAGLINE}`,
+  institution = `${SCHOOL_NAME} ACADEMIC ECOSYSTEM`,
   period,
   columns,
   data,
@@ -41,8 +42,8 @@ export const exportProfessionalExcel = async ({
   withPrintFooter = false
 }: ExportData) => {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "SYNTAX SLAYER Smart Learning Platform";
-  workbook.lastModifiedBy = "SYNTAX SLAYER Academic Engine";
+  workbook.creator = `${SCHOOL_NAME} Smart Learning Platform`;
+  workbook.lastModifiedBy = `${SCHOOL_NAME} Academic Engine`;
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -231,7 +232,7 @@ export const exportProfessionalExcel = async ({
     headRoleCell.alignment = { horizontal: 'center' };
 
     const schoolLabelCell = worksheet.getCell(`${rightColLetter}${sigStartRow + 2}`);
-    schoolLabelCell.value = "SYNTAX SLAYER";
+    schoolLabelCell.value = SCHOOL_NAME;
     schoolLabelCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF52525B' } };
     schoolLabelCell.alignment = { horizontal: 'center' };
 

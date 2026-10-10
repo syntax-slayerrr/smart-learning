@@ -9,6 +9,8 @@ import {
   Smartphone,
   Laptop,
   Radio,
+  Play,
+  Loader2,
 } from "lucide-react";
 import { CameraChannel, TelemetryPoint } from "./types";
 
@@ -65,6 +67,26 @@ export function StreamViewport({
   toggleFlip,
   setAspectRatioMode,
 }: StreamViewportProps) {
+  const [isStartingEngine, setIsStartingEngine] = React.useState(false);
+
+  const handleStartEngine = async () => {
+    setIsStartingEngine(true);
+    try {
+      const res = await fetch("/api/camera/engine", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setTimeout(() => {
+          setStreamOnline(true);
+          setIsStartingEngine(false);
+        }, 1500);
+      } else {
+        setIsStartingEngine(false);
+      }
+    } catch {
+      setIsStartingEngine(false);
+    }
+  };
+
   return (
     <div className="lg:col-span-7 xl:col-span-8 p-4 sm:p-5 flex flex-col justify-between bg-card border-b lg:border-b-0 lg:border-r border-border">
       <div className="space-y-3.5">
@@ -188,7 +210,7 @@ export function StreamViewport({
                   </span>
                   <span className="text-white/30">•</span>
                   <span>
-                    Fokus: <strong className="font-mono text-white">{counts.attentive}</strong>
+                    Fokus: <strong className="font-mono text-white">{counts.attentive + counts.writing}</strong>
                   </span>
                 </div>
               </div>
@@ -210,14 +232,39 @@ export function StreamViewport({
                 Sambungkan webcam laptop atau kamera HP Android (IP Webcam) untuk mulai menganalisis atensi kelas.
               </p>
 
-              <button
-                type="button"
-                onClick={onOpenModal}
-                className="w-full max-w-xs inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold shadow-xs hover:bg-primary/90 active:scale-95 transition-all min-h-[42px] cursor-pointer"
-              >
-                <Camera className="h-4 w-4" />
-                <span>Pilih Sumber Kamera</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full max-w-sm justify-center mb-3">
+                <button
+                  type="button"
+                  onClick={handleStartEngine}
+                  disabled={isStartingEngine}
+                  className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold shadow-xs hover:bg-primary/90 active:scale-[0.98] transition-all duration-150 min-h-[40px] cursor-pointer disabled:opacity-60"
+                >
+                  {isStartingEngine ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Menghubungkan Mesin...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 fill-current" />
+                      <span>Nyalakan Mesin AI</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenModal}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background hover:bg-muted text-foreground px-4 py-2.5 text-xs font-semibold shadow-xs active:scale-[0.98] transition-all duration-150 min-h-[40px] cursor-pointer"
+                >
+                  <Camera className="h-4 w-4 text-primary" />
+                  <span>Pilih Sumber</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground/80 font-mono">
+                Atau double-click file <strong className="text-foreground font-semibold">START_AI_KAMERA.bat</strong> di folder proyek
+              </p>
             </div>
           )}
         </div>
@@ -227,18 +274,18 @@ export function StreamViewport({
       <div className="mt-3.5 pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-muted-foreground">
           <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Menyimak: {counts.attentive}
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Menyimak: <span className="tabular-nums font-mono">{counts.attentive + counts.writing}</span>
           </span>
           <span className="text-border">•</span>
           <span className="flex items-center gap-1 text-primary font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Bertanya: {counts.hand_raised}
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Bertanya: <span className="tabular-nums font-mono">{counts.hand_raised}</span>
           </span>
           <span className="text-border">•</span>
           <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Perhatian: {counts.sleep}
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Perhatian: <span className="tabular-nums font-mono">{counts.sleep}</span>
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground font-mono">
+        <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
           Sinkron: {lastSyncTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </span>
       </div>

@@ -518,7 +518,7 @@ export async function ambilKeterlibatanAnak(idOrangTua: string) {
   const [hasilAbsensiBatch, hasilSesiBatch] = await Promise.all([
     adminClient
       .from("attendance_records")
-      .select("student_id, status")
+      .select("student_id, status, hand_raise_count, seat_code")
       .in("student_id", daftarIdAnak),
     adminClient
       .from("attendance_sessions")
@@ -541,16 +541,20 @@ export async function ambilKeterlibatanAnak(idOrangTua: string) {
     dataTidurBatch = data || [];
   }
 
-  // Hash Map Pengelompokan Absensi Per Anak
-  const petaAbsensiAnak = new Map<string, { total: number; hadir: number; alpa: number }>();
+  // Hash Map Pengelompokan Absensi & Telemetri Per Anak
+  const petaAbsensiAnak = new Map<string, { total: number; hadir: number; alpa: number; angkatTangan: number; meja: string }>();
   for (const baris of semuaCatatan) {
     const idS = baris.student_id as string;
-    const ada = petaAbsensiAnak.get(idS) || { total: 0, hadir: 0, alpa: 0 };
+    const ada = petaAbsensiAnak.get(idS) || { total: 0, hadir: 0, alpa: 0, angkatTangan: 0, meja: "" };
     ada.total += 1;
     if (baris.status === "present" || baris.status === "late") {
       ada.hadir += 1;
     } else if (baris.status === "absent") {
       ada.alpa += 1;
+    }
+    ada.angkatTangan += (baris.hand_raise_count as number) || 0;
+    if (baris.seat_code && !ada.meja) {
+      ada.meja = baris.seat_code as string;
     }
     petaAbsensiAnak.set(idS, ada);
   }
@@ -573,7 +577,7 @@ export async function ambilKeterlibatanAnak(idOrangTua: string) {
 
   // 3. Gabungkan Data dengan Kompleksitas O(1) per Anak
   return daftarAnak.map((anak) => {
-    const statAbsensi = petaAbsensiAnak.get(anak.student_id) || { total: 0, hadir: 0, alpa: 0 };
+    const statAbsensi = petaAbsensiAnak.get(anak.student_id) || { total: 0, hadir: 0, alpa: 0, angkatTangan: 0, meja: "" };
     const persentaseHadir = statAbsensi.total > 0 ? Math.round((statAbsensi.hadir / statAbsensi.total) * 100) : 0;
     const insidenTidur = petaTidurKelas.get(anak.class_id) || 0;
 
@@ -587,6 +591,8 @@ export async function ambilKeterlibatanAnak(idOrangTua: string) {
       present_count: statAbsensi.hadir,
       absent_count: statAbsensi.alpa,
       sleep_incidents: insidenTidur,
+      hand_raise_count: statAbsensi.angkatTangan,
+      favorite_seat: statAbsensi.meja || "Meja Siswa",
       risk_score: Math.round(skorRisiko * 100) / 100,
       risk_level: hitungTingkatRisiko(skorRisiko),
     };

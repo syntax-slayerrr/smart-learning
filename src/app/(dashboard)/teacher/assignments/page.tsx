@@ -194,12 +194,17 @@ export default function TeacherAssignmentsPage() {
     setGradeError(null);
   };
 
-  const handleSaveGrade = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveGrade = async (e?: React.FormEvent, isRevision = false) => {
+    if (e) e.preventDefault();
     if (!gradingSubmission) return;
 
+    if (isRevision && !inputNotes.trim()) {
+      setGradeError("Wajib memberikan catatan perbaikan agar siswa memahami bagian yang perlu direvisi.");
+      return;
+    }
+
     const numScore = Number(inputScore);
-    if (isNaN(numScore) || numScore < 0 || numScore > 100) {
+    if (!isRevision && (isNaN(numScore) || numScore < 0 || numScore > 100)) {
       setGradeError("Nilai harus berupa angka antara 0 hingga 100.");
       return;
     }
@@ -213,8 +218,9 @@ export default function TeacherAssignmentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           submissionId: gradingSubmission.id,
-          teacherScore: numScore,
+          teacherScore: isRevision ? null : numScore,
           teacherNotes: inputNotes,
+          status: isRevision ? "returned" : "graded",
         }),
       });
 
@@ -229,8 +235,8 @@ export default function TeacherAssignmentsPage() {
           s.id === gradingSubmission.id
             ? {
                 ...s,
-                status: "graded",
-                teacher_score: numScore,
+                status: isRevision ? "returned" : "graded",
+                teacher_score: isRevision ? undefined : numScore,
                 teacher_notes: inputNotes,
               }
             : s
@@ -338,8 +344,8 @@ export default function TeacherAssignmentsPage() {
       {/* 1. Header Section */}
       <PageHeader
         eyebrow="PANEL EVALUASI & VERIFIKASI AKADEMIK"
-        title="Tugas & Verifikasi AI Defense"
-        description="Pantau integritas pengumpulan tugas siswa melalui verifikasi lisan AI dan berikan penilaian komprehensif."
+        title="Penugasan & Uji Lisan Pemahaman"
+        description="Pantau pengumpulan tugas siswa, evaluasi hasil uji lisan pemahaman materi, dan berikan penilaian komprehensif."
         action={
           <div className="flex items-center gap-2">
             <Button
@@ -371,7 +377,7 @@ export default function TeacherAssignmentsPage() {
         <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Lolos Defense
+              Lolos Uji Lisan
             </span>
             <div className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
               <ShieldCheck className="h-4 w-4" />
@@ -460,7 +466,7 @@ export default function TeacherAssignmentsPage() {
                 : "text-slate-500 hover:text-slate-900"
             }`}
           >
-            Pengumpulan & AI Defense ({submissions.length})
+            Pengumpulan & Uji Lisan ({submissions.length})
           </button>
           <button
             onClick={() => setActiveTab("manage")}
@@ -543,7 +549,7 @@ export default function TeacherAssignmentsPage() {
                       <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                          AI Defense {defenseScore}%
+                          Uji Lisan {defenseScore}%
                         </span>
 
                         {isGraded ? (
@@ -564,7 +570,7 @@ export default function TeacherAssignmentsPage() {
                     <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1.5 text-xs">
                       <div className="flex items-center gap-1.5 text-indigo-700 font-semibold text-[11px] uppercase tracking-wider">
                         <BrainCircuit className="h-3.5 w-3.5 text-indigo-600" />
-                        <span>Ringkasan Integritas & Verifikasi AI Defense:</span>
+                        <span>Ringkasan Uji Lisan Pemahaman Materi:</span>
                       </div>
                       <p className="text-slate-700 leading-relaxed text-xs">
                         {sub.ai_feedback ||
@@ -608,7 +614,7 @@ export default function TeacherAssignmentsPage() {
                         <Button
                           variant="primary"
                           onClick={() => handleOpenGradeModal(sub)}
-                          className="text-xs h-8 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-2xs gap-1.5"
+                          className="text-xs h-8 px-3.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow-2xs gap-1.5 active:scale-[0.98] transition-all"
                         >
                           <Award className="h-3.5 w-3.5" />
                           <span>{isGraded ? "Edit Nilai Guru" : "Beri Nilai & Masukan"}</span>
@@ -646,7 +652,7 @@ export default function TeacherAssignmentsPage() {
                 variant="primary"
                 size="sm"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-4 rounded-xl mt-2"
+                className="bg-orange-600 hover:bg-orange-700 text-white text-xs h-8 px-4 rounded-lg mt-2 font-semibold shadow-2xs active:scale-[0.98] transition-all"
               >
                 Buat Tugas Pertama
               </Button>
@@ -675,7 +681,7 @@ export default function TeacherAssignmentsPage() {
                       variant={asg.is_oral_defense_required ? "default" : "secondary"}
                       className="text-[10px] shrink-0"
                     >
-                      {asg.is_oral_defense_required ? "Wajib AI Defense" : "Reguler"}
+                      {asg.is_oral_defense_required ? "Wajib Uji Lisan" : "Reguler"}
                     </Badge>
                   </div>
 
@@ -718,10 +724,10 @@ export default function TeacherAssignmentsPage() {
       {/* 6. MODAL: Beri Nilai & Evaluasi Guru */}
       {gradingSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-500/20">
                   <Award className="h-5 w-5" />
                 </div>
                 <div>
@@ -745,7 +751,7 @@ export default function TeacherAssignmentsPage() {
               {/* Submission Overview Info */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Skor AI Defense:</span>
+                  <span className="text-slate-500">Indeks Penguasaan Materi:</span>
                   <span className="font-bold text-emerald-600">
                     {gradingSubmission.oral_defense_score || 90}% (Lolos Verifikasi)
                   </span>
@@ -802,34 +808,47 @@ export default function TeacherAssignmentsPage() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
                 <Button
                   type="button"
                   variant="outline"
-                  className="text-xs h-9 rounded-xl"
-                  onClick={() => setGradingSubmission(null)}
+                  onClick={() => handleSaveGrade(undefined, true)}
                   disabled={isSubmittingGrade}
+                  className="text-xs h-9 px-3 rounded-xl border-amber-300 text-amber-800 hover:bg-amber-50 gap-1.5"
                 >
-                  Batal
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Minta Revisi Tugas</span>
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={isSubmittingGrade}
-                  className="text-xs h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-                >
-                  {isSubmittingGrade ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Award className="h-3.5 w-3.5" />
-                      <span>Simpan & Publikasikan Nilai</span>
-                    </>
-                  )}
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-xs h-9 rounded-lg"
+                    onClick={() => setGradingSubmission(null)}
+                    disabled={isSubmittingGrade}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isSubmittingGrade}
+                    className="text-xs h-9 px-4 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold gap-1.5 shadow-2xs active:scale-[0.98] transition-all"
+                  >
+                    {isSubmittingGrade ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Award className="h-3.5 w-3.5" />
+                        <span>Simpan & Publikasikan Nilai</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
@@ -839,10 +858,10 @@ export default function TeacherAssignmentsPage() {
       {/* 7. MODAL: Buat Penugasan Baru */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-500/20">
                   <Plus className="h-5 w-5" />
                 </div>
                 <div>
@@ -935,7 +954,7 @@ export default function TeacherAssignmentsPage() {
                       onChange={(e) => setIsDefenseRequired(e.target.checked)}
                       className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
                     />
-                    <span className="font-semibold text-slate-700">Wajib AI Defense</span>
+                    <span className="font-semibold text-slate-700">Wajib Uji Lisan Pemahaman</span>
                   </label>
                 </div>
               </div>
@@ -998,7 +1017,7 @@ export default function TeacherAssignmentsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="text-xs h-9 rounded-xl"
+                  className="text-xs h-9 rounded-lg"
                   onClick={() => setIsCreateModalOpen(false)}
                   disabled={isCreatingAssignment}
                 >
@@ -1008,7 +1027,7 @@ export default function TeacherAssignmentsPage() {
                   type="submit"
                   variant="primary"
                   disabled={isCreatingAssignment || !assignmentTitle.trim()}
-                  className="text-xs h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                  className="text-xs h-9 px-4 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold gap-1.5 shadow-2xs active:scale-[0.98] transition-all"
                 >
                   {isCreatingAssignment ? (
                     <>

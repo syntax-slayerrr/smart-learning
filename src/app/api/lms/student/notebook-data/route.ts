@@ -512,20 +512,79 @@ export async function GET(request: NextRequest) {
           explanation: "Jika bitwise AND outcode titik awal dan akhir ≠ 0, berarti kedua titik berada di sisi luar viewport yang sama (misal sama-sama di atas atau sama-sama di kiri), sehingga garis pasti berada di luar area pandang.",
         },
       ];
+    } else if (formattedChapters && formattedChapters.length > 0) {
+      // Dynamic conceptual questions derived adaptively from active chapter concepts
+      quizQuestions = formattedChapters.slice(0, 3).map((ch: any, idx: number) => {
+        const concepts = Array.isArray(ch.keyTakeaways) && ch.keyTakeaways.length > 0
+          ? ch.keyTakeaways
+          : [ch.title, "Penerapan terapan", "Analisis sistem"];
+        
+        const mainConcept = concepts[0] || ch.title;
+        const secondConcept = concepts[1] || "Implementasi praktis";
+        const thirdConcept = concepts[2] || "Optimasi & evaluasi";
+
+        const questionsPool = [
+          {
+            q: `Dalam pembahasan "${ch.title}", apa peranan mendasar dari konsep "${mainConcept}"?`,
+            correct: `Sebagai landasan konseptual dalam memahami prinsip kerja ${ch.title}`,
+            distractors: [
+              `Menggantikan seluruh dependensi infrastruktur dasar secara permanen`,
+              `Menghapus proses verifikasi data untuk mempercepat siklus kerja`,
+              `Hanya digunakan sebagai protokol cadangan saat terjadi kegagalan jaringan`,
+            ],
+            explanation: `Konsep "${mainConcept}" merupakan elemen inti pada bab "${ch.title}" untuk menjamin pemahaman prinsip dan alur kerja yang benar.`,
+          },
+          {
+            q: `Bagaimana keterkaitan fungsional antara "${mainConcept}" dan "${secondConcept}" dalam materi ini?`,
+            correct: `Keduanya saling melengkapi dalam membentuk arsitektur dan metodologi solusi yang kokoh`,
+            distractors: [
+              `Kedua konsep bersifat mutually exclusive dan tidak dapat diterapkan bersamaan`,
+              `"${secondConcept}" meniadakan kebutuhan akan pemahaman "${mainConcept}"`,
+              `Hanya berlaku pada sistem monolitik generasi lama`,
+            ],
+            explanation: `Penerapan "${mainConcept}" dan "${secondConcept}" dirancang terintegrasi guna memberikan pemahaman sistematis.`,
+          },
+          {
+            q: `Faktor kunci apa yang harus diperhatikan saat menguji implementasi "${thirdConcept}" pada bab ini?`,
+            correct: `Kesesuaian parameter masukan, ketepatan logika komputasi, dan efisiensi keluaran sistem`,
+            distractors: [
+              `Jumlah baris komentar dalam berkas konfigurasi`,
+              `Penggunaan memori acak tanpa batasan kuota prosesor`,
+              `Menonaktifkan seluruh mekanisme logging keamanan`,
+            ],
+            explanation: `Validasi implementasi pada "${thirdConcept}" menitikberatkan pada ketepatan kalkulasi, parameter terstandar, dan performa keluaran.`,
+          },
+        ];
+
+        const template = questionsPool[idx % questionsPool.length];
+        const correctTargetIndex = (idx * 2 + 1) % 4; // Variasi posisi jawaban (1, 3, 1) tidak selalu D
+        
+        const options = [...template.distractors];
+        options.splice(correctTargetIndex, 0, template.correct);
+
+        return {
+          id: idx + 1,
+          question: template.q,
+          options,
+          correctIndex: correctTargetIndex,
+          explanation: template.explanation,
+        };
+      });
     } else {
-      // Dynamic questions derived from active topics
-      quizQuestions = (formattedChapters || []).slice(0, 3).map((ch: any, idx: number) => ({
-        id: idx + 1,
-        question: `Berdasarkan bab "${ch.title}", apa fokus utama analisis yang dipelajari?`,
-        options: [
-          `Pemahaman mendalam mengenai ${ch.summary || ch.title}`,
-          `Penyelesaian kasus implementasi terapan pada bab ${ch.title}`,
-          `Evaluasi kritis dan perbandingan metodologi`,
-          `Semua poin analisis di atas tercakup dalam bab ini`,
-        ],
-        correctIndex: 3,
-        explanation: `Bab "${ch.title}" membahas konsep fundamental hingga penerapan praktis sesuai silabus pembelajaran.`,
-      }));
+      quizQuestions = [
+        {
+          id: 1,
+          question: `Apa sasaran pemahaman utama dari modul "${material.title}"?`,
+          options: [
+            `Penguasaan konsep fundamental dan kemampuan analisis terapan`,
+            `Menghafal istilah tanpa memahami alur implementasi`,
+            `Mengabaikan silabus kurikulum resmi`,
+            `Hanya mencatat ringkasan tanpa latihan mandiri`,
+          ],
+          correctIndex: 0,
+          explanation: `Modul "${material.title}" bertujuan membangun kompetensi konseptual dan keterampilan praktis siswa.`,
+        },
+      ];
     }
 
     return NextResponse.json({

@@ -111,7 +111,7 @@ export function ActivityFeedCard({
                       Jadwal
                     </span>
                   )}
-                  <span className="text-[10px] text-slate-400 font-medium tabular mt-1">
+                  <span className="text-[10px] text-slate-400 font-medium font-mono tabular-nums mt-1">
                     {item.time}
                   </span>
                 </div>

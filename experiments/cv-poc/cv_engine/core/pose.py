@@ -9,6 +9,7 @@ menggunakan model Heavy untuk akurasi maksimal dalam analisis kinematika.
 """
 
 import os
+os.environ['GLOG_minloglevel'] = '2'  # Meredam spam C++ logging framework
 from typing import List, Any, Optional
 import cv2
 import numpy as np
@@ -50,9 +51,9 @@ class DetektorPoseMediaPipe:
                     base_options=opsi_dasar,
                     running_mode=mp_vision.RunningMode.IMAGE,
                     num_poses=8,
-                    min_pose_detection_confidence=0.40,
-                    min_pose_presence_confidence=0.40,
-                    min_tracking_confidence=0.40
+                    min_pose_detection_confidence=0.25,
+                    min_pose_presence_confidence=0.25,
+                    min_tracking_confidence=0.25
                 )
                 self.detector = mp_vision.PoseLandmarker.create_from_options(opsi_pose)
                 print(f"[+] MediaPipe Pose ({os.path.basename(self.jalur_model)}) 33-Keypoints Aktif!")
@@ -64,7 +65,7 @@ class DetektorPoseMediaPipe:
         """Memeriksa apakah detektor MediaPipe siap digunakan."""
         return self.detector is not None
 
-    def deteksi_kerangka_anatomi(self, frame: np.ndarray, lebar_inferensi_target: int = 360) -> List[Any]:
+    def deteksi_kerangka_anatomi(self, frame: np.ndarray, lebar_inferensi_target: int = 540) -> List[Any]:
         """
         Mendeteksi kerangka sendi tubuh pada citra yang di-downsample agar ringan di CPU.
         

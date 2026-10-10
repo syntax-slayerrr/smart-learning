@@ -1,192 +1,179 @@
-# AbsenSMK — Deployment & Setup Guide
-
-## 🚀 Quick Start
-
-### Prerequisites
-- [Node.js 18+](https://nodejs.org/)
-- [Supabase Account](https://supabase.com)
-- [Vercel Account](https://vercel.com) (optional for deployment)
+# SYNTAX SLAYER SMART LEARNING — Deployment & Operational Runbook
+### Panduan Instalasi, Konfigurasi Lingkungan & Operasional Produksi Resmi
 
 ---
 
-## 1️⃣ Supabase Setup
+## 🏛️ 1. Arsitektur Sistem Produksi
 
-### Create Project
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard)
-2. Click **New Project**
-3. Fill in:
-   - **Name**: `absen-smk`
-   - **Region**: `Southeast Asia (Singapore)`
-   - **Database Password**: (save this securely)
-4. Wait for project to initialize (~2 minutes)
+Platform **SYNTAX SLAYER SMART LEARNING** beroperasi dengan arsitektur hibrida (Edge AI + Cloud/Local Fullstack):
 
-### Run Database Schema
-1. Go to **SQL Editor** in your Supabase dashboard
-2. Click **New Query**
-3. Copy the entire contents of `supabase/schema.sql`
-4. Paste into the editor and click **Run**
-5. Verify: You should see all tables listed in **Table Editor**
+```
+┌─────────────────────────────────┐        HTTP Stream / Ingest         ┌─────────────────────────────────┐
+│     EDGE VISION CAMERA ENGINE   │ ──────────────────────────────────> │      NEXT.JS 16 WEB PLATFORM    │
+│  (Python 3.12 • YOLO • ArcFace) │   :5000/video_feed & Telemetry      │ (App Router • SSR • TypeScript) │
+│       Port 5000 (Headless)      │                                     │       Port 3000 (HTTP/PWA)      │
+└─────────────────────────────────┘                                     └─────────────────────────────────┘
+                                                                                         │
+                                                                                         ▼
+                                                                        ┌─────────────────────────────────┐
+                                                                        │       SUPABASE DATABASE         │
+                                                                        │  PostgreSQL • Auth • Realtime   │
+                                                                        └─────────────────────────────────┘
+```
 
-### Get API Keys
-1. Go to **Settings → API**
-2. Copy these values:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **Anon/Public Key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **Service Role Key** → `SUPABASE_SERVICE_ROLE_KEY` (⚠️ Keep secret!)
+* **Frontend & Backend API:** Next.js 16 (Turbopack, TypeScript, Tailwind CSS v4) di Port `3000`.
+* **Edge Vision AI Engine:** Python 3.12 (OpenCV, YOLO26n, ArcFace 512-d, ByteTracker) di Port `5000`.
+* **Database & Auth:** Supabase PostgreSQL (Row Level Security & Database Realtime).
+* **Monitoring & Health Probe:** `/api/health` (HTTP 200 JSON Diagnostic).
 
 ---
 
-## 2️⃣ Environment Configuration
+## 🚀 2. Prasyarat Perangkat Keras & Lunak (Prerequisites)
 
-Copy `.env.example` to `.env.local`:
+* **Node.js:** Versi 18.x atau 20.x LTS ([nodejs.org](https://nodejs.org))
+* **Python:** Versi 3.10 – 3.12 (Disarankan virtualenv `.venv312`)
+* **Kamera:** Webcam USB, Webcam Laptop bawaan, atau Kamera HP Android via Wi-Fi (*IP Webcam app*)
+* **Akun Supabase:** Proyek PostgreSQL aktif ([supabase.com](https://supabase.com))
+
+---
+
+## ⚙️ 3. Konfigurasi Lingkungan (`.env.local`)
+
+Salin berkas contoh konfigurasi:
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in your values:
+Isi variabel lingkungan pada `.env.local`:
 ```env
+# --- Branding Nama Institusi / Sekolah (White-label Support) ---
+NEXT_PUBLIC_SCHOOL_NAME="SYNTAX SLAYER SMART LEARNING"
+NEXT_PUBLIC_SCHOOL_TAGLINE="AI Smart Learning Ecosystem"
+
+# --- Supabase Database & Auth ---
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 
-# Optional: WhatsApp notifications via Fonnte
-WHATSAPP_API_URL="https://api.fonnte.com/send"
-WHATSAPP_API_TOKEN="your-fonnte-token"
-```
+# --- Keamanan Kamera Edge (Shared Token) ---
+EDGE_DEVICE_SECRET="dev-edge-secret-key-2026"
+NEXT_PUBLIC_EDGE_SERVER="http://localhost:5000"
 
-Verify configuration:
-```bash
-npx tsx scripts/verify-env.ts
+# --- Web Push Protocol (VAPID) ---
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="your_vapid_public_key"
+VAPID_PRIVATE_KEY="your_vapid_private_key"
+VAPID_SUBJECT="mailto:admin@slayer.test"
+
+# --- AI Gateway (Opsional untuk Socratic Tutor & Hermès Copilot) ---
+NINEROUTER_BASE_URL="http://127.0.0.1:20128/v1"
+NINEROUTER_API_KEY="your_api_key"
+GROQ_API_KEY="gsk_your_groq_key"
 ```
 
 ---
 
-## 3️⃣ Local Development
+## 🏃 4. Cara Menjalankan Sistem
 
-```bash
-npm install
-npm run dev
-```
+### A. Sekali Klik di Windows (Direkomendasikan)
+Cukup jalankan file batch launcher di folder utama proyek:
+* **`START_SEMUA.bat`** → Otomatis menyalakan Edge CV Engine (:5000), Next.js Dashboard (:3000), dan membuka web browser.
+* **`START_AI_KAMERA.bat`** → Menyalakan AI Vision Camera Engine secara mandiri di background.
 
-Open [http://localhost:3000](http://localhost:3000)
+### B. Manual via Terminal
+1. **Jalankan Edge Vision Engine (Python):**
+   ```bash
+   .venv312\Scripts\python.exe experiments/cv-poc/main.py --source 0 --port 5000 --headless
+   ```
+2. **Jalankan Next.js Web Platform:**
+   ```bash
+   npm run dev
+   # atau untuk mode produksi:
+   npm run build
+   npm run start
+   ```
+
+Akses aplikasi di browser: **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
-## 4️⃣ Create Test Users
+## 👥 5. Akun Akses Awal & Manajemen Data (Database Management)
 
-### Option A: Via Supabase Dashboard
-1. Go to **Authentication → Users → Add User**
-2. Create users with these emails and metadata:
+### A. Kredensial Master Admin (Clean Database State)
+Setelah proses pembersihan data (*mock data purge*), database dalam status **bersih (clean slate)** dengan 1 akun administrator utama untuk menginput data sekolah asli:
 
-| Email | Password | Role | Full Name |
+| Peran (Role) | Alamat Email | Kata Sandi | Deskripsi Akses |
 |---|---|---|---|
-| `admin@absensmk.test` | `password123` | admin | Administrator |
-| `guru.matematika@absensmk.test` | `password123` | teacher | Budi Santoso |
-| `siswa.andi@absensmk.test` | `password123` | student | Andi Pratama |
-| `ortu.andi@absensmk.test` | `password123` | parent | Pak Pratama |
+| **Master Admin** | `admin@slayer.test` | `password123` | Akses penuh dashboard, konfigurasi sekolah, pendaftaran kelas, guru & siswa asli |
 
-When creating each user, add **User Metadata** (JSON):
+### B. Skrip Utilitas Database (Maintenance Scripts)
+* **Membersihkan Semua Mock Data (Reset Bersih):**
+  ```bash
+  node scripts/clean-mock-data.js
+  ```
+  *Mengosongkan 171.000+ baris telemetri, tabel LMS, siswa, guru, kelas dummy, dan mempertahankan master admin `admin@slayer.test`.*
+
+* **Mengisi Ulang Mock Data Pengujian (Khusus Demo / Staging):**
+  ```bash
+  node scripts/seed-complete-database.js
+  ```
+
+> *Catatan:* Domain `@slayer.test` mengikuti standar **RFC 2606** (Reserved Domain) sehingga aman dari pengiriman email yang tidak diinginkan ke internet publik.
+
+---
+
+## 🏥 6. Pemantauan & Diagnostik Otomatis (Health Monitoring)
+
+Platform menyediakan endpoint diagnostik bawaan untuk Uptime Monitoring (UptimeRobot, BetterStack, atau Docker Probe):
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+**Contoh Output Respons HTTP 200 OK:**
 ```json
 {
-  "full_name": "Administrator",
-  "role": "admin"
+  "status": "healthy",
+  "school": "SYNTAX SLAYER SMART LEARNING",
+  "timestamp": "2026-10-10T10:52:04.228Z",
+  "version": "1.0.0",
+  "uptimeSeconds": 180,
+  "services": {
+    "database": {
+      "status": "connected",
+      "latencyMs": 142
+    },
+    "edgeVisionCamera": {
+      "status": "online",
+      "url": "http://localhost:5000",
+      "latencyMs": 6
+    }
+  },
+  "responseTimeMs": 148
 }
 ```
 
-### Option B: Via SQL
-After creating users via Dashboard, run `supabase/seed.sql` in the SQL Editor.
+---
+
+## 🧹 7. Pemeliharaan Basis Data & Cron Otomatis (Maintenance)
+
+Disediakan endpoint cron untuk menjaga kestabilan kapasitas basis data:
+
+1. **Tutup Sesi Otomatis & Notifikasi:**
+   * **Endpoint:** `GET /api/cron/close-sessions`
+   * **Jadwal:** Tiap 30 menit atau setiap akhir jam sekolah (16:00 WIB).
+   * **Fungsi:** Menutup sesi absensi aktif yang telah kadaluarsa dan mengirim laporan ringkasan.
+
+2. **Rotasi Log Telemetri Mentah (14 Hari):**
+   * **Endpoint:** `GET /api/cron/cleanup-telemetry?days=14`
+   * **Jadwal:** Tiap hari minggu pukul 01:00 WIB.
+   * **Guardrail:** HANYA memangkas frame-per-second mentah di `classroom_telemetry`. Data presensi resmi (`attendance_records`) dan sesi kelas **tetap 100% permanen**.
 
 ---
 
-## 5️⃣ Deploy to Vercel
+## 🖨️ 8. Panduan Cetak Fisik & Format A4
 
-### Option A: CLI Deployment
-```bash
-npm install -g vercel
-vercel --prod
-```
-
-Follow the prompts to link your Vercel account.
-
-### Option B: GitHub Integration
-1. Push code to GitHub
-2. Go to [vercel.com/new](https://vercel.com/new)
-3. Import the repository
-4. Add environment variables (same as `.env.local`)
-5. Click **Deploy**
-
-### Environment Variables in Vercel
-Add these in **Vercel → Project → Settings → Environment Variables**:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `WHATSAPP_API_URL` (optional)
-- `WHATSAPP_API_TOKEN` (optional)
-
----
-
-## 6️⃣ Post-Deployment Checklist
-
-- [ ] Schema SQL executed successfully
-- [ ] Test login works for all 4 roles
-- [ ] QR session creation works (Teacher)
-- [ ] QR scanning works (Student)
-- [ ] Attendance records appear in dashboard
-- [ ] Parent can see child's attendance
-- [ ] WhatsApp notifications sent (if configured)
-- [ ] Rate limiting works on API endpoints
-- [ ] Error pages display correctly (404, 500)
-
----
-
-## 🔧 Troubleshooting
-
-### "Invalid API Key" error
-- Verify your Supabase URL and keys in `.env.local`
-- Ensure the key format matches exactly (no extra spaces)
-
-### "RLS policy violation" error
-- Ensure the user has the correct role in the `profiles` table
-- Check that RLS policies in `schema.sql` were applied
-
-### Login redirects to wrong dashboard
-- Check the user's `role` field in `profiles` table
-- The proxy middleware redirects based on role
-
-### WhatsApp notifications not sending
-- Verify `WHATSAPP_API_TOKEN` is set
-- Check the `/api/notifications/send` endpoint logs
-- Ensure parent phone numbers start with `62` (Indonesia)
-
----
-
-## 📊 Architecture
-
-```
-src/
-├── app/
-│   ├── (auth)/login/          # Authentication
-│   ├── (dashboard)/
-│   │   ├── admin/             # Admin CRUD + Dashboard
-│   │   ├── teacher/           # Sessions + QR + History
-│   │   ├── student/           # Scanner + History
-│   │   └── parent/            # Monitoring
-│   ├── api/
-│   │   ├── attendance/validate/  # QR validation
-│   │   └── notifications/send/  # WhatsApp queue
-│   ├── error.tsx              # Global error boundary
-│   └── not-found.tsx          # 404 page
-├── components/
-│   ├── attendance/            # QR display, scanner, status badge
-│   ├── dashboard/             # Stat cards
-│   ├── layout/                # Sidebar, header
-│   └── shared/                # Reusable UI
-├── lib/
-│   ├── supabase/              # Client, server, middleware
-│   ├── audit.ts               # Audit logging
-│   ├── rate-limit.ts          # API rate limiting
-│   └── validations.ts         # Zod schemas
-├── services/
-│   └── whatsapp.ts            # WA gateway service
-└── proxy.ts                   # Route protection middleware
-```
+* Platform telah dilengkapi **Production Print Engine** terpusat di `globals.css`.
+* Saat mencetak kartu absensi siswa ([`/admin/classes/print-cards/[id]`](file:///d:/.VSCODE/smart-learning/src/app/(dashboard)/admin/classes/print-cards/[id]/print-class-client.tsx)) atau dokumen akreditasi:
+  * Gunakan opsi kertas **A4** dengan orientasi **Portrait** atau **Landscape** sesuai pratinjau.
+  * Seluruh sidebar, header navigasi, tombol kontrol, dan floating widget disembunyikan secara otomatis.
+  * Latar belakang dicetak putih murni bebas noda grafis untuk menghemat tinta printer.

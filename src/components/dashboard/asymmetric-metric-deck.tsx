@@ -2,29 +2,71 @@
 
 import React from "react";
 import Link from "next/link";
-import { Users, ShieldCheck, ChevronRight, Award } from "lucide-react";
+import { Users, ShieldCheck, ChevronRight, Award, BookOpen, GraduationCap } from "lucide-react";
 
 interface AsymmetricMetricDeckProps {
-  totalStudents: number;
+  totalStudents?: number;
   attendanceRate: number; // e.g. 94.2
   totalSessionsToday?: number;
   className?: string;
+
+  leftCard?: {
+    label: string;
+    value: string | number;
+    unit?: string;
+    sublabel?: string;
+    href?: string;
+    statusText?: string;
+    icon?: "book" | "users" | "graduation" | "award";
+  };
+
+  rightCard?: {
+    label?: string;
+    href?: string;
+    sublabel?: string;
+    actionText?: string;
+  };
 }
 
 export function AsymmetricMetricDeck({
-  totalStudents,
+  totalStudents = 0,
   attendanceRate,
   totalSessionsToday = 0,
   className = "",
+  leftCard,
+  rightCard,
 }: AsymmetricMetricDeckProps) {
   const formattedRate = Math.round(attendanceRate);
   const isOptimal = formattedRate >= 85;
+
+  // Resolusi konten kartu kiri
+  const leftLabel = leftCard?.label ?? "Siswa Terdaftar";
+  const leftValue = leftCard?.value ?? totalStudents;
+  const leftUnit = leftCard?.unit ?? "Siswa";
+  const leftSublabel =
+    leftCard?.sublabel ??
+    (totalSessionsToday > 0
+      ? `${totalSessionsToday} sesi kelas hari ini`
+      : "Semua kelas terintegrasi");
+  const leftHref = leftCard?.href ?? "/admin/students";
+  const leftStatusText = leftCard?.statusText ?? "Sistem Aktif";
+  
+  let LeftIcon = Users;
+  if (leftCard?.icon === "book") LeftIcon = BookOpen;
+  else if (leftCard?.icon === "graduation") LeftIcon = GraduationCap;
+  else if (leftCard?.icon === "award") LeftIcon = Award;
+
+  // Resolusi konten kartu kanan
+  const rightLabel = rightCard?.label ?? "Presensi Hari Ini";
+  const rightHref = rightCard?.href ?? "/admin/attendance";
+  const rightSublabel = rightCard?.sublabel ?? "kehadiran";
+  const rightActionText = rightCard?.actionText ?? "Rincian Absensi";
 
   return (
     <div className={`grid grid-cols-2 gap-3.5 sm:gap-4 ${className}`}>
       {/* LEFT CARD: Primary Saturated 3D Card (Deep Navy) */}
       <Link
-        href="/admin/students"
+        href={leftHref}
         className="card-3d-navy group relative flex flex-col justify-between p-3.5 sm:p-5 text-white overflow-hidden"
       >
         {/* Subtle Ambient Radial Glow inside card */}
@@ -33,42 +75,42 @@ export function AsymmetricMetricDeck({
         {/* Top Row: Label & Floating Micro Icon */}
         <div className="flex items-center justify-between gap-1.5">
           <span className="text-[11px] sm:text-xs font-semibold text-slate-300 tracking-tight">
-            Siswa Terdaftar
+            {leftLabel}
           </span>
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-blue-400 group-hover:scale-105 transition-transform">
-            <Users className="h-3.5 w-3.5 stroke-[2]" />
+            <LeftIcon className="h-3.5 w-3.5 stroke-[2]" />
           </div>
         </div>
 
         {/* Center / Stat Display with Floating Volumetric Feel */}
         <div className="my-2 sm:my-3">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular">
-              {totalStudents}
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono tabular-nums">
+              {leftValue}
             </span>
-            <span className="text-xs text-slate-400 font-medium">Siswa</span>
+            <span className="text-xs text-slate-400 font-medium">{leftUnit}</span>
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal mt-0.5 line-clamp-1">
-            {totalSessionsToday > 0 ? `${totalSessionsToday} sesi kelas hari ini` : "Semua kelas terintegrasi"}
+            {leftSublabel}
           </p>
         </div>
 
         {/* Bottom Status Pill */}
         <div className="flex items-center gap-1.5 pt-1 text-[10px] sm:text-[11px] font-medium text-emerald-400">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Sistem Aktif</span>
+          <span>{leftStatusText}</span>
         </div>
       </Link>
 
       {/* RIGHT CARD: Ceramic White Floating 3D Card */}
       <Link
-        href="/admin/attendance"
+        href={rightHref}
         className="card-3d-ceramic group relative flex flex-col justify-between p-3.5 sm:p-5 text-slate-900 overflow-hidden"
       >
         {/* Top Row: Label & Status Pill */}
         <div className="flex items-center justify-between gap-1">
           <span className="text-[11px] sm:text-xs font-semibold text-slate-600 tracking-tight truncate">
-            Presensi Hari Ini
+            {rightLabel}
           </span>
           <div
             className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold ${
@@ -85,11 +127,11 @@ export function AsymmetricMetricDeck({
         {/* Center / Stat Display */}
         <div className="my-2 sm:my-3">
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 tabular">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-mono tabular-nums">
               {formattedRate}%
             </span>
             <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium ml-1">
-              kehadiran
+              {rightSublabel}
             </span>
           </div>
 
@@ -104,7 +146,7 @@ export function AsymmetricMetricDeck({
 
         {/* Bottom Drilldown Action */}
         <div className="flex items-center justify-between pt-1 text-[10px] sm:text-[11px] font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">
-          <span>Rincian Absensi</span>
+          <span>{rightActionText}</span>
           <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.2] group-hover:translate-x-0.5 transition-transform" />
         </div>
       </Link>

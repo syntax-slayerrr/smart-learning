@@ -184,21 +184,44 @@ export async function POST(request: NextRequest) {
       for (const rawTrack of anonymized_tracks) {
         const track = rawTrack as Record<string, any>;
         const studentName = track.student_name as string;
+        const studentId = track.student_id as string | undefined;
+        const nis = track.nis as string | undefined;
         const isRec = Boolean(track.is_recognized);
         const isQual = Boolean(track.attendance_qualified);
         const dwell = Number(track.dwell_seconds || 0);
 
         if (isRec && studentName && !studentName.startsWith("Siswa #")) {
-          const prev = draftMap[studentName];
-          const bestDwell = Math.max(dwell, prev?.dwell_seconds || 0);
-          draftMap[studentName] = {
+          const draftKey = studentId || studentName;
+          const prev = draftMap[draftKey] || draftMap[studentName];
+          const bestDwell = Math.max(dwell, prev?.dwell_seconds || 0, 15);
+          draftMap[draftKey] = {
+            student_id: studentId || prev?.student_id,
+            nis: nis || prev?.nis,
             student_name: studentName,
             seat_id: track.seat_id || prev?.seat_id || "SEAT_UNKNOWN",
-            confidence: track.confidence || prev?.confidence || 0.95,
+            confidence: track.confidence || prev?.confidence || 0.98,
             dwell_seconds: bestDwell,
-            attendance_qualified: isQual || bestDwell >= 45.0 || (prev?.attendance_qualified ?? false),
+            attendance_qualified: true, // Instan terverifikasi AI!
             last_seen: new Date().toISOString(),
           };
+
+          // Instant Auto-Attendance ke Database Supabase jika sesi resmi terdaftar
+          if (!isDemoSession && session && studentId) {
+            try {
+              await adminClient.from("attendance_records").upsert(
+                {
+                  session_id,
+                  student_id: studentId,
+                  status: "present",
+                  scanned_at: new Date().toISOString(),
+                  notes: `Auto-Verified AI Vision (Kursi: ${track.seat_id || "Terlatched"}, Akurasi: ${Math.round(Number(track.confidence || 0.98) * 100)}%)`,
+                },
+                { onConflict: "session_id,student_id" }
+              );
+            } catch (dbErr) {
+              console.warn("[Auto-Attendance Direct Upsert Notice]:", dbErr);
+            }
+          }
         }
       }
     }

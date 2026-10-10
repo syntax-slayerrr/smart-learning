@@ -106,12 +106,11 @@ class KameraUtasTerpisah:
             time.sleep(1.0)
             if self.apakah_berhenti:
                 break
-            if self.apakah_terhubung and (time.time() - self.waktu_frame_terakhir > 6.0):
-                print(f"[!] Watchdog: Aliran kamera '{self.sumber}' macet (>6.0s). Memicu soft-reconnect...")
+            if self.apakah_terhubung and (time.time() - self.waktu_frame_terakhir > 8.0):
+                print(f"[!] Watchdog: Aliran kamera '{self.sumber}' macet (>8.0s). Menandai reconnect aman...")
                 with self.kunci_utas:
                     self.apakah_terhubung = False
                     self.is_connected = False
-                    self.hubungkan()
 
     def _perbarui_aliran(self) -> None:
         jeda_reconnect = 1.5
@@ -163,11 +162,11 @@ class KameraUtasTerpisah:
                 pass
 
     def baca_bingkai(self) -> Tuple[bool, Optional[np.ndarray]]:
-        """Membaca salinan bingkai terkini secara aman."""
+        """Membaca salinan bingkai terkini secara aman (isolated copy)."""
         with self.kunci_utas:
             if not self.apakah_terambil or self.bingkai is None:
                 return False, None
-            frame = self.bingkai
+            frame = self.bingkai.copy()
             self.apakah_terambil = False
             return True, frame
 
@@ -197,7 +196,7 @@ class KameraUtasTerpisah:
             self.frame = None
             self.apakah_terambil = False
             self.grabbed = False
-            self.hubungkan()
+        self.hubungkan()
 
         if self.apakah_terhubung:
             pesan = f"Berhasil beralih ke sumber kamera: {self.sumber}"

@@ -33,7 +33,7 @@ export function StatCard({
           <p className="text-xs font-semibold text-slate-500 truncate">
             {title}
           </p>
-          <p className="text-3xl font-extrabold tracking-tight text-slate-900 tabular">
+          <p className="text-3xl font-extrabold tracking-tight text-slate-900 font-mono tabular-nums">
             {value}
           </p>
           {description && (

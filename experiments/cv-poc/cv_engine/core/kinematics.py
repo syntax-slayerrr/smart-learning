@@ -10,7 +10,7 @@ Modul ini mengimplementasikan algoritma geometri analitis dan penyaringan spasia
 """
 
 import math
-from typing import List, Tuple, Any, Dict
+from typing import List, Tuple, Any, Dict, Optional
 import numpy as np
 
 
@@ -100,12 +100,18 @@ def saring_pose_tumpang_tindih(
         pusat_y_a = (y1_a + y2_a) / 2.0
 
         terjadi_overlap = False
-        for (x1_b, y1_b, x2_b, y2_b, _) in kotak_terseleksi:
+        for (x1_b, y1_b, x2_b, y2_b, pose_b) in kotak_terseleksi:
             pusat_x_b = (x1_b + x2_b) / 2.0
             pusat_y_b = (y1_b + y2_b) / 2.0
 
-            # Uji Jarak Euclidean Pusat Massa
-            if math.hypot(pusat_x_a - pusat_x_b, pusat_y_a - pusat_y_b) < ambang_jarak_pusat:
+            # Uji Landmark Hidung & Pusat: Jika kedua pose menunjuk ke kepala/badan orang yang sama persis
+            hidung_sama = False
+            if len(pose_a) >= 1 and len(pose_b) >= 1:
+                if math.hypot(pose_a[0].x - pose_b[0].x, pose_a[0].y - pose_b[0].y) < 0.12:
+                    hidung_sama = True
+
+            dist_pusat = math.hypot(pusat_x_a - pusat_x_b, pusat_y_a - pusat_y_b)
+            if hidung_sama and dist_pusat < ambang_jarak_pusat:
                 terjadi_overlap = True
                 break
 
@@ -130,18 +136,24 @@ def saring_pose_tumpang_tindih(
 
 def saring_kandidat_spasial(
     daftar_kandidat: List[Dict[str, Any]],
-    ambang_iou: float = 0.35,
-    ambang_jarak_pusat: float = 100.0
+    ambang_iou: float = 0.45,
+    ambang_jarak_pusat: float = 40.0,
+    dimensi_frame: Optional[Tuple[int, int]] = None
 ) -> List[Dict[str, Any]]:
     """
-    Menyaring kandidat subjek deteksi terpadu agar tidak terjadi duplikasi/ghost box.
-    Mengurutkan kandidat berdasarkan skor keyakinan dan mengeliminasi kotak
-    yang memiliki IoU tinggi atau jarak pusat sangat dekat (subjek yang sama).
+    Menyaring kandidat subjek deteksi terpadu agar tidak terjadi duplikasi/ghost box
+    tanpa mematikan siswa yang duduk berdampingan atau berbaris di kelas (jarak 3-8m).
+    Mengeliminasi kotak jika IoU tinggi, terkurung, atau merupakan bayangan tangan terangkat.
     """
     if len(daftar_kandidat) <= 1:
         return daftar_kandidat
 
-    kandidat_terurut = sorted(daftar_kandidat, key=lambda k: k.get("keyakinan", 0.0), reverse=True)
+    # Prioritaskan kandidat yang memiliki kerangka anatomi lengkap (landmarks) terlebih dahulu
+    kandidat_terurut = sorted(
+        daftar_kandidat,
+        key=lambda k: (1 if k.get("landmarks") is not None else 0, k.get("keyakinan", 0.0)),
+        reverse=True
+    )
     kandidat_terpilih: List[Dict[str, Any]] = []
 
     for cand in kandidat_terurut:
@@ -157,22 +169,78 @@ def saring_kandidat_spasial(
             cpy2 = cy2 + ch2 / 2.0
             luas2 = max(0, cw2) * max(0, ch2)
 
-            # 1. Uji Jarak Euclidean Titik Pusat
-            if math.hypot(cpx1 - cpx2, cpy1 - cpy2) < ambang_jarak_pusat:
-                tumpang_tindih = True
-                break
-
-            # 2. Uji Rasio IoU (Intersection-over-Union)
+            # Irisan kedua kotak
             ix1 = max(cx1, cx2)
             iy1 = max(cy1, cy2)
             ix2 = min(cx1 + cw1, cx2 + cw2)
             iy2 = min(cy1 + ch1, cy2 + ch2)
             luas_irisan = max(0, ix2 - ix1) * max(0, iy2 - iy1)
             luas_gabungan = luas1 + luas2 - luas_irisan
+            min_luas = min(luas1, luas2)
+            min_w = min(cw1, cw2)
 
-            if luas_gabungan > 0 and (luas_irisan / luas_gabungan) > ambang_iou:
+            # 1. Uji Landmark Pose Hidung (Jika kedua kandidat menunjuk ke orang yang sama)
+            lm1 = cand.get("landmarks")
+            lm2 = terpilih.get("landmarks")
+            dua_kepala_berbeda = False
+            if lm1 and lm2 and len(lm1) >= 1 and len(lm2) >= 1:
+                jarak_hidung = math.hypot(lm1[0].x - lm2[0].x, lm1[0].y - lm2[0].y)
+                if jarak_hidung < 0.08:
+                    tumpang_tindih = True
+                    break
+                elif jarak_hidung >= 0.10:
+                    dua_kepala_berbeda = True
+
+            # 2. Uji Rasio IoU Standar (Intersection-over-Union)
+            ambang_iou_efektif = 0.65 if dua_kepala_berbeda else ambang_iou
+            if luas_gabungan > 0 and (luas_irisan / luas_gabungan) > ambang_iou_efektif:
                 tumpang_tindih = True
                 break
+
+            # 3. Guardrail Enclosure & Containment (Nested Upper-Torso / Sub-Box Duplicates):
+            # Mengeliminasi kotak yang bersarang di dalam kotak tubuh yang lebih besar dari orang yang sama
+            # atau potongan tubuh yang berimpit pada sumbu horizontal orang yang sama.
+            # KECUALI jika kedua kandidat terbukti memiliki 2 kepala berbeda (Pilar 1.1: Duduk Sebangku Rapat).
+            rasio_containment = (luas_irisan / float(min_luas)) if min_luas > 0 else 0.0
+            irisan_w = max(0.0, ix2 - ix1)
+            rasio_w = (irisan_w / float(min_w)) if min_w > 0 else 0.0
+            delta_pusat_x = abs(cpx1 - cpx2)
+
+            apakah_bersarang_atau_split = (
+                not dua_kepala_berbeda and (
+                    (rasio_containment >= 0.58 and delta_pusat_x < min_w * 0.40) or
+                    (rasio_w >= 0.62 and delta_pusat_x < min_w * 0.35)
+                )
+            )
+
+            if apakah_bersarang_atau_split:
+                if luas1 > luas2 * 1.15 and (cand.get("landmarks") is not None or terpilih.get("landmarks") is None):
+                    idx_ganti = kandidat_terpilih.index(terpilih)
+                    kandidat_terpilih[idx_ganti] = cand
+                tumpang_tindih = True
+                break
+
+            # 4. Guardrail Hand-Body Enclosure (Tangan Terangkat vs Ghost Box)
+            # Mencegah tangan yang diangkat ke samping menduplikasi orang menjadi 2 siswa.
+            # Hanya aktif jika cand adalah ghost box kecil tanpa proporsi tubuh nyata dan konsentris dengan lengan orang terpilih.
+            if lm2 is not None and lm1 is None and len(lm2) >= 17:
+                w_f = dimensi_frame[1] if (dimensi_frame and dimensi_frame[1] > 0) else max(cx1 + cw1, cx2 + cw2, 640)
+                h_f = dimensi_frame[0] if (dimensi_frame and dimensi_frame[0] > 0) else max(cy1 + ch1, cy2 + ch2, 480)
+
+                sendi_lengan_di_dalam = False
+                for idx_s in (15, 16, 13, 14):
+                    s = lm2[idx_s]
+                    if getattr(s, 'visibility', 0.5) > 0.35:
+                        sx = s.x * w_f
+                        sy = s.y * h_f
+                        if (cx1 <= sx <= cx1 + cw1) and (cy1 <= sy <= cy1 + ch1):
+                            sendi_lengan_di_dalam = True
+                            break
+
+                if sendi_lengan_di_dalam and min_luas > 0:
+                    if (luas_irisan / float(min_luas) >= 0.75) and delta_pusat_x < min_w * 0.25:
+                        tumpang_tindih = True
+                        break
 
         if not tumpang_tindih:
             kandidat_terpilih.append(cand)

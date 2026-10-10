@@ -342,7 +342,6 @@ export default async function TeacherDashboard() {
 
       {/* 3. Asymmetric Dual Metric Deck */}
       <AsymmetricMetricDeck
-        totalStudents={totalSessionsRes.count || 0}
         attendanceRate={
           teacherAnalytics?.total_sessions
             ? Math.round(
@@ -352,7 +351,24 @@ export default async function TeacherDashboard() {
               )
             : 92
         }
-        totalSessionsToday={todaySessionsRes.count || 0}
+        leftCard={{
+          label: "Total Sesi Mengajar",
+          value: totalSessionsRes.count || 0,
+          unit: "Sesi",
+          sublabel:
+            (todaySessionsRes.count || 0) > 0
+              ? `${todaySessionsRes.count || 0} sesi kelas aktif hari ini`
+              : "Siap membuka sesi jam pelajaran",
+          href: "/teacher/attendance",
+          statusText: "Jadwal Aktif",
+          icon: "book",
+        }}
+        rightCard={{
+          label: "Presensi Rata-rata",
+          href: "/teacher/attendance",
+          sublabel: "kehadiran siswa",
+          actionText: "Riwayat Sesi",
+        }}
       />
 
       {/* Flagship: AI Classroom Vision & Live Monitor */}

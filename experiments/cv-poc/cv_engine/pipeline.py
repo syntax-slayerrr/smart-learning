@@ -134,7 +134,46 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 # 2. Estimasi Sendi Mikro Anatomi MediaPipe Heavy (33 Points 3D)
                 pose_mediapipe = []
                 if detektor_pose.apakah_siap():
-                    pose_mediapipe = detektor_pose.deteksi_kerangka_anatomi(frame_ai, lebar_inferensi_target=360)
+                    pose_mediapipe = detektor_pose.deteksi_kerangka_anatomi(frame_ai, lebar_inferensi_target=540)
+
+                # 3. Ekspansi Spasial Wajah YuNet -> Kotak Tubuh Siswa (Zero-Drop untuk Siswa Samping / Berhijab)
+                # Siswa yang duduk menyamping, menopang dagu, atau berhijab seringkali tidak memicu deteksi pose tubuh penuh,
+                # namun wajahnya selalu terdeteksi 100% oleh YuNet. Kita proyeksikan kotak tubuh dari koordinat wajah.
+                if saluran_wajah.detektor_yunet is not None:
+                    h_frame, w_frame = frame_ai.shape[:2]
+                    wajah_terdeteksi = saluran_wajah.deteksi_kotak_wajah_saja(frame_ai, lebar_inferensi=480)
+                    for (fx, fy, fw, fh, f_conf) in wajah_terdeteksi:
+                        pusat_wajah_x = fx + fw / 2.0
+                        pusat_wajah_y = fy + fh / 2.0
+
+                        # Periksa apakah wajah ini sudah dicakup oleh salah satu pose MediaPipe
+                        sudah_ada_pose = False
+                        for p in pose_mediapipe:
+                            if len(p) >= 1:
+                                hx = p[0].x * w_frame
+                                hy = p[0].y * h_frame
+                                if math.hypot(pusat_wajah_x - hx, pusat_wajah_y - hy) < max(fw * 0.85, 24.0):
+                                    sudah_ada_pose = True
+                                    break
+
+                        # Periksa juga apakah wajah ini sudah berada di dalam kotak makro YOLO yang sudah terdeteksi
+                        sudah_ada_yolo = False
+                        if not sudah_ada_pose and len(kotak_yolo) > 0:
+                            for (yx, yy, yw, yh, _) in kotak_yolo:
+                                if (yx - 15 <= pusat_wajah_x <= yx + yw + 15) and (yy - 15 <= pusat_wajah_y <= yy + yh * 0.75):
+                                    sudah_ada_yolo = True
+                                    break
+
+                        # Jika belum dicakup pose MediaPipe maupun kotak YOLO mana pun, buat proyeksi kotak tubuh siswa
+                        if not sudah_ada_pose and not sudah_ada_yolo:
+                            lebar_tubuh = int(fw * 2.2)
+                            tinggi_tubuh = int(fh * 3.4)
+                            bx = max(0, int(pusat_wajah_x - lebar_tubuh / 2.0))
+                            by = max(0, int(fy - fh * 0.15))
+                            bw = min(w_frame - bx, lebar_tubuh)
+                            bh = min(h_frame - by, tinggi_tubuh)
+                            if bw >= 20 and bh >= 30:
+                                kotak_yolo.append((bx, by, bw, bh, max(0.92, float(f_conf))))
 
                 waktu_durasi_ms = (time.perf_counter() - waktu_mulai) * 1000.0
 
@@ -185,24 +224,29 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     hasil_wajah = saluran_wajah.deteksi_dan_ekstraksi_wajah(frame_wajah, lebar_inferensi=400)
                     daftar_cocok = []
 
-                    for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
-                        # Pendaftaran profil wajah baru jika dipicu secara interaktif dari Web UI
-                        if manajer_galeri.peristiwa_pemicu.is_set():
-                            nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
-                            manajer_galeri.daftarkan_wajah(nama_siswa, vektor_fitur)
-                            manajer_galeri.bersihkan_pemicu()
+                    # 1. Pendaftaran Profil Wajah Baru (Pilih Wajah Terbesar / Paling Fokus di Kamera)
+                    if manajer_galeri.peristiwa_pemicu.is_set() and len(hasil_wajah) > 0:
+                        nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
+                        wajah_terpilih = max(hasil_wajah, key=lambda hw: hw[0][2] * hw[0][3])
+                        manajer_galeri.daftarkan_wajah(nama_siswa, wajah_terpilih[1])
+                        manajer_galeri.bersihkan_pemicu()
 
-                        # Pencocokan biometrik kemiripan kosinus terhadap galeri
+                    # 2. Pencocokan Biometrik Kemiripan Kosinus Terhadap Galeri
+                    for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
                         nama_cocok, skor_cocok = manajer_galeri.cari_kemiripan_wajah(
                             vektor_fitur,
                             ambang_batas=konfigurasi.face_sim_thresh
                         )
 
                         if nama_cocok:
+                            meta = manajer_galeri.ambil_metadata_identitas(nama_cocok)
                             daftar_cocok.append({
                                 "box": kotak_landmark_5,
                                 "name": nama_cocok,
-                                "score": skor_cocok
+                                "score": skor_cocok,
+                                "student_id": meta.get("student_id"),
+                                "nis": meta.get("nis"),
+                                "role": meta.get("role", "student"),
                             })
 
                     with kunci_biometrik_bersama:
@@ -241,7 +285,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
             with kunci_pose_bersama:
                 if not inferensi_sedang_berjalan:
                     inferensi_sedang_berjalan = True
-                    bingkai_siap_inferensi = frame
+                    bingkai_siap_inferensi = frame.copy()
                     sinyal_inferensi.set()
                 pose_aktif = list(daftar_landmark_terkini)
                 kotak_yolo_aktif = list(daftar_kotak_yolo_terkini)
@@ -264,7 +308,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
             with kunci_biometrik_bersama:
                 apakah_perlu_pemindaian_biometrik = ada_siswa_perlu_verifikasi
                 if ada_siswa_perlu_verifikasi:
-                    bingkai_siap_biometrik = frame
+                    bingkai_siap_biometrik = frame.copy()
                     sinyal_biometrik.set()
 
                 # Ambil hasil pencocokan biometrik non-blocking dari worker
@@ -280,8 +324,13 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
 
                     subjek_terdekat = None
-                    jarak_terdekat = 280.0
+                    jarak_terdekat = 350.0
                     for data_siswa in subjek_aktif:
+                        sx, sy, sw, sh = data_siswa["box"]
+                        # Prioritas 1: Titik pusat wajah berada di dalam atau dekat dengan kotak tubuh siswa
+                        if (sx - 35 <= wajah_pusat_x <= sx + sw + 35) and (sy - 35 <= wajah_pusat_y <= sy + sh * 0.85):
+                            subjek_terdekat = data_siswa
+                            break
                         tcx, tcy = data_siswa["center"]
                         jarak_wajah = math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy)
                         if jarak_wajah < jarak_terdekat:
@@ -289,31 +338,46 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                             subjek_terdekat = data_siswa
 
                     if subjek_terdekat is not None:
-                        # Jamin keunikan identitas: cabut nama ini jika pernah melekat di track lain
-                        for s in subjek_aktif:
-                            if s is not subjek_terdekat and s.get("student_name") == nama_cocok:
-                                s["student_name"] = f"Siswa #{s['id']}"
-                                s["is_recognized"] = False
-                                s["seat_latched"] = False
-
-                        # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
+                        # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi Permanen (Permanent Seat-Identity Latching)
                         subjek_terdekat.setdefault("identity_votes", {})
                         subjek_terdekat["identity_votes"][nama_cocok] = subjek_terdekat["identity_votes"].get(nama_cocok, 0) + 1
-                        if subjek_terdekat["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
+                        
+                        skor_kemiripan = float(item_wajah.get("similarity", 0.0))
+                        # Kunci permanen jika kemiripan tinggi (>= 0.36) atau voting tercapai (>= MINIMAL_VOTING_IDENTITAS)
+                        if skor_kemiripan >= 0.36 or subjek_terdekat["identity_votes"][nama_cocok] >= MINIMAL_VOTING_IDENTITAS:
+                            is_guru = item_wajah.get("role") == "teacher" or any(k in nama_cocok.lower() for k in ("guru", "pengajar", "ustadz", "pak ", "bu "))
+                            self.pelacak.kunci_identitas_subjek(
+                                id_subjek=subjek_terdekat["id"],
+                                nama_siswa=nama_cocok,
+                                student_id=item_wajah.get("student_id"),
+                                nis=item_wajah.get("nis"),
+                                role="teacher" if is_guru else item_wajah.get("role", "student"),
+                                is_teacher=is_guru
+                            )
+                            # Sinkronkan nilai ke dict subjek_terdekat di subjek_aktif untuk frame saat ini
                             subjek_terdekat["student_name"] = nama_cocok
                             subjek_terdekat["is_recognized"] = True
                             subjek_terdekat["seat_latched"] = True
+                            subjek_terdekat["student_id"] = item_wajah.get("student_id")
+                            subjek_terdekat["nis"] = item_wajah.get("nis")
+                            subjek_terdekat["role"] = "teacher" if is_guru else item_wajah.get("role", "student")
+                            subjek_terdekat["is_teacher"] = is_guru
+                            subjek_terdekat["attendance_qualified"] = True
 
-            # Agregasi Ringkasan Statistik Kelas
+            # Agregasi Ringkasan Statistik Kelas (P3: Memisahkan Guru vs Siswa)
+            subjek_siswa = [s for s in subjek_aktif if not s.get("is_teacher", False)]
+            ada_guru = any(s.get("is_teacher", False) for s in subjek_aktif)
+
             statistik_kelas = {
-                "total": len(subjek_aktif),
-                "sitting": sum(1 for s in subjek_aktif if s["posture"] == "sitting"),
-                "standing": sum(1 for s in subjek_aktif if s["posture"] == "standing"),
-                "hands_raised": sum(1 for s in subjek_aktif if s["is_hand_raised"]),
-                "desk_focused": sum(1 for s in subjek_aktif if s["activity"] in ("attentive", "writing")),
-                "sleep_detected": sum(1 for s in subjek_aktif if s["is_sleep"]),
-                "active_clusters": 1 if len(subjek_aktif) > 0 else 0,
-                "teacher_zone": "zone-center" if any(s["posture"] == "standing" for s in subjek_aktif) else "zone-front"
+                "total": len(subjek_siswa),
+                "sitting": sum(1 for s in subjek_siswa if s["posture"] == "sitting"),
+                "standing": sum(1 for s in subjek_siswa if s["posture"] == "standing"),
+                "hands_raised": sum(1 for s in subjek_siswa if s["is_hand_raised"]),
+                "desk_focused": sum(1 for s in subjek_siswa if s["activity"] in ("attentive", "writing")),
+                "sleep_detected": sum(1 for s in subjek_siswa if s["is_sleep"]),
+                "active_clusters": 1 if len(subjek_siswa) > 0 else 0,
+                "teacher_present": ada_guru,
+                "teacher_zone": "zone-podium" if ada_guru else "zone-front"
             }
 
             rekaman_telemetri = []
@@ -330,25 +394,38 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
                 terkenal = subjek.get("is_recognized", False)
 
-                # Kalibrasi Warna Indikator Sesuai Surveillance Kelas (Hijau: Aktif, Merah: Distracted/Sleep)
-                if subjek["is_sleep"]:
-                    warna_indikator = (0, 0, 255)  # Merah BGR
-                    tag_aktivitas = "distracted"
+                # Kalibrasi Warna Indikator HUD Kontras Tinggi (P3: Label Khusus Guru vs Siswa)
+                is_guru = subjek.get("is_teacher", False) or subjek.get("role") == "teacher" or any(k in nama_siswa.lower() for k in ("guru", "pengajar", "ustadz"))
+                if is_guru:
+                    warna_indikator = (220, 140, 40)   # Deep Amber / Indigo BGR (Guru / Pengajar)
+                    tag_aktivitas = "teaching"
+                    label_tampilan = "teaching"
+                    sub_label_tampilan = f"[GURU] {nama_siswa}" if terkenal else "[GURU] Mengajar"
+                elif subjek["is_sleep"]:
+                    warna_indikator = (50, 50, 245)    # Crimson Red BGR (Tidur/Distracted)
+                    tag_aktivitas = "sleep"
+                    label_tampilan = tag_aktivitas
+                    sub_label_tampilan = f"[ID] {nama_siswa}" if terkenal else f"Siswa #{id_subjek}"
                 elif subjek["is_hand_raised"]:
-                    warna_indikator = (0, 200, 255)  # Kuning Amber BGR
-                    tag_aktivitas = "asking_question"
+                    warna_indikator = (0, 210, 255)    # Amber Gold BGR (Angkat Tangan)
+                    tag_aktivitas = "hand_raised"
+                    label_tampilan = tag_aktivitas
+                    sub_label_tampilan = f"[ID] {nama_siswa}" if terkenal else f"Siswa #{id_subjek}"
                 elif aktivitas == "writing":
-                    warna_indikator = (0, 255, 0)  # Hijau BGR
+                    warna_indikator = (235, 145, 20)   # Sky Blue / Cyan BGR (Fokus Menulis)
                     tag_aktivitas = "writing"
+                    label_tampilan = tag_aktivitas
+                    sub_label_tampilan = f"[ID] {nama_siswa}" if terkenal else f"Siswa #{id_subjek}"
                 elif postur == "standing":
-                    warna_indikator = (255, 200, 0)  # Biru/Cyan
+                    warna_indikator = (200, 80, 160)   # Vivid Purple BGR (Berdiri)
                     tag_aktivitas = "standing"
+                    label_tampilan = tag_aktivitas
+                    sub_label_tampilan = f"[ID] {nama_siswa}" if terkenal else f"Siswa #{id_subjek}"
                 else:
-                    warna_indikator = (0, 255, 0)  # Hijau BGR
+                    warna_indikator = (95, 205, 70)    # Emerald Green BGR (Fokus Menyimak)
                     tag_aktivitas = "attentive"
-
-                label_tampilan = tag_aktivitas
-                sub_label_tampilan = nama_siswa if terkenal else f"Student #{id_subjek}"
+                    label_tampilan = tag_aktivitas
+                    sub_label_tampilan = f"[ID] {nama_siswa}" if terkenal else f"Siswa #{id_subjek}"
 
                 # 1. Gambar Kerangka Anatomi Neon Bercahaya (MediaPipe Heavy 3D)
                 if landmarks:
@@ -356,8 +433,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                         frame,
                         landmarks,
                         warna=warna_indikator,
-                        tangan_terangkat=subjek["is_hand_raised"],
-                        status_tidur=subjek["is_sleep"]
+                        tangan_terangkat=subjek["is_hand_raised"] if not is_guru else False,
+                        status_tidur=subjek["is_sleep"] if not is_guru else False
                     )
 
                 # 2. Gambar Kotak Pembatas Cerdas (Surveillance Style)
@@ -374,22 +451,26 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 rekaman_telemetri.append({
                     "id": f"P-{id_subjek}",
                     "anonymous_id": f"P{id_subjek}",
-                    "label": f"{nama_siswa} ({tag_aktivitas})",
+                    "track_id": id_subjek,
+                    "student_id": subjek.get("student_id"),
+                    "nis": subjek.get("nis"),
+                    "role": "teacher" if is_guru else "student",
+                    "label": nama_siswa,
                     "student_name": nama_siswa,
                     "is_recognized": terkenal,
                     "posture": postur,
-                    "activity": aktivitas,
-                    "action_text": subjek.get("action_text", ""),
+                    "activity": tag_aktivitas,
+                    "action_text": "Mengajar di Kelas" if is_guru else subjek.get("action_text", ""),
                     "confidence": round(keyakinan, 2),
-                    "hand_raised": subjek["is_hand_raised"],
-                    "sleep": subjek["is_sleep"],
+                    "hand_raised": False if is_guru else subjek["is_hand_raised"],
+                    "sleep": False if is_guru else subjek["is_sleep"],
                     "head_tilt_deg": subjek.get("head_tilt", 0.0),
                     "gaze_direction": subjek.get("gaze_dir", "Depan"),
-                    "attention_score": subjek.get("attention_score", 95),
+                    "attention_score": 100 if is_guru else subjek.get("attention_score", 95),
                     "seat_latched": subjek.get("seat_latched", False),
                     "seat_id": subjek.get("seat_id", "SEAT_UNKNOWN"),
                     "dwell_seconds": subjek.get("dwell_seconds", 0.0),
-                    "attendance_qualified": subjek.get("attendance_qualified", False),
+                    "attendance_qualified": False if is_guru else subjek.get("attendance_qualified", False),
                     "box": [bx, by, bw, bh]
                 })
 
@@ -409,7 +490,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
             _, jpeg_kompresi = cv2.imencode('.jpg', frame_stream, [cv2.IMWRITE_JPEG_QUALITY, 35, cv2.IMWRITE_JPEG_OPTIMIZE, 0])
             status_server.perbarui_bingkai(jpeg_kompresi.tobytes())
 
-            # Pengiriman Telemetri Berkala ke Next.js Backend
+            # Pengiriman Telemetri Berkala ke Next.js Backend & Sinkronisasi Langsung ke Server Stream
             if waktu_sekarang - waktu_telemetri_terakhir >= konfigurasi.interval:
                 muatan_telemetri = MuatanTelemetri(
                     session_id=konfigurasi.session_id,
@@ -418,9 +499,13 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     summary=statistik_kelas,
                     anonymized_tracks=rekaman_telemetri
                 ).konversi_ke_dict()
+                status_server.perbarui_telemetri(muatan_telemetri)
                 pengirim_telemetri.masukkan_antrean(muatan_telemetri)
                 waktu_telemetri_terakhir = waktu_sekarang
-
+    except Exception as e:
+        print(f"[!] Exception di Main Loop Pipeline: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         status_pekerja_aktif = False
         sinyal_inferensi.set()

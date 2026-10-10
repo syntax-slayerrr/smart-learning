@@ -2,9 +2,13 @@
 // Application Constants — Smart Learning
 // ============================================
 
+export const DEFAULT_SCHOOL_NAME = "SYNTAX SLAYER SMART LEARNING";
+export const SCHOOL_NAME = process.env.NEXT_PUBLIC_SCHOOL_NAME || DEFAULT_SCHOOL_NAME;
+export const SCHOOL_TAGLINE = process.env.NEXT_PUBLIC_SCHOOL_TAGLINE || "AI Smart Learning Ecosystem";
+
 export const APP_NAME = "Smart Learning";
 export const APP_DESCRIPTION =
-  "Next-Generation AI-Powered Smart Learning & Campus Ecosystem";
+  `Sistem Manajemen Pembelajaran & Presensi Cerdas — ${SCHOOL_NAME}`;
 
 // QR Code Configuration
 export const QR_EXPIRATION_MINUTES = 30;
@@ -59,6 +63,7 @@ export const NAV_ITEMS = {
   ],
   student: [
     { label: "Dashboard", href: "/student", icon: "LayoutDashboard", group: "UTAMA" },
+    { label: "Jadwal Pelajaran", href: "/student/schedule", icon: "Calendar", group: "UTAMA" },
     { label: "Buku Catatan Digital", href: "/student/notebook", icon: "BookOpen", group: "PEMBELAJARAN" },
     { label: "Tugas & Uji Pemahaman", href: "/student/assignments", icon: "ClipboardList", group: "PEMBELAJARAN" },
     { label: "Scan Kartu / QR", href: "/student/scan", icon: "QrCode", group: "UTAMA" },

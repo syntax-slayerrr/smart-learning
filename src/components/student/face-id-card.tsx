@@ -52,12 +52,12 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold tracking-tight text-slate-900">
-                  Biometrik Face ID Kelas
+                  Biometrik Wajah Siswa
                 </h3>
                 {isEnrolled ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200/60">
                     <CheckCircle2 className="h-3 w-3" />
-                    Face ID Aktif
+                    Biometrik Aktif
                   </span>
                 ) : (
                   <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200/60">
@@ -86,7 +86,7 @@ export function FaceIdCard({ studentName }: FaceIdCardProps) {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#007AFF] hover:bg-blue-600 px-4 py-2.5 text-xs font-medium text-white shadow-2xs active:scale-[0.98] transition-all cursor-pointer min-h-[40px]"
           >
             <Camera className="h-3.5 w-3.5" />
-            <span>{isEnrolled ? "Pindai Ulang Wajah" : "Daftarkan Face ID"}</span>
+            <span>{isEnrolled ? "Pindai Ulang Wajah" : "Daftarkan Biometrik Wajah"}</span>
           </button>
         </div>
 

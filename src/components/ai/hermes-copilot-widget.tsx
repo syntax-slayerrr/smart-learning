@@ -158,7 +158,7 @@ export function HermesCopilotWidget() {
       const data = await res.json();
       const replyText =
         data?.reply ||
-        "Maaf, terjadi kendala saat menghubungi Hermes Agent. Silakan coba sesaat lagi.";
+        "Maaf, terjadi kendala saat menghubungi layanan Asisten Cerdas. Silakan coba sesaat lagi.";
 
       const assistantMessage: ChatMessage = {
         id: `asst-${Date.now()}`,
@@ -213,6 +213,15 @@ export function HermesCopilotWidget() {
     }
   };
 
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
+
+  const showToastNotice = (msg: string) => {
+    setToastNotice(msg);
+    setTimeout(() => {
+      setToastNotice((prev) => (prev === msg ? null : prev));
+    }, 3200);
+  };
+
   const handleWorkspaceAction = (actionType: string, workspace: WorkspacePayload) => {
     if (actionType === "copy_full_report" || actionType === "copy_all") {
       const reportLines = [
@@ -225,13 +234,13 @@ export function HermesCopilotWidget() {
         `Dicatat & Diverifikasi oleh Smart AI.`,
       ].join("\n");
       navigator.clipboard.writeText(reportLines);
-      alert("Laporan berhasil disalin ke clipboard!");
+      showToastNotice("Laporan berhasil disalin ke clipboard!");
     } else if (actionType === "print_report" || actionType === "export_pdf" || actionType === "export_teacher_pdf") {
       window.print();
     } else if (actionType === "assign_substitute") {
-      alert("Alokasi guru pengganti (inval) telah dicatat untuk tindak lanjut tata usaha.");
+      showToastNotice("Alokasi guru pengganti (inval) telah dicatat untuk kurikulum & tata usaha.");
     } else {
-      alert(`Aksi [${actionType}] berhasil diproses.`);
+      showToastNotice(`Aksi [${actionType}] berhasil diproses.`);
     }
   };
 
@@ -441,7 +450,7 @@ export function HermesCopilotWidget() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium truncate">
-                  Asisten Cerdas & Analisis Data Kampus
+                  Asisten Cerdas & Operasional Akademik
                 </p>
               </div>
             </div>
@@ -470,6 +479,23 @@ export function HermesCopilotWidget() {
               </button>
             </div>
           </div>
+
+          {/* In-App Toast Feedback */}
+          {toastNotice && (
+            <div className="absolute top-16 left-3 right-3 z-50 flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-900/95 text-white text-xs shadow-lg border border-white/10 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-medium text-zinc-100 truncate">{toastNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setToastNotice(null)}
+                className="text-zinc-400 hover:text-white p-0.5 rounded transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Quick Suggestion Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-100 bg-slate-50/70 px-4 py-2 text-xs shrink-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -642,7 +668,7 @@ export function HermesCopilotWidget() {
                                         ) : (
                                           <>
                                             <Share2 className="h-3 w-3 text-emerald-600" />
-                                            <span>Draf WA Ortu</span>
+                                            <span>Pesan ke Orang Tua</span>
                                           </>
                                         )}
                                       </button>
@@ -679,12 +705,12 @@ export function HermesCopilotWidget() {
 
                                     <button
                                       onClick={() => {
-                                        alert(`Catatan guru inval pengganti untuk ${item.name} (${item.className}) berhasil dibuat.`);
+                                        showToastNotice(`Catatan penugasan guru piket pengganti untuk ${item.name} (${item.className}) berhasil dibuat.`);
                                       }}
                                       className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[10.5px] font-medium text-slate-700 hover:border-amber-400 hover:text-amber-800 transition-colors shadow-2xs active:scale-[0.98]"
-                                      title="Siapkan Guru Inval Pengganti"
+                                      title="Tugaskan Guru Piket / Pengganti"
                                     >
-                                      <span>Jadwalkan Inval</span>
+                                      <span>Tugaskan Guru Piket</span>
                                     </button>
                                   </>
                                 )}

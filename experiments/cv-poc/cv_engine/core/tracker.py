@@ -102,6 +102,63 @@ def hitung_iou(box1: Tuple[float, float, float, float], box2: Tuple[float, float
     return (area_irisan / area_gabungan) if area_gabungan > 0.0 else 0.0
 
 
+def ekstrak_kotak_pose_anatomis(pose: Any, lebar_frame: int, tinggi_frame: int) -> Optional[Tuple[int, int, int, int]]:
+    """
+    Mengekstrak bounding box anatomis realistis untuk siswa duduk di kelas.
+    Mengabaikan landmark tungkai/pinggul yang halusinasi (misal terbalik di atas bahu atau melompat ke meja teman).
+    """
+    if not pose or len(pose) < 17:
+        return None
+
+    bahu_kiri = pose[11]
+    bahu_kanan = pose[12]
+    pusat_bahu_x = (bahu_kiri.x + bahu_kanan.x) / 2.0
+    pusat_bahu_y = (bahu_kiri.y + bahu_kanan.y) / 2.0
+    lebar_bahu = max(0.04, abs(bahu_kanan.x - bahu_kiri.x))
+
+    valid_x = []
+    valid_y = []
+
+    # 1. Kepala (0-10)
+    for i in range(min(11, len(pose))):
+        if getattr(pose[i], 'visibility', 0.5) > 0.22:
+            valid_x.append(pose[i].x)
+            valid_y.append(pose[i].y)
+
+    # 2. Bahu & Lengan (11-16)
+    for i in range(11, min(17, len(pose))):
+        if getattr(pose[i], 'visibility', 0.5) > 0.22:
+            if abs(pose[i].x - pusat_bahu_x) < lebar_bahu * 2.5:
+                valid_x.append(pose[i].x)
+                valid_y.append(pose[i].y)
+
+    # 3. Pinggul & Tungkai (23-32) hanya jika secara fisik berada di bawah bahu
+    for i in range(23, min(33, len(pose))):
+        if getattr(pose[i], 'visibility', 0.5) > 0.30:
+            if pose[i].y > pusat_bahu_y - 0.02 and abs(pose[i].x - pusat_bahu_x) < lebar_bahu * 2.0:
+                valid_x.append(pose[i].x)
+                valid_y.append(pose[i].y)
+
+    if not valid_x or not valid_y:
+        return None
+
+    min_x = min(valid_x)
+    max_x = max(valid_x)
+    min_y = min(valid_y)
+    max_y = max(valid_y)
+
+    tinggi_kepala_bahu = max(0.05, pusat_bahu_y - min_y)
+    if max_y - pusat_bahu_y < tinggi_kepala_bahu * 1.5:
+        max_y = min(1.0, pusat_bahu_y + tinggi_kepala_bahu * 2.0)
+
+    px = max(0, int((min_x - 0.03) * lebar_frame))
+    py = max(0, int((min_y - 0.03) * tinggi_frame))
+    pw = min(lebar_frame - px, int((max_x - min_x + 0.06) * lebar_frame))
+    ph = min(tinggi_frame - py, int((max_y - min_y + 0.06) * tinggi_frame))
+
+    return (px, py, pw, ph)
+
+
 class PelacakSubjekKelas:
     """
     Pelacak Subjek Spasio-Temporal Tingkat Enterprise dengan 5 Lapisan Guardrails.
@@ -160,74 +217,119 @@ class PelacakSubjekKelas:
         pose_tersaring = saring_pose_tumpang_tindih(daftar_pose_mentah, dimensi_frame)
 
         # 2. Asosiasi Spasial Master Anchor YOLO26n
+        # 2. Asosiasi Spasial Master Anchor YOLO26n
         if daftar_kotak_yolo and len(daftar_kotak_yolo) > 0:
-            for kotak_yolo in daftar_kotak_yolo:
+            # Urutkan kotak YOLO dari yang terbesar ke terkecil agar badan penuh mendapat prioritas utama
+            kotak_yolo_terurut = sorted(daftar_kotak_yolo, key=lambda k: k[2] * k[3], reverse=True)
+            id_pose_terklaim = set()
+
+            for kotak_yolo in kotak_yolo_terurut:
                 yx, yy, yw, yh, y_conf = kotak_yolo
                 pusat_yolo_x = yx + yw / 2.0
                 pusat_yolo_y = yy + yh / 2.0
 
                 pose_terbaik = None
-                jarak_terdekat = 280.0
-                for pose in pose_tersaring:
+                idx_pose_terbaik = None
+                jarak_terdekat = min(yw * 0.45, 38.0)
+
+                for idx_p, pose in enumerate(pose_tersaring):
                     if len(pose) < 17:
                         continue
+                    hx = pose[0].x * lebar_frame
+                    hy = pose[0].y * tinggi_frame
                     bahu_kiri = pose[11]
                     bahu_kanan = pose[12]
-                    # Pusat torso realistis (antara bahu dan pinggul jika tersedia)
-                    if len(pose) >= 25 and getattr(pose[23], 'visibility', 0.0) > 0.2:
-                        pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x + pose[23].x + pose[24].x) / 4.0) * lebar_frame
-                        pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y + pose[23].y + pose[24].y) / 4.0) * tinggi_frame
-                    else:
-                        pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x) / 2.0) * lebar_frame
-                        pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y) / 2.0) * tinggi_frame
-                    jarak_euclidean = math.hypot(pusat_yolo_x - pusat_torso_x, pusat_yolo_y - pusat_torso_y)
+                    pusat_torso_x = ((bahu_kiri.x + bahu_kanan.x) / 2.0) * lebar_frame
+                    pusat_torso_y = ((bahu_kiri.y + bahu_kanan.y) / 2.0) * tinggi_frame
 
-                    if jarak_euclidean < jarak_terdekat and (yx - 50 <= pusat_torso_x <= yx + yw + 50) and (yy - 50 <= pusat_torso_y <= yy + yh + 50):
-                        jarak_terdekat = jarak_euclidean
+                    # Titik kepala/hidung atau torso pose wajib berada dekat dengan sumbu kotak
+                    d_torso = math.hypot(pusat_yolo_x - pusat_torso_x, (yy + yh * 0.35) - pusat_torso_y)
+                    d_hidung = math.hypot(pusat_yolo_x - hx, (yy + yh * 0.20) - hy)
+                    d_efektif = min(d_torso, d_hidung)
+
+                    if d_efektif < jarak_terdekat and (yx - 15 <= pusat_torso_x <= yx + yw + 15):
+                        jarak_terdekat = d_efektif
                         pose_terbaik = pose
+                        idx_pose_terbaik = idx_p
+
+                # Jika pose belum cocok via pusat torso, periksa apakah kotak YOLO ini melingkupi
+                # pergelangan/siku dari pose yang sudah diklaim (misal tangan terangkat ke samping)
+                if idx_pose_terbaik is None and len(id_pose_terklaim) > 0:
+                    for idx_p in id_pose_terklaim:
+                        pose_klaim = pose_tersaring[idx_p]
+                        if len(pose_klaim) >= 17:
+                            for idx_s in (15, 16, 13, 14):  # pergelangan tangan (15, 16) & siku (13, 14)
+                                s = pose_klaim[idx_s]
+                                if getattr(s, 'visibility', 0.5) > 0.25:
+                                    sx = s.x * lebar_frame
+                                    sy = s.y * tinggi_frame
+                                    if (yx - 15 <= sx <= yx + yw + 15) and (yy - 15 <= sy <= yy + yh + 15):
+                                        idx_pose_terbaik = idx_p
+                                        pose_terbaik = pose_klaim
+                                        break
+                            if idx_pose_terbaik is not None:
+                                break
+
+                # Jika pose sudah diklaim oleh kotak lain, kotak ini tetap dipertahankan sebagai subjek terpisah (tanpa menduplikasi pose)
+                if idx_pose_terbaik is not None and idx_pose_terbaik in id_pose_terklaim:
+                    pose_terbaik = None
+                    idx_pose_terbaik = None
+
+                if idx_pose_terbaik is not None:
+                    id_pose_terklaim.add(idx_pose_terbaik)
 
                 kandidat_terpadu.append({
                     "kotak": (yx, yy, yw, yh),
                     "keyakinan": y_conf,
                     "landmarks": pose_terbaik
                 })
+
+            # Tambahkan juga seluruh pose anatomi MediaPipe yang belum terklaim oleh kotak makro
+            for idx_p, pose in enumerate(pose_tersaring):
+                if idx_p not in id_pose_terklaim and len(pose) >= 17:
+                    box_p = ekstrak_kotak_pose_anatomis(pose, lebar_frame, tinggi_frame)
+                    if box_p is not None:
+                        kandidat_terpadu.append({
+                            "kotak": box_p,
+                            "keyakinan": 0.95,
+                            "landmarks": pose
+                        })
         else:
             # Fallback jika deteksi YOLO kosong atau sedang diinisialisasi
             for pose in pose_tersaring:
                 if len(pose) < 17:
                     continue
-                titik_x = [lm.x for lm in pose[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
-                titik_y = [lm.y for lm in pose[:25] if getattr(lm, 'visibility', 0.5) > 0.22]
-                if not titik_x or not titik_y:
-                    continue
-                min_x, max_x = min(titik_x), max(titik_x)
-                min_y, max_y = min(titik_y), max(titik_y)
-                px = max(0, int((min_x - 0.06) * lebar_frame))
-                py = max(0, int((min_y - 0.06) * tinggi_frame))
-                pw = min(lebar_frame - px, int((max_x - min_x + 0.12) * lebar_frame))
-                ph = min(tinggi_frame - py, int((max_y - min_y + 0.12) * tinggi_frame))
-                kandidat_terpadu.append({
-                    "kotak": (px, py, pw, ph),
-                    "keyakinan": 0.95,
-                    "landmarks": pose
-                })
+                box_p = ekstrak_kotak_pose_anatomis(pose, lebar_frame, tinggi_frame)
+                if box_p is not None:
+                    kandidat_terpadu.append({
+                        "kotak": box_p,
+                        "keyakinan": 0.95,
+                        "landmarks": pose
+                    })
 
         # 3. Spatial NMS Filter & Human Liveness Guardrail
-        # Mengeliminasi kandidat tanpa bukti biologis/anatomis manusia (jaket, baju dinding, kursi)
+        # Memvalidasi kandidat manusia hidup (MediaPipe atau YOLO proporsional vertikal)
         kandidat_tervalidasi = []
         for cand in kandidat_terpadu:
             memiliki_kerangka = cand.get("landmarks") is not None
             skor_cand = cand.get("keyakinan", 0.0)
+            cx, cy, cw, ch = cand["kotak"]
+            rasio_aspek = ch / max(1.0, float(cw))
 
             # Jika kerangka MediaPipe terdeteksi, ini adalah manusia hidup
             if memiliki_kerangka:
                 kandidat_tervalidasi.append(cand)
-            # Jika tanpa kerangka MediaPipe, hanya lolos jika keyakinan sangat tinggi (>= 0.65)
-            # untuk mencegah objek mati (seperti jaket atau kursi) dideteksi sebagai siswa
-            elif skor_cand >= 0.65:
+            # Jika tanpa kerangka MediaPipe (misal siswa di jarak 3-8 meter atau siswa berhijab di samping),
+            # Lolos jika skor YOLO memadai (>= 0.28) DAN memiliki proporsi tubuh manusia (0.50 <= H/W <= 4.0)
+            elif skor_cand >= 0.28 and (0.50 <= rasio_aspek <= 4.0) and ch >= 20:
                 kandidat_tervalidasi.append(cand)
 
-        kandidat_terpadu = saring_kandidat_spasial(kandidat_tervalidasi, ambang_iou=0.35, ambang_jarak_pusat=100.0)
+        kandidat_terpadu = saring_kandidat_spasial(
+            kandidat_tervalidasi,
+            ambang_iou=0.38,
+            ambang_jarak_pusat=38.0,
+            dimensi_frame=(tinggi_frame, lebar_frame)
+        )
 
         for kandidat in kandidat_terpadu:
             px, py, pw, ph = kandidat["kotak"]
@@ -322,7 +424,7 @@ class PelacakSubjekKelas:
                         kcx, kcy = data_kursi["center"]
                         jarak_ke_kursi = math.hypot(pusat_subjek_x - kcx, pusat_subjek_y - kcy)
                         iou_kursi = hitung_iou(kotak_kandidat, data_kursi["box"])
-                        if jarak_ke_kursi < SEAT_ANCHOR_MAX_RADIUS_PX or iou_kursi >= 0.20:
+                        if jarak_ke_kursi < SEAT_ANCHOR_MAX_RADIUS_PX or iou_kursi >= 0.18:
                             id_terbaik = id_kursi
                             self.tracks[id_kursi] = {
                                 "id": id_kursi,
@@ -330,6 +432,12 @@ class PelacakSubjekKelas:
                                 "is_recognized": data_kursi.get("is_recognized", False),
                                 "seat_latched": True,
                                 "seat_id": data_kursi.get("seat_id", f"SEAT_{id_kursi}"),
+                                "student_id": data_kursi.get("student_id"),
+                                "nis": data_kursi.get("nis"),
+                                "role": data_kursi.get("role", "student"),
+                                "is_teacher": data_kursi.get("is_teacher", False),
+                                "attendance_qualified": data_kursi.get("attendance_qualified", data_kursi.get("is_recognized", False)),
+                                "dwell_seconds": data_kursi.get("dwell_seconds", 15.0),
                                 "identity_votes": data_kursi.get("identity_votes", {}),
                                 "box": (px, py, pw, ph),
                                 "smooth_box": (float(px), float(py), float(pw), float(ph)),
@@ -419,24 +527,30 @@ class PelacakSubjekKelas:
                     panjang_lintasan_kanan = sum(math.hypot(antrean_gerak[k][3] - antrean_gerak[k-1][3], antrean_gerak[k][4] - antrean_gerak[k-1][4]) for k in range(1, len(antrean_gerak)))
                     kecepatan_tangan = (panjang_lintasan_kiri + panjang_lintasan_kanan) / (2.0 * durasi_waktu)
 
-                # Siswa tekun menulis di meja jika tangan bergerak aktif dan posisi di bawah bahu
+                # Siswa tekun menulis di meja jika kepala menunduk ke meja DAN tangan aktif bergerak di bawah bahu
+                # Jika kepala tegak (tatapan ke depan/guru), siswa sedang MENYIMAK (attentive)
+                kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.08) or (kemiringan_kepala >= 26.0)
+                tangan_di_meja = (pergelangan_kiri.y > bahu_kiri.y + 0.02 or pergelangan_kanan.y > bahu_kanan.y + 0.02)
+                tangan_aktif_menulis = (kecepatan_tangan >= KECEPATAN_TANGAN_MENULIS)
+
                 is_sedang_menulis = (
-                    (pergelangan_kiri.y > bahu_kiri.y + 0.04 or pergelangan_kanan.y > bahu_kanan.y + 0.04) and
-                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 0.8) and
-                    (hidung.y > pusat_bahu_y - 0.16)
+                    kepala_menunduk and
+                    tangan_di_meja and
+                    tangan_aktif_menulis
                 )
 
                 if is_sedang_menulis:
                     self.penahan_waktu_menulis[id_pemeriksaan] = waktu_sekarang
 
-                # Latch aktivitas menulis selama 1.8 detik untuk menjembatani jeda alami tarikan pena
+                # Latch aktivitas menulis selama 0.8 detik (langsung batal jika siswa mendongak menyimak)
                 aktivitas_menulis_aktif = (
                     id_pemeriksaan in self.penahan_waktu_menulis and
-                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.8
+                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 0.8 and
+                    kepala_menunduk
                 )
 
-                # Gerbang deteksi tidur murni: Kepala jatuh DAN tangan statis
-                is_kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.02) or (kemiringan_kepala > 55.0 and pusat_subjek_y > tinggi_frame * 0.45)
+                # Gerbang deteksi tidur: Kepala rebahan/jatuh di meja DAN tangan statis
+                is_kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.02) or (kemiringan_kepala > 45.0 and pusat_subjek_y > tinggi_frame * 0.40)
                 is_tidur = False
 
                 if aktivitas_menulis_aktif:
@@ -445,28 +559,59 @@ class PelacakSubjekKelas:
                 elif is_kepala_menunduk and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR):
                     if id_pemeriksaan not in self.pencatat_waktu_tidur:
                         self.pencatat_waktu_tidur[id_pemeriksaan] = waktu_sekarang
-                    elif waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] > DURASI_TAHAN_TIDUR_DETIK:
+                    elif waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] >= DURASI_TAHAN_TIDUR_DETIK:
                         is_tidur = True
                 else:
                     self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
 
-                # Guardrail 1: Kinematika Sudut Siku & Gerbang Jarak Wajah
-                sudut_siku_kiri = hitung_sudut_tiga_titik(bahu_kiri, siku_kiri, pergelangan_kiri)
-                sudut_siku_kanan = hitung_sudut_tiga_titik(bahu_kanan, siku_kanan, pergelangan_kanan)
+                # Guardrail 1: Kinematika Angkat Tangan Sensitif (Pergelangan / Jari di Atas Bahu)
                 jarak_ke_hidung_kiri = math.hypot(pergelangan_kiri.x - hidung.x, pergelangan_kiri.y - hidung.y)
                 jarak_ke_hidung_kanan = math.hypot(pergelangan_kanan.x - hidung.x, pergelangan_kanan.y - hidung.y)
 
+                # Evaluasi posisi vertikal dan visibilitas tangan kiri & kanan
+                vis_kiri = getattr(pergelangan_kiri, 'visibility', 0.5)
+                vis_jari_kiri = max(getattr(landmarks[19], 'visibility', 0.0), getattr(landmarks[17], 'visibility', 0.0)) if len(landmarks) > 19 else 0.0
+                vis_efektif_kiri = max(vis_kiri, vis_jari_kiri)
+
+                vis_kanan = getattr(pergelangan_kanan, 'visibility', 0.5)
+                vis_jari_kanan = max(getattr(landmarks[20], 'visibility', 0.0), getattr(landmarks[18], 'visibility', 0.0)) if len(landmarks) > 20 else 0.0
+                vis_efektif_kanan = max(vis_kanan, vis_jari_kanan)
+
+                y_tangan_kiri = pergelangan_kiri.y
+                if len(landmarks) > 19 and getattr(landmarks[19], 'visibility', 0.0) > 0.35:
+                    y_tangan_kiri = min(y_tangan_kiri, landmarks[19].y)
+                if len(landmarks) > 17 and getattr(landmarks[17], 'visibility', 0.0) > 0.35:
+                    y_tangan_kiri = min(y_tangan_kiri, landmarks[17].y)
+
+                y_tangan_kanan = pergelangan_kanan.y
+                if len(landmarks) > 20 and getattr(landmarks[20], 'visibility', 0.0) > 0.35:
+                    y_tangan_kanan = min(y_tangan_kanan, landmarks[20].y)
+                if len(landmarks) > 18 and getattr(landmarks[18], 'visibility', 0.0) > 0.35:
+                    y_tangan_kanan = min(y_tangan_kanan, landmarks[18].y)
+
+                # Definisi pedagogis angkat tangan bertanya:
+                # 1. Tangan terangkat tinggi di dekat/di atas hidung ATAU secara jelas berada di atas garis bahu (gap >= 0.06).
+                # 2. Tangan memiliki visibilitas keypoint yang valid (>= 0.40), bukan tebakan acak di atas meja.
+                # 3. Jaminan mutlak: pergelangan WAJIB di atas bahu (y_tangan < bahu.y - 0.03).
+                # 4. Bukan pose menopang dagu/pipi/telinga (istirahat/fokus menyimak).
+                menopang_dagu_kiri = (y_tangan_kiri >= hidung.y - 0.02) and (abs(pergelangan_kiri.x - hidung.x) < 0.14)
+                tangan_kiri_naik_tinggi = (y_tangan_kiri < hidung.y)
+                tangan_kiri_di_atas_bahu = (y_tangan_kiri < bahu_kiri.y - 0.06 and abs(pergelangan_kiri.x - hidung.x) > 0.12)
                 tangan_kiri_terangkat = (
-                    (pergelangan_kiri.y < bahu_kiri.y - 0.04) and
-                    (sudut_siku_kiri >= AMBANG_SUDUT_SIKU_DERAJAT) and
-                    (jarak_ke_hidung_kiri > AMBANG_JARAK_WAJAH_TANGAN) and
-                    (getattr(pergelangan_kiri, 'visibility', 0.5) > 0.30)
+                    (tangan_kiri_naik_tinggi or tangan_kiri_di_atas_bahu) and
+                    (not menopang_dagu_kiri) and
+                    (vis_efektif_kiri >= 0.40) and
+                    (y_tangan_kiri < bahu_kiri.y - 0.03)
                 )
+
+                menopang_dagu_kanan = (y_tangan_kanan >= hidung.y - 0.02) and (abs(pergelangan_kanan.x - hidung.x) < 0.14)
+                tangan_kanan_naik_tinggi = (y_tangan_kanan < hidung.y)
+                tangan_kanan_di_atas_bahu = (y_tangan_kanan < bahu_kanan.y - 0.06 and abs(pergelangan_kanan.x - hidung.x) > 0.12)
                 tangan_kanan_terangkat = (
-                    (pergelangan_kanan.y < bahu_kanan.y - 0.04) and
-                    (sudut_siku_kanan >= AMBANG_SUDUT_SIKU_DERAJAT) and
-                    (jarak_ke_hidung_kanan > AMBANG_JARAK_WAJAH_TANGAN) and
-                    (getattr(pergelangan_kanan, 'visibility', 0.5) > 0.30)
+                    (tangan_kanan_naik_tinggi or tangan_kanan_di_atas_bahu) and
+                    (not menopang_dagu_kanan) and
+                    (vis_efektif_kanan >= 0.40) and
+                    (y_tangan_kanan < bahu_kanan.y - 0.03)
                 )
                 is_angkat_tangan_mentah = (tangan_kiri_terangkat or tangan_kanan_terangkat) and (not is_tidur)
 
@@ -512,6 +657,7 @@ class PelacakSubjekKelas:
                     aktivitas = "hand_raised"
                     teks_aksi = "Angkat Tangan (Bertanya)"
                     skor_atensi = 98
+                    self.penahan_waktu_menulis.pop(id_pemeriksaan, None)
                 elif aktivitas_menulis_aktif:
                     aktivitas = "writing"
                     teks_aksi = "Fokus Menulis / Meja"
@@ -550,6 +696,34 @@ class PelacakSubjekKelas:
                 halus_w = track_lama["filter_w"].filter(waktu_sekarang, float(pw))
                 halus_h = track_lama["filter_h"].filter(waktu_sekarang, float(ph))
 
+                # Deadband Filter (Mengunci Jitter Absolut saat Tubuh Diam):
+                # Jika pergeseran piksel <= ambang deadband, kunci koordinat visual 100% tanpa gerak mikro
+                if "smooth_box" in track_lama:
+                    prev_x, prev_y, prev_w, prev_h = track_lama["smooth_box"]
+                    if abs(halus_x - prev_x) < 3.2:
+                        halus_x = prev_x
+                    if abs(halus_y - prev_y) < 3.2:
+                        halus_y = prev_y
+                    if abs(halus_w - prev_w) < 4.0:
+                        halus_w = prev_w
+                    if abs(halus_h - prev_h) < 4.0:
+                        halus_h = prev_h
+
+                # Standardisasi Framing Ruang Kelas (Upper-Body Framing saat Duduk):
+                # Saat siswa duduk di meja, kotak difokuskan pada tubuh atas (kepala hingga batas pinggul/meja),
+                # tidak menjulur ke lantai/kolong meja agar tidak memicu deteksi kaki/lantai palsu.
+                if postur == "sitting":
+                    maks_tinggi_duduk = float(halus_w * 1.35)
+                    if landmarks and len(landmarks) >= 25:
+                        pinggul_kiri = landmarks[23]
+                        pinggul_kanan = landmarks[24]
+                        vis_p = max(getattr(pinggul_kiri, 'visibility', 0.0), getattr(pinggul_kanan, 'visibility', 0.0))
+                        if vis_p > 0.25:
+                            pusat_p_y = ((pinggul_kiri.y + pinggul_kanan.y) / 2.0) * float(tinggi_frame)
+                            maks_tinggi_duduk = max(float(halus_w * 0.90), pusat_p_y + (0.08 * float(tinggi_frame)) - halus_y)
+                    if halus_h > maks_tinggi_duduk:
+                        halus_h = maks_tinggi_duduk
+
                 # Update hit streak & konfirmasi track
                 track_lama["hits"] = track_lama.get("hits", 1) + 1
                 track_lama["hit_streak"] = track_lama.get("hit_streak", 1) + 1
@@ -559,12 +733,25 @@ class PelacakSubjekKelas:
                     track_lama["is_confirmed"] = True
                     track_lama["state"] = "confirmed"
 
+                # Zero Jitter: Temporal Voting untuk State & Warna (Anti-Flicker)
+                if "state_history" not in track_lama:
+                    track_lama["state_history"] = deque(maxlen=6)
+                track_lama["state_history"].append(aktivitas)
+
+                if is_angkat_tangan:
+                    aktivitas_stabil = "hand_raised"
+                elif is_tidur:
+                    aktivitas_stabil = "sleep"
+                else:
+                    suara_menulis = sum(1 for s in track_lama["state_history"] if s == "writing")
+                    aktivitas_stabil = "writing" if suara_menulis >= 3 else "attentive"
+
                 track_lama["box"] = (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h)))
                 track_lama["smooth_box"] = (halus_x, halus_y, halus_w, halus_h)
                 track_lama["center"] = (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0)
                 track_lama["landmarks"] = landmarks
                 track_lama["posture"] = postur
-                track_lama["activity"] = aktivitas
+                track_lama["activity"] = aktivitas_stabil
                 track_lama["action_text"] = teks_aksi
                 track_lama["sub_label"] = sub_label_hud
                 track_lama["attention_score"] = skor_atensi
@@ -576,20 +763,19 @@ class PelacakSubjekKelas:
                 track_lama["head_tilt"] = round(kemiringan_kepala, 1)
                 track_lama["gaze_dir"] = arah_tatapan
 
-                # Pondasi 2: Latch Jangkar Kursi Spasial jika subjek terkonfirmasi duduk stabil
-                if track_lama.get("is_confirmed", False) and track_lama.get("hits", 0) >= 5 and postur == "sitting":
+                # Pondasi 2: Latch Jangkar Kursi Spasial jika subjek terkonfirmasi duduk stabil atau terverifikasi wajah
+                is_rec = track_lama.get("is_recognized", False)
+                if (track_lama.get("is_confirmed", False) and track_lama.get("hits", 0) >= 3 and postur == "sitting") or is_rec:
                     if track_lama.get("first_latched_time") is None:
                         track_lama["first_latched_time"] = waktu_sekarang
                     
                     durasi_duduk = waktu_sekarang - track_lama["first_latched_time"]
                     track_lama["dwell_seconds"] = round(durasi_duduk, 1)
 
-                    # Gate Presensi: Verifikasi Waktu Duduk + Multi-Frame Consensus
                     nama_siswa = track_lama.get("student_name", "")
                     suara_identitas = track_lama.get("identity_votes", {}).get(nama_siswa, 0) if nama_siswa else 0
-                    is_rec = track_lama.get("is_recognized", False)
 
-                    if durasi_duduk >= DURASI_MINIMAL_DUDUK_PRESENSI_DETIK and is_rec and suara_identitas >= MINIMAL_KONSENSUS_FRAME_PRESENSI:
+                    if is_rec or (durasi_duduk >= DURASI_MINIMAL_DUDUK_PRESENSI_DETIK and suara_identitas >= MINIMAL_KONSENSUS_FRAME_PRESENSI):
                         track_lama["attendance_qualified"] = True
                     else:
                         track_lama["attendance_qualified"] = False
@@ -600,17 +786,22 @@ class PelacakSubjekKelas:
                         "box": (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h))),
                         "student_name": track_lama.get("student_name", f"Siswa #{id_terbaik}"),
                         "is_recognized": is_rec,
+                        "seat_latched": True,
+                        "student_id": track_lama.get("student_id"),
+                        "nis": track_lama.get("nis"),
+                        "role": track_lama.get("role", "student"),
+                        "is_teacher": track_lama.get("is_teacher", False),
                         "identity_votes": track_lama.get("identity_votes", {}),
-                        "seat_id": f"SEAT_{id_terbaik}",
+                        "seat_id": track_lama.get("seat_id") or f"SEAT_{id_terbaik}",
                         "waktu_terakhir_aktif": waktu_sekarang,
                         "dwell_seconds": track_lama["dwell_seconds"],
                         "attendance_qualified": track_lama["attendance_qualified"]
                     }
                     track_lama["seat_latched"] = True
-                    track_lama["seat_id"] = f"SEAT_{id_terbaik}"
+                    track_lama["seat_id"] = self.jangkar_kursi[id_terbaik]["seat_id"]
                 else:
-                    if postur != "sitting" and track_lama.get("first_latched_time") is not None:
-                        # Reset timer jika berdiri lebih lama dari toleransi
+                    if postur != "sitting" and not is_rec and track_lama.get("first_latched_time") is not None:
+                        # Reset timer hanya jika berdiri lama dan belum terverifikasi
                         if waktu_sekarang - track_lama.get("last_seen", waktu_sekarang) > 5.0:
                             track_lama["first_latched_time"] = None
                             track_lama["dwell_seconds"] = 0.0
@@ -618,10 +809,75 @@ class PelacakSubjekKelas:
 
                 id_tercocokkan.add(id_terbaik)
             else:
-                # Spawning Candidate Track Baru (Status TENTATIVE untuk mencegah Ghost Box)
-                id_baru = self.id_berikutnya
-                self.id_berikutnya += 1
-                self.next_id = self.id_berikutnya
+                # Cek terlebih dahulu apakah kandidat berada pada jangkar kursi terlatched (Anti-Reset ID)
+                id_kursi_cocok = None
+                if len(self.jangkar_kursi) > 0:
+                    for id_k, data_k in self.jangkar_kursi.items():
+                        if id_k in id_tercocokkan or id_k in self.tracks:
+                            continue
+                        if data_k.get("seat_latched") and data_k.get("is_recognized"):
+                            kcx, kcy = data_k["center"]
+                            dist_k = math.hypot(pusat_subjek_x - kcx, pusat_subjek_y - kcy)
+                            iou_k = hitung_iou(kotak_kandidat, data_k["box"])
+                            if dist_k < SEAT_ANCHOR_MAX_RADIUS_PX or iou_k >= 0.18:
+                                id_kursi_cocok = id_k
+                                break
+
+                if id_kursi_cocok is not None:
+                    # Pulihkan langsung track ke ID kursi yang ter-latch
+                    data_k = self.jangkar_kursi[id_kursi_cocok]
+                    fx = OneEuroFilter(waktu_sekarang, float(px), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    fy = OneEuroFilter(waktu_sekarang, float(py), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    fw = OneEuroFilter(waktu_sekarang, float(pw), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+                    fh = OneEuroFilter(waktu_sekarang, float(ph), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
+
+                    self.tracks[id_kursi_cocok] = {
+                        "id": id_kursi_cocok,
+                        "student_name": data_k.get("student_name", f"Siswa #{id_kursi_cocok}"),
+                        "is_recognized": True,
+                        "seat_latched": True,
+                        "seat_id": data_k.get("seat_id", f"SEAT_{id_kursi_cocok}"),
+                        "student_id": data_k.get("student_id"),
+                        "nis": data_k.get("nis"),
+                        "role": data_k.get("role", "student"),
+                        "is_teacher": data_k.get("is_teacher", False),
+                        "attendance_qualified": True,
+                        "dwell_seconds": data_k.get("dwell_seconds", 15.0),
+                        "identity_votes": data_k.get("identity_votes", {}),
+                        "box": (px, py, pw, ph),
+                        "smooth_box": (float(px), float(py), float(pw), float(ph)),
+                        "center": (pusat_subjek_x, pusat_subjek_y),
+                        "landmarks": landmarks,
+                        "posture": postur,
+                        "activity": aktivitas,
+                        "state_history": deque([aktivitas], maxlen=6),
+                        "action_text": teks_aksi,
+                        "sub_label": sub_label_hud,
+                        "attention_score": skor_atensi,
+                        "conf": round(skor_keyakinan, 2),
+                        "last_seen": waktu_sekarang,
+                        "is_hand_raised": is_angkat_tangan,
+                        "hand_box": kotak_tangan,
+                        "is_sleep": is_tidur,
+                        "head_tilt": round(kemiringan_kepala, 1),
+                        "gaze_dir": arah_tatapan,
+                        "state": "confirmed",
+                        "is_confirmed": True,
+                        "hits": MINIMAL_HIT_STREAK_KONFIRMASI,
+                        "hit_streak": MINIMAL_HIT_STREAK_KONFIRMASI,
+                        "unseen_frames": 0,
+                        "filter_x": fx,
+                        "filter_y": fy,
+                        "filter_w": fw,
+                        "filter_h": fh
+                    }
+                    data_k["waktu_terakhir_aktif"] = waktu_sekarang
+                    id_tercocokkan.add(id_kursi_cocok)
+                else:
+                    # Spawning Candidate Track Baru (Status TENTATIVE untuk mencegah Ghost Box)
+                    id_baru = self.id_berikutnya
+                    self.id_berikutnya += 1
+                    self.next_id = self.id_berikutnya
 
                 fx = OneEuroFilter(waktu_sekarang, float(px), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
                 fy = OneEuroFilter(waktu_sekarang, float(py), min_cutoff=ONE_EURO_MIN_CUTOFF, beta=ONE_EURO_BETA, d_cutoff=ONE_EURO_D_CUTOFF)
@@ -644,6 +900,7 @@ class PelacakSubjekKelas:
                     "landmarks": landmarks,
                     "posture": postur,
                     "activity": aktivitas,
+                    "state_history": deque([aktivitas], maxlen=6),
                     "action_text": teks_aksi,
                     "sub_label": sub_label_hud,
                     "attention_score": skor_atensi,
@@ -670,9 +927,11 @@ class PelacakSubjekKelas:
         for id_t in list(self.tracks.keys()):
             if id_t not in id_tercocokkan:
                 data_t = self.tracks[id_t]
-                # Jika track masih tentative dan tidak terdeteksi pada update ini, HAPUS SEGERA (Zero Ghost Box)!
+                # Jika track masih tentative, toleransi frame hilang kecil agar tidak lenyap akibat drop-frame asinkronus
                 if not data_t.get("is_confirmed", False):
-                    del self.tracks[id_t]
+                    data_t["unseen_frames"] = data_t.get("unseen_frames", 0) + 1
+                    if data_t["unseen_frames"] > MAKSIMAL_FRAME_TENTATIVE_HILANG:
+                        del self.tracks[id_t]
                     continue
 
                 # Jika sudah terkonfirmasi tapi terlewat, hitung unseen dan reset streak
@@ -731,13 +990,60 @@ class PelacakSubjekKelas:
                 luas_u = (aw * ah) + (bw * bh) - luas_i
                 iou = (luas_i / float(luas_u)) if luas_u > 0 else 0.0
 
-                if jarak_pusat < 110.0 or iou > 0.35:
-                    # Tumpang tindih terdeteksi! Pertahankan track utama (ID lebih kecil)
-                    id_korban = id_b
-                    id_pemenang = id_a
+                # Uji IoU & Containment Spasial
+                min_luas = min(aw * ah, bw * bh)
+                min_w = min(aw, bw)
+                irisan_w = max(0, ix2 - ix1)
+                rasio_containment = (luas_i / float(min_luas)) if min_luas > 0 else 0.0
+
+                # Uji Kesamaan Hidung MediaPipe (Orang yang sama persis)
+                lm_a = track_a.get("landmarks")
+                lm_b = track_b.get("landmarks")
+                hidung_sama = False
+                dua_kepala_berbeda = False
+                if lm_a and lm_b and len(lm_a) >= 1 and len(lm_b) >= 1:
+                    jarak_h = math.hypot(lm_a[0].x - lm_b[0].x, lm_a[0].y - lm_b[0].y)
+                    hidung_sama = (jarak_h < 0.08)
+                    dua_kepala_berbeda = (jarak_h >= 0.10)
+
+                # Subjek dianggap duplikat jika hidung sama persis,
+                # atau tumpang-tindih IoU moderat-tinggi (> 0.38),
+                # atau bersarang konsentris (containment >= 55% dan selisih sumbu X rapat),
+                # atau irisan sumbu horizontal sangat rapat (>= 62%)
+                # KECUALI jika kedua track terbukti memiliki 2 kepala berbeda (Pilar 1.1: Duduk Sebangku Rapat)
+                delta_pusat_x = abs(acx - bcx)
+                irisan_w = max(0, ix2 - ix1)
+                rasio_w = (irisan_w / float(min_w)) if min_w > 0 else 0.0
+
+                apakah_duplikat = (
+                    hidung_sama or
+                    (not dua_kepala_berbeda and (
+                        (iou > 0.38) or
+                        (min_w > 0 and rasio_containment >= 0.55 and delta_pusat_x < min_w * 0.40) or
+                        (min_w > 0 and rasio_w >= 0.62 and delta_pusat_x < min_w * 0.35)
+                    ))
+                )
+
+                if apakah_duplikat:
+                    # Prioritaskan track yang terverifikasi identitasnya, sedang angkat tangan, atau kotak badan penuh yang lebih besar
+                    if track_a.get("is_recognized") and not track_b.get("is_recognized"):
+                        id_pemenang, id_korban = id_a, id_b
+                    elif track_b.get("is_recognized") and not track_a.get("is_recognized"):
+                        id_pemenang, id_korban = id_b, id_a
+                    elif track_b.get("is_hand_raised") and not track_a.get("is_hand_raised"):
+                        id_pemenang, id_korban = id_b, id_a
+                    elif (bw * bh) > (aw * ah) * 1.20:
+                        id_pemenang, id_korban = id_b, id_a
+                    else:
+                        id_pemenang, id_korban = id_a, id_b
+
                     if not self.tracks[id_pemenang].get("is_recognized") and self.tracks[id_korban].get("is_recognized"):
                         self.tracks[id_pemenang]["student_name"] = self.tracks[id_korban]["student_name"]
                         self.tracks[id_pemenang]["is_recognized"] = True
+                        self.tracks[id_pemenang]["student_id"] = self.tracks[id_korban].get("student_id")
+                        self.tracks[id_pemenang]["nis"] = self.tracks[id_korban].get("nis")
+                        self.tracks[id_pemenang]["seat_latched"] = True
+                        self.tracks[id_pemenang]["attendance_qualified"] = True
                     id_dihapus.add(id_korban)
 
         for id_buang in id_dihapus:
@@ -757,7 +1063,69 @@ class PelacakSubjekKelas:
         ]
         return track_terkonfirmasi
 
+    def kunci_identitas_subjek(
+        self,
+        id_subjek: int,
+        nama_siswa: str,
+        student_id: Optional[str] = None,
+        nis: Optional[str] = None,
+        role: str = "student",
+        is_teacher: bool = False
+    ) -> None:
+        """
+        Pondasi Enterprise: Mengunci identitas terverifikasi ke subjek dan jangkar kursi
+        secara permanen (Permanent Seat-Identity Latching).
+        """
+        waktu_sekarang = time.time()
+        # 1. Cabut identitas ini dari subjek lain untuk mencegah duplikasi nama/kursi
+        for tid, tdata in self.tracks.items():
+            if tid != id_subjek and tdata.get("student_name") == nama_siswa:
+                tdata["student_name"] = f"Siswa #{tid}"
+                tdata["is_recognized"] = False
+                tdata["seat_latched"] = False
+                tdata.pop("student_id", None)
+                tdata.pop("nis", None)
+                tdata["role"] = "student"
+                tdata["is_teacher"] = False
+
+        # 2. Kunci pada track aktif jika ada
+        if id_subjek in self.tracks:
+            t = self.tracks[id_subjek]
+            t["student_name"] = nama_siswa
+            t["is_recognized"] = True
+            t["seat_latched"] = True
+            t["student_id"] = student_id
+            t["nis"] = nis
+            t["role"] = role
+            t["is_teacher"] = is_teacher
+            t["attendance_qualified"] = True
+            t["seat_id"] = t.get("seat_id") or f"SEAT_{id_subjek}"
+            if "identity_votes" not in t:
+                t["identity_votes"] = {}
+            t["identity_votes"][nama_siswa] = max(t["identity_votes"].get(nama_siswa, 0), 5)
+
+            # 3. Kunci pada jangkar kursi spasial (Seat Anchor)
+            bx, by, bw, bh = t.get("box", (0, 0, 100, 100))
+            cx, cy = t.get("center", (bx + bw / 2.0, by + bh / 2.0))
+            self.jangkar_kursi[id_subjek] = {
+                "id": id_subjek,
+                "center": (cx, cy),
+                "box": (bx, by, bw, bh),
+                "student_name": nama_siswa,
+                "is_recognized": True,
+                "seat_latched": True,
+                "student_id": student_id,
+                "nis": nis,
+                "role": role,
+                "is_teacher": is_teacher,
+                "seat_id": t["seat_id"],
+                "waktu_terakhir_aktif": waktu_sekarang,
+                "dwell_seconds": max(t.get("dwell_seconds", 0.0), 15.0),
+                "attendance_qualified": True
+            }
+
     # Alias kompatibilitas bahasa Inggris
+    latch_identity = kunci_identitas_subjek
     update_hybrid = perbarui_posisi_hibrida
 
 

@@ -1,55 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, FileSpreadsheet, Printer, X, CheckCircle2, ShieldCheck, Download, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  FileText,
+  FileSpreadsheet,
+  Printer,
+  X,
+  CheckCircle2,
+  ShieldCheck,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { exportAccreditationExcel, type AccreditationReportData } from "@/lib/accreditation-export";
-
-const MOCK_REPORT_DATA: AccreditationReportData = {
-  schoolName: "Smart Learning AI Ecosystem",
-  npsn: "20224151",
-  academicYear: "2025/2026",
-  semester: "Semester Ganjil",
-  generatedDate: new Date().toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }),
-  totalSessions: 48,
-  avgFocusScore: 88,
-  totalStudents: 250,
-  totalAtRisk: 3,
-  students: [
-    { nis: "2025001", name: "Andi Pratama", className: "10-IPA-1", attendanceRate: 98, avgFocusRate: 94, handRaises: 28, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025002", name: "Budi Santoso", className: "10-IPA-1", attendanceRate: 96, avgFocusRate: 88, handRaises: 16, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025003", name: "Citra Dewi", className: "10-IPA-1", attendanceRate: 100, avgFocusRate: 96, handRaises: 34, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025004", name: "Doni Kusuma", className: "10-IPA-2", attendanceRate: 92, avgFocusRate: 85, handRaises: 12, phoneViolations: 1, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025005", name: "Eka Putri", className: "10-IPA-2", attendanceRate: 95, avgFocusRate: 90, handRaises: 22, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025006", name: "Fajar Nugraha", className: "11-RPL-1", attendanceRate: 90, avgFocusRate: 82, handRaises: 10, phoneViolations: 2, sleepIncidents: 0, riskLevel: "medium" },
-    { nis: "2025007", name: "Gita Savitri", className: "11-RPL-1", attendanceRate: 98, avgFocusRate: 93, handRaises: 26, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025008", name: "Hadi Purnomo", className: "11-RPL-1", attendanceRate: 88, avgFocusRate: 78, handRaises: 8, phoneViolations: 1, sleepIncidents: 1, riskLevel: "medium" },
-    { nis: "2025009", name: "Indah Lestari", className: "12-TKJ-1", attendanceRate: 96, avgFocusRate: 91, handRaises: 19, phoneViolations: 0, sleepIncidents: 0, riskLevel: "low" },
-    { nis: "2025010", name: "Putra Pratama", className: "10-IPA-1", attendanceRate: 82, avgFocusRate: 72, handRaises: 4, phoneViolations: 4, sleepIncidents: 1, riskLevel: "high" },
-    { nis: "2025011", name: "Rian Ardianto", className: "10-IPA-1", attendanceRate: 78, avgFocusRate: 68, handRaises: 2, phoneViolations: 1, sleepIncidents: 4, riskLevel: "critical" },
-  ],
-  sessions: [
-    { date: "03/10/2026", subject: "Fisika Terapan", className: "10-IPA-1", teacher: "Budi Santoso, M.Pd", focusScore: 88, insightSummary: "Dinamika kelas aktif, 14 interaksi tanya jawab. Terdeteksi 1 insiden kelelahan." },
-    { date: "02/10/2026", subject: "Matematika Diskrit", className: "10-IPA-2", teacher: "Siti Rahma, S.Pd", focusScore: 85, insightSummary: "Penyampaian materi terstruktur. Konsentrasi stabil sepanjang 75 menit pertama." },
-    { date: "01/10/2026", subject: "Pemrograman Web", className: "11-RPL-1", teacher: "Ahmad Zaldy, S.Kom", focusScore: 92, insightSummary: "Tingkat keterlibatan praktikum tinggi. Seluruh kelompok aktif mengerjakan proyek." },
-    { date: "30/09/2026", subject: "Jaringan Komputer", className: "12-TKJ-1", teacher: "Dewi Lestari, M.T", focusScore: 89, insightSummary: "Kombinasi teori dan demonstrasi lab berjalan efektif." },
-  ],
-};
+import {
+  exportAccreditationExcel,
+  type AccreditationReportData,
+} from "@/lib/accreditation-export";
 
 export function AccreditationExportTrigger() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [reportData, setReportData] = useState<AccreditationReportData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Ambil data agregasi akreditasi riil dari database Supabase saat modal dibuka
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    async function fetchAccreditationData() {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const res = await fetch("/api/reports/accreditation", {
+          cache: "no-store",
+        });
+        const json = await res.json();
+
+        if (!json.success || !json.data) {
+          throw new Error(json.error || "Gagal mengagregasi data akreditasi dari basis data.");
+        }
+
+        if (isMounted) {
+          setReportData(json.data);
+        }
+      } catch (err: any) {
+        console.error("Fetch accreditation error:", err);
+        if (isMounted) {
+          setLoadError(err.message || "Terjadi kesalahan saat memuat data.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchAccreditationData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   const handleDownloadExcel = async () => {
+    if (!reportData) {
+      toast.error("Data akreditasi belum siap diekspor.");
+      return;
+    }
+
     setIsExporting(true);
-    toast.loading("Menyusun Workbook Excel Akreditasi...", { id: "export-excel" });
+    toast.loading("Menyusun Workbook Excel Akreditasi dari Basis Data...", { id: "export-excel" });
     try {
-      await exportAccreditationExcel(MOCK_REPORT_DATA);
-      toast.success("Dokumen Excel Berhasil Diunduh!", { id: "export-excel" });
+      await exportAccreditationExcel(reportData);
+      toast.success("Dokumen Excel Akreditasi Berhasil Diunduh!", { id: "export-excel" });
       setIsOpen(false);
     } catch (err: any) {
       toast.error(`Gagal mengunduh: ${err.message}`, { id: "export-excel" });
@@ -69,77 +94,103 @@ export function AccreditationExportTrigger() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="apple-press inline-flex items-center gap-1.5 rounded-xl border border-[rgba(60,60,67,0.12)] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#1D1D1F] hover:bg-[#F2F2F0] shadow-sm transition-all min-h-[44px]"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted shadow-2xs transition-all active:scale-[0.98] min-h-[40px]"
       >
-        <FileText className="h-4 w-4 text-[#007AFF]" />
+        <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
         <span>Dokumen Akreditasi</span>
       </button>
 
       {/* Modal Dialog */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/40 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-2xl border border-[#E7E2DA] bg-white p-6 shadow-xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xl space-y-4">
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-[#E7E2DA] pb-4">
+            <div className="flex items-start justify-between border-b border-border/70 pb-3.5">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-[#EA580C]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-stone-900 tracking-tight">
+                  <h3 className="text-base font-bold text-foreground tracking-tight">
                     Ekspor Dokumen Akreditasi Resmi
                   </h3>
-                  <p className="text-xs text-stone-500">
-                    Standar BAN-S/M • Butir Mutu & Iklim Pembelajaran AI
+                  <p className="text-xs text-muted-foreground">
+                    Standar BAN-S/M • Berbasis Agregasi Basis Data Supabase
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded-lg p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                className="rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Quick Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3">
-                <span className="text-[10px] uppercase text-stone-400 block font-sans font-bold">
-                  Total Sesi AI Terverifikasi
-                </span>
-                <span className="text-xl font-bold text-stone-900">{MOCK_REPORT_DATA.totalSessions} Sesi</span>
-                <span className="text-[10px] text-emerald-700 block mt-0.5">100% Memenuhi Kriteria</span>
+            {/* Loading / Error / Data States */}
+            {isLoading ? (
+              <div className="p-8 text-center rounded-xl border border-border bg-muted/20 space-y-2">
+                <Loader2 className="h-6 w-6 text-orange-600 animate-spin mx-auto" />
+                <p className="text-xs text-muted-foreground font-medium">
+                  Mengagregasi catatan sesi, absensi, dan telemetri siswa...
+                </p>
               </div>
-              <div className="rounded-xl border border-[#E7E2DA] bg-[#FBF9F5] p-3">
-                <span className="text-[10px] uppercase text-stone-400 block font-sans font-bold">
-                  Indeks Fokus Kelas Rata-Rata
-                </span>
-                <span className="text-xl font-bold text-emerald-700">{MOCK_REPORT_DATA.avgFocusScore}%</span>
-                <span className="text-[10px] text-stone-500 block mt-0.5">Predikat: Sangat Baik (A)</span>
+            ) : loadError ? (
+              <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{loadError}</span>
               </div>
-            </div>
+            ) : reportData ? (
+              <>
+                {/* Quick Summary Cards (Real Database Data) */}
+                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="rounded-xl border border-border bg-muted/30 p-3.5 shadow-2xs">
+                    <span className="text-[10px] uppercase text-muted-foreground block font-sans font-bold">
+                      Total Sesi Terverifikasi
+                    </span>
+                    <span className="text-xl font-bold text-foreground font-mono tabular-nums">
+                      {reportData.totalSessions} Sesi
+                    </span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                      {reportData.totalStudents} Siswa Terdaftar
+                    </span>
+                  </div>
 
-            {/* Format Description */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-3.5 text-xs text-stone-600 space-y-1.5 leading-relaxed">
-              <p className="font-semibold text-stone-800 flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Format yang Disertakan dalam Dokumen:
-              </p>
-              <ul className="list-disc pl-5 space-y-1 text-stone-500 text-[11.5px]">
-                <li>Lembar Ringkasan Eksekutif & Capaian Indikator Kinerja BAN-S/M</li>
-                <li>Tabel Rincian Evaluasi Individual Keterlibatan Siswa per Kelas</li>
-                <li>Log Mutu Sesi Pembelajaran & Analisis Rekomendasi Pedagogik AI Guru</li>
-                <li>Lembar Pengesahan Resmi Kepala Sekolah & Pengawas Pembina Dinas</li>
-              </ul>
-            </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3.5 shadow-2xs">
+                    <span className="text-[10px] uppercase text-muted-foreground block font-sans font-bold">
+                      Indeks Fokus Rata-Rata
+                    </span>
+                    <span className="text-xl font-bold text-orange-600 dark:text-orange-400 font-mono tabular-nums">
+                      {reportData.avgFocusScore}%
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block mt-0.5">
+                      {reportData.totalAtRisk} Siswa Perlu Pendampingan
+                    </span>
+                  </div>
+                </div>
+
+                {/* Format Description */}
+                <div className="rounded-xl border border-border bg-muted/15 p-3.5 text-xs text-foreground/80 space-y-1.5 leading-relaxed">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Cakupan Dokumen Laporan Resmi:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-[11.5px]">
+                    <li>Lembar Ringkasan Eksekutif Mutu Pembelajaran BAN-S/M</li>
+                    <li>Evaluasi Individual Seluruh Siswa Berdasarkan Kehadiran Nyata</li>
+                    <li>Log Sesi Pembelajaran & Analisis Rekomendasi Pedagogik Guru</li>
+                    <li>Lembar Pengesahan Kepala Sekolah & Pengawas Pembina</li>
+                  </ul>
+                </div>
+              </>
+            ) : null}
 
             {/* Export Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={handleDownloadExcel}
-                disabled={isExporting}
-                className="apple-press flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 shadow-sm transition-all disabled:opacity-50"
+                disabled={isExporting || isLoading || !reportData}
+                className="flex items-center justify-center gap-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] px-4 py-2.5 text-xs font-bold text-white shadow-2xs transition-all disabled:opacity-50"
               >
                 {isExporting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -151,7 +202,8 @@ export function AccreditationExportTrigger() {
 
               <button
                 onClick={handlePrintPDF}
-                className="apple-press flex items-center justify-center gap-2 rounded-xl bg-[#EA580C] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#C2410C] shadow-sm transition-all"
+                disabled={isLoading || !reportData}
+                className="flex items-center justify-center gap-2 rounded-lg bg-orange-600 hover:bg-orange-700 active:scale-[0.98] px-4 py-2.5 text-xs font-bold text-white shadow-2xs transition-all disabled:opacity-50"
               >
                 <Printer className="h-4 w-4" />
                 <span>Cetak Resmi (PDF)</span>

@@ -21,9 +21,10 @@ import {
   ExternalLink,
   X,
   Loader2,
-  Send,
   RefreshCw,
+  Send,
 } from "lucide-react";
+import { OralDefenseModal } from "@/components/lms/oral-defense-modal";
 
 interface AssignmentData {
   id: string;
@@ -82,6 +83,15 @@ export default function StudentAssignmentsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pending Submission for Oral Defense
+  const [pendingSubmission, setPendingSubmission] = useState<{
+    assignment: AssignmentData;
+    fileUrl: string;
+    fileName: string;
+    notes: string;
+  } | null>(null);
+  const [isDefenseModalOpen, setIsDefenseModalOpen] = useState(false);
 
   // Detail Modal State (View Submitted Work & AI Feedback)
   const [viewingSubmission, setViewingSubmission] = useState<{
@@ -160,7 +170,20 @@ export default function StudentAssignmentsPage() {
         throw new Error(uploadJson.error || "Gagal mengunggah berkas laporan.");
       }
 
-      // 2. Submit record to assignment_submissions with AI Defense auto-evaluation
+      // 2. Jika tugas mewajibkan Oral Defense AI, arahkan ke tahap sidang lisan interaktif
+      if (activeAssignmentForSubmission.is_oral_defense_required) {
+        setPendingSubmission({
+          assignment: activeAssignmentForSubmission,
+          fileUrl: uploadJson.fileUrl,
+          fileName: selectedFile.name,
+          notes: notes,
+        });
+        setActiveAssignmentForSubmission(null);
+        setIsDefenseModalOpen(true);
+        return;
+      }
+
+      // 3. Jika tidak wajib oral defense, langsung submit resmi
       const subRes = await fetch("/api/lms/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -169,8 +192,8 @@ export default function StudentAssignmentsPage() {
           fileUrl: uploadJson.fileUrl,
           textContent: notes,
           notes,
-          oralDefensePassed: true,
-          oralDefenseScore: 95,
+          oralDefensePassed: false,
+          oralDefenseScore: 85,
         }),
       });
 
@@ -187,6 +210,48 @@ export default function StudentAssignmentsPage() {
     } catch (err: any) {
       console.error("Submission error:", err);
       setUploadError(err.message || "Terjadi kesalahan saat mengumpulkan tugas.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Konfirmasi resmi setelah siswa menyelesaikan sesi Oral Defense AI
+  const handleConfirmDefenseSubmit = async (defenseData: {
+    score: number;
+    feedback: string;
+    verifiedAnswers: Record<string, string>;
+  }) => {
+    if (!pendingSubmission) return;
+    setIsSubmitting(true);
+
+    try {
+      const subRes = await fetch("/api/lms/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignmentId: pendingSubmission.assignment.id,
+          fileUrl: pendingSubmission.fileUrl,
+          textContent: pendingSubmission.notes,
+          notes: pendingSubmission.notes,
+          oralDefensePassed: true,
+          oralDefenseScore: defenseData.score,
+          oralDefenseFeedback: defenseData.feedback,
+        }),
+      });
+
+      const subJson = await subRes.json();
+      if (!subJson.success) {
+        throw new Error(subJson.error || "Gagal mencatat pengumpulan tugas.");
+      }
+
+      setIsDefenseModalOpen(false);
+      setPendingSubmission(null);
+      setSelectedFile(null);
+      setNotes("");
+      await fetchData();
+    } catch (err: any) {
+      console.error("Oral defense submit error:", err);
+      alert(err.message || "Terjadi kesalahan saat mengonfirmasi hasil ujian lisan AI.");
     } finally {
       setIsSubmitting(false);
     }
@@ -225,7 +290,7 @@ export default function StudentAssignmentsPage() {
       <PageHeader
         eyebrow="PORTAL AKADEMIK SISWA"
         title="Tugas & Lembar Kerja"
-        description="Pantau penugasan aktif, unggah berkas laporan PDF, dan verifikasi orisinalitas melalui AI Defense."
+        description="Pantau penugasan aktif, unggah berkas laporan PDF, dan verifikasi orisinalitas melalui Uji Lisan Pemahaman."
         action={
           <div className="flex items-center gap-2">
             <Button
@@ -282,7 +347,7 @@ export default function StudentAssignmentsPage() {
               {completedCount} Berkas
             </span>
             <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium truncate block">
-              Lolos AI Defense
+              Terverifikasi Lisan
             </span>
           </div>
         </div>
@@ -368,8 +433,10 @@ export default function StudentAssignmentsPage() {
         ) : (
           filteredAssignments.map((item) => {
             const sub = submissionMap.get(item.id);
-            const isCompleted = !!sub;
+            const isCompleted = !!sub && sub.status !== "returned";
+            const isReturned = sub?.status === "returned";
             const isGraded = sub?.status === "graded";
+            const isLate = !isCompleted && !isReturned && item.due_date && new Date(item.due_date) < new Date();
 
             return (
               <div
@@ -391,16 +458,26 @@ export default function StudentAssignmentsPage() {
                     {isGraded ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
                         <Award className="h-3.5 w-3.5 text-blue-600" />
-                        Nilai: {sub.teacher_score}/100 • Sangat Baik
+                        Nilai: {sub.teacher_score}/100 • Selesai
+                      </span>
+                    ) : isReturned ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                        Perlu Revisi
                       </span>
                     ) : isCompleted ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                        Terkumpul • AI Defense {sub.oral_defense_score || 95}%
+                        Terkumpul • Terverifikasi {sub.oral_defense_score || 90}%
+                      </span>
+                    ) : isLate ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                        <Clock className="h-3.5 w-3.5 text-red-600" />
+                        Terlambat
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                        <Clock className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                        <Clock className="h-3.5 w-3.5 text-slate-500" />
                         Belum Dikumpulkan
                       </span>
                     )}
@@ -494,6 +571,18 @@ export default function StudentAssignmentsPage() {
                         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                         <span>Rincian Verifikasi & Nilai</span>
                       </Button>
+                    ) : isReturned ? (
+                      <Button
+                        variant="primary"
+                        onClick={() => {
+                          setActiveAssignmentForSubmission(item);
+                          setUploadError(null);
+                        }}
+                        className="text-xs h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-1.5 shadow-2xs"
+                      >
+                        <UploadCloud className="h-4 w-4" />
+                        <span>Unggah Revisi Tugas</span>
+                      </Button>
                     ) : (
                       <Button
                         variant="primary"
@@ -501,7 +590,7 @@ export default function StudentAssignmentsPage() {
                           setActiveAssignmentForSubmission(item);
                           setUploadError(null);
                         }}
-                        className="text-xs h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5 shadow-2xs"
+                        className="text-xs h-9 px-4 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold gap-1.5 shadow-2xs active:scale-[0.98] transition-all"
                       >
                         <UploadCloud className="h-4 w-4" />
                         <span>Kumpulkan Tugas (Unggah PDF)</span>
@@ -518,10 +607,10 @@ export default function StudentAssignmentsPage() {
       {/* 5. MODAL: Upload PDF Pengumpulan Tugas Siswa */}
       {activeAssignmentForSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-500/20">
                   <UploadCloud className="h-5 w-5" />
                 </div>
                 <div>
@@ -596,11 +685,11 @@ export default function StudentAssignmentsPage() {
                 />
               </div>
 
-              {/* AI Defense Notice */}
+              {/* AI Verification Notice */}
               <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-start gap-2.5 text-xs">
                 <BrainCircuit className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                 <div className="text-indigo-900 leading-relaxed text-[11px]">
-                  <strong>Verifikasi AI Defense Otomatis:</strong> Dokumen dan ringkasan Anda akan dianalisis untuk memverifikasi keaslian dan penguasaan materi sebelum diteruskan ke guru pengampu.
+                  <strong>Uji Lisan Pemahaman Mandiri:</strong> Dokumen dan ringkasan Anda akan diuji secara lisan untuk memverifikasi orisinalitas dan pemahaman konsep sebelum diteruskan ke guru pengampu.
                 </div>
               </div>
 
@@ -615,7 +704,7 @@ export default function StudentAssignmentsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="text-xs h-9 rounded-xl"
+                  className="text-xs h-9 rounded-lg"
                   onClick={() => setActiveAssignmentForSubmission(null)}
                   disabled={isSubmitting}
                 >
@@ -625,7 +714,7 @@ export default function StudentAssignmentsPage() {
                   type="submit"
                   variant="primary"
                   disabled={!selectedFile || isSubmitting}
-                  className="text-xs h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                  className="text-xs h-9 px-4 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold gap-1.5 shadow-2xs active:scale-[0.98] transition-all"
                 >
                   {isSubmitting ? (
                     <>
@@ -648,10 +737,10 @@ export default function StudentAssignmentsPage() {
       {/* 6. MODAL: Rincian Verifikasi & Nilai Tugas */}
       {viewingSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
@@ -676,7 +765,7 @@ export default function StudentAssignmentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
                   <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                    Skor AI Defense
+                    Indeks Penguasaan Materi
                   </span>
                   <span className="text-xl font-black text-emerald-600 font-mono">
                     {viewingSubmission.submission.oral_defense_score || 95}%
@@ -737,7 +826,7 @@ export default function StudentAssignmentsPage() {
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <Button
                 variant="outline"
-                className="text-xs h-9 px-4 rounded-xl"
+                className="text-xs h-9 px-4 rounded-lg"
                 onClick={() => setViewingSubmission(null)}
               >
                 Tutup
@@ -745,6 +834,20 @@ export default function StudentAssignmentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 7. MODAL: AI Oral Defense Interaktif Nyata */}
+      {isDefenseModalOpen && pendingSubmission && (
+        <OralDefenseModal
+          isOpen={isDefenseModalOpen}
+          onClose={() => {
+            setIsDefenseModalOpen(false);
+            setPendingSubmission(null);
+          }}
+          assignmentTitle={pendingSubmission.assignment.title}
+          submissionFilename={pendingSubmission.fileName}
+          onConfirmOfficialSubmit={handleConfirmDefenseSubmit}
+        />
       )}
     </div>
   );

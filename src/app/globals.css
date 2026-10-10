@@ -378,3 +378,46 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ==============================================================================
+   PRODUCTION PRINT STYLESHEET ENGINE (A4 / Physical Paper & PDF Optimization)
+   ============================================================================== */
+@media print {
+  /* Sembunyikan chrome antarmuka, navigasi, floating widgets, dan tombol */
+  header,
+  footer,
+  nav,
+  aside,
+  [role="dialog"],
+  [aria-hidden="true"],
+  .no-print,
+  [data-no-print],
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Standar margin kertas resmi A4 */
+  @page {
+    size: A4;
+    margin: 10mm 12mm 12mm 12mm;
+  }
+
+  /* Latar belakang putih murni dan teks kontras tajam untuk kejelasan cetak */
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Hindari pemotongan kartu / baris tabel di perbatasan halaman (page-break protection) */
+  tr,
+  td,
+  th,
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+

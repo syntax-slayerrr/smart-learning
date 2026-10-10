@@ -88,36 +88,36 @@ POSE_CONNECTIONS = KONEKSI_SENDI_ANATOMI
 # 4. AMBANG BATAS 5 ENTERPRISE GUARDRAILS (Data Structure & Algorithm Bounds)
 # ==============================================================================
 # Guardrail 1: Kinematika Sudut Siku & Gerbang Jarak Wajah
-AMBANG_SUDUT_SIKU_DERAJAT           = 105.0  # Sudut minimum siku (derajat) agar valid sebagai angkat tangan
-AMBANG_JARAK_WAJAH_TANGAN           = 0.07   # Jarak minimum pergelangan ke hidung (menghindari garuk kepala)
-DURASI_TAHAN_ANGKAT_TANGAN_DETIK    = 0.7    # Jendela geser waktu minimum agar gestur tidak fluktuatif
-DURASI_HISTESIS_ANGKAT_TANGAN_DETIK = 0.7    # Relaksasi transisi halus saat tangan mulai diturunkan
+AMBANG_SUDUT_SIKU_DERAJAT           = 35.0   # Sudut minimum siku (derajat) mencakup tekukan siku di meja
+AMBANG_JARAK_WAJAH_TANGAN           = 0.05   # Jarak minimum pergelangan ke hidung (menghindari garuk kepala)
+DURASI_TAHAN_ANGKAT_TANGAN_DETIK    = 0.40   # Tahan stabil (0.40s) agar tidak terpicu oleh gerakan tangan sekilas/flicker
+DURASI_HISTESIS_ANGKAT_TANGAN_DETIK = 0.60   # Relaksasi transisi halus saat tangan mulai diturunkan
 
 # Guardrail 2: Verifikator Energi Kinetik Gerakan Tangan
-KECEPATAN_TANGAN_MENULIS            = 0.015  # Ambang batas kecepatan tangan menulis di meja
-KECEPATAN_TANGAN_DIAM_TIDUR         = 0.010  # Ambang batas kecepatan tangan diam (statis)
-DURASI_TAHAN_TIDUR_DETIK            = 3.5    # Waktu akumulasi menunduk + diam sebelum divonis tidur
+KECEPATAN_TANGAN_MENULIS            = 0.022  # Ambang batas kecepatan tangan menulis di buku (mencegah salah deteksi saat ketik santai)
+KECEPATAN_TANGAN_DIAM_TIDUR         = 0.008  # Ambang batas kecepatan tangan diam (statis)
+DURASI_TAHAN_TIDUR_DETIK            = 2.5    # Peka mendeteksi rebahan/tidur di meja (>2.5s)
 
 # Guardrail 3: Buffer Voting Identitas Spasial
 MINIMAL_VOTING_IDENTITAS            = 2      # Akumulasi kecocokan ArcFace berturut-turut untuk mengunci identitas
 
 # Guardrail 4: Filter Penghalus Koordinat & Reduksi Jitter (One Euro Filter + EMA Sub-pixel)
-FAKTOR_EMA_SMOOTHING                = 0.22   # Fallback bobot koordinat baru
-ONE_EURO_MIN_CUTOFF                 = 1.2    # Frekuensi cutoff minimum (Hz) untuk respons cepat tanpa lag
-ONE_EURO_BETA                       = 0.08   # Koefisien responsivitas kecepatan tinggi agar tracking real-time mulus
+FAKTOR_EMA_SMOOTHING                = 0.25   # Fallback bobot koordinat baru
+ONE_EURO_MIN_CUTOFF                 = 0.3    # Cutoff rendah saat diam agar bounding box kokoh (Zero Jitter)
+ONE_EURO_BETA                       = 0.008  # Koefisien responsivitas kecepatan tinggi stabil
 ONE_EURO_D_CUTOFF                   = 1.0    # Cutoff derivatif kecepatan
 
 # Guardrail 5: Toleransi Retensi & Eliminasi Ghost Box
-MINIMAL_HIT_STREAK_KONFIRMASI       = 3      # Wajib terdeteksi >= 3 frame berturut-turut sebelum di-render ke HUD
-MAKSIMAL_FRAME_TENTATIVE_HILANG     = 1      # Track tentatif langsung dihapus jika hilang 1 frame (zero ghost retention)
+MINIMAL_HIT_STREAK_KONFIRMASI       = 2      # Wajib terdeteksi >= 2 frame berturut-turut sebelum di-render ke HUD
+MAKSIMAL_FRAME_TENTATIVE_HILANG     = 2      # Toleransi 2 frame jika flicker cahaya terjadi di baris belakang
 TOLERANSI_TRACK_HILANG_DETIK        = 5.0    # Jeda toleransi waktu saat siswa terkonfirmasi tertutup sementara
 AMBANG_IOU_PELACAKAN                = 0.30   # Ambang batas tumpang tindih spasial (IoU)
 AMBANG_BIAYA_ASOSIASI_MAKSIMAL      = 0.80   # Ambang batas gabungan IoU + Jarak Centroid Ternormalisasi
 INTERVAL_INFERENSI_WAJAH_DETIK     = 2.0    # Frekuensi inferensi pengenalan wajah asinkron (detik)
 SEAT_ANCHOR_MAX_RADIUS_PX           = 140.0  # Radius jangkar spasial kursi meja siswa (anti swap ID)
-SEAT_ANCHOR_TTL_SEC                 = 15.0   # Toleransi retensi kursi saat siswa tertutup guru atau teman sekelas
-DURASI_MINIMAL_DUDUK_PRESENSI_DETIK = 45.0   # Gate waktu minimal duduk stabil di kursi sebelum draf presensi aktif
-MINIMAL_KONSENSUS_FRAME_PRESENSI    = 5      # Jumlah frame berturut-turut terverifikasi identitas sebelum memenuhi syarat presensi
+SEAT_ANCHOR_TTL_SEC                 = 300.0  # Toleransi retensi kursi 5 menit saat siswa menunduk menulis atau oklusi
+DURASI_MINIMAL_DUDUK_PRESENSI_DETIK = 5.0    # Respons cepat presensi otomatis (instan latching)
+MINIMAL_KONSENSUS_FRAME_PRESENSI    = 2      # Jumlah frame berturut-turut terverifikasi identitas sebelum presensi aktif
 
 # Alias kompatibilitas
 GUARDRAIL_ELBOW_ANGLE_THRESH        = AMBANG_SUDUT_SIKU_DERAJAT
@@ -152,10 +152,10 @@ class KonfigurasiEngine:
     flip_h: bool = False
     headless: bool = True
     target_fps: int = 30
-    yolo_conf_thresh: float = 0.50
-    yolo_imgsz: int = 320
-    face_sim_thresh: float = 0.38
-    face_interval_sec: float = 2.0
+    yolo_conf_thresh: float = 0.28
+    yolo_imgsz: int = 480
+    face_sim_thresh: float = 0.34
+    face_interval_sec: float = 1.0
 
 # Alias kompatibilitas
 EngineConfig = KonfigurasiEngine

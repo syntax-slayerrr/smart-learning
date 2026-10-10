@@ -180,7 +180,12 @@ ${highlightedText ? `\nTeks yang Sedang Disorot Siswa di Modul:\n"${highlightedT
       temperature: 0.2,
     });
 
-    const rawReply = aiResponse.content || "";
+    let rawReply = aiResponse.content || "";
+    if (!rawReply.trim()) {
+      // Heuristic Curriculum Socratic Fallback (Anti-Blank Bubble)
+      const snippet = chapterSummary || topicData?.summary || "materi ini";
+      rawReply = `Terkait pertanyaanmu mengenai **${topicTitle}**: mari kita bedah prinsip dasarnya terlebih dahulu.\n\n${snippet}\n\nMenurut pemahamanmu, bagaimana bagian ini berkaitan dengan pertanyaan atau langkah yang sedang kamu pelajari?`;
+    }
 
     // 6. Deteksi Checkpoint
     let checkpointPassed = false;

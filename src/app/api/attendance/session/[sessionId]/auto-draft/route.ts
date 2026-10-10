@@ -97,9 +97,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     for (const student of enrolledStudents) {
       const isAlreadyRecorded = recordedStudentIds.has(student.id);
 
-      // Search match in draft by name (fuzzy / exact)
+      // Search match in draft: Prioritas 1: student_id UUID / NIS definitif. Fallback: Nama
       let match = null;
       for (const [keyName, draftItem] of Object.entries(draftMap) as [string, any][]) {
+        if (draftItem.student_id && draftItem.student_id === student.id) {
+          match = draftItem;
+          break;
+        }
+        if (draftItem.nis && student.nis && draftItem.nis === student.nis) {
+          match = draftItem;
+          break;
+        }
         if (
           student.name.toLowerCase().includes(keyName.toLowerCase()) ||
           keyName.toLowerCase().includes(student.name.toLowerCase())
@@ -110,8 +118,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
 
       // If matched and qualified or in demo mode with Andi/Zaldy
-      const isQualified = match?.attendance_qualified || (match && match.dwell_seconds >= 15);
-      const dwellSeconds = match?.dwell_seconds || (isDemoSession && student.name.includes("Andi") ? 52 : 0);
+      const isQualified = match?.attendance_qualified || Boolean(match && (match.confidence >= 0.35 || match.dwell_seconds >= 5));
+      const dwellSeconds = match?.dwell_seconds || (isDemoSession && (student.name.includes("Andi") || student.name.includes("Zaldy")) ? 52 : 0);
       const confidence = match?.confidence || 0.98;
       const seatId = match?.seat_id || "SEAT_A1";
 
