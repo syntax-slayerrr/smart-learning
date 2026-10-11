@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { WifiOff, RefreshCw, LogOut } from "lucide-react";
-import { getRoleLabel, getInitials, cn } from "@/lib/utils";
+import { WifiOff, LogOut } from "lucide-react";
+import { getRoleLabel, getInitials } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { useOfflineStatus } from "@/lib/offline-lms-cache";
@@ -22,7 +22,7 @@ export function Header({
   userEmail,
   onLogout,
 }: HeaderProps) {
-  const { isOnline, offlineQueueCount, isSyncing, triggerSync } = useOfflineStatus();
+  const { isOnline } = useOfflineStatus();
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
 
   return (
@@ -97,19 +97,6 @@ export function Header({
             <WifiOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <span className="hidden sm:inline">Offline</span>
           </div>
-        )}
-
-        {/* Sync Draft Pill */}
-        {isOnline && offlineQueueCount > 0 && (
-          <button
-            onClick={triggerSync}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 hover:bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-800 shadow-2xs active:scale-95 transition-all"
-            title="Sinkronisasi draf offline ke server"
-          >
-            <RefreshCw className={cn("h-3 w-3 text-sky-600 shrink-0", isSyncing && "animate-spin")} />
-            <span>{isSyncing ? "Sync..." : `${offlineQueueCount} draf`}</span>
-          </button>
         )}
 
         {/* Notifications */}
