@@ -31,25 +31,14 @@ export function Header({
       <div className="flex items-center gap-3 min-w-0">
         <Link
           href={`/${role}`}
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
+          className="flex items-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
         >
-          <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-0.5 shadow-2xs">
-            <Image
-              src="/brand/syntax-slayer-logo.png"
-              alt="Smart Learning Logo"
-              fill
-              className="object-contain p-0.5"
-              priority
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold tracking-tight text-slate-900 leading-none">
-              Smart Learning
-            </span>
-            <span className="inline-flex items-center rounded-md border border-slate-200/60 bg-slate-100/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 uppercase tracking-wider leading-none">
-              {getRoleLabel(role)}
-            </span>
-          </div>
+          <span className="text-sm font-bold tracking-tight text-slate-900 leading-none">
+            Smart Learning
+          </span>
+          <span className="inline-flex items-center rounded-md border border-slate-200/60 bg-slate-100/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 uppercase tracking-wider leading-none">
+            {getRoleLabel(role)}
+          </span>
         </Link>
 
         {/* Desktop School & Portal Sub-tag */}
