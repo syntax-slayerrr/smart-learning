@@ -96,16 +96,17 @@ export function NotificationBell() {
     <div className="relative" ref={popoverRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground"
+        className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors active:scale-95 touch-manipulation"
+        aria-label="Buka notifikasi"
       >
-        <Bell className="h-5 w-5 text-muted-foreground" />
+        <Bell className="h-4.5 w-4.5 text-slate-600" />
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
         )}
       </button>
       
       {isOpen && (
-        <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-border/40 bg-background/95 p-0 shadow-lg backdrop-blur-xl">
+        <div className="absolute right-0 top-11 sm:top-12 z-50 w-[calc(100vw-32px)] max-w-sm sm:w-80 rounded-2xl border border-border/40 bg-background/95 p-0 shadow-lg backdrop-blur-xl">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div>
               <h3 className="font-semibold text-sm">Notifikasi</h3>
