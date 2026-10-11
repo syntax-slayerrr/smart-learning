@@ -349,7 +349,7 @@ export default async function TeacherDashboard() {
                   teacherAnalytics.total_sessions) *
                   100
               )
-            : 92
+            : 0
         }
         leftCard={{
           label: "Total Sesi Mengajar",
@@ -507,7 +507,7 @@ export default async function TeacherDashboard() {
                     teacherAnalytics.total_sessions) *
                     100
                 )
-              : 92
+              : 0
           }
           title="Telemetri AI Terintegrasi"
           subtitle="Persentase sesi kelas yang telah dilengkapi telemetri kamera & sensor visual AI"

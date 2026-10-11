@@ -26,13 +26,14 @@ interface StudentEngagementJournalProps {
  */
 export function StudentEngagementJournal({
   studentName,
-  handRaiseCount = 6,
-  focusScore = 92,
-  favoriteSeat = "Meja A-2",
-  totalSessionsVerified = 12,
+  handRaiseCount = 0,
+  focusScore = 0,
+  favoriteSeat = "-",
+  totalSessionsVerified = 0,
   recentAiVerifiedNote,
 }: StudentEngagementJournalProps) {
   const firstName = studentName.split(" ")[0];
+  const hasData = totalSessionsVerified > 0 || handRaiseCount > 0 || focusScore > 0;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-5 sm:p-6 shadow-2xs space-y-4">
@@ -60,20 +61,33 @@ export function StudentEngagementJournal({
 
       {/* Hero Quote Apresiasi (Inti Permintaan User) */}
       <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.03] p-4 sm:p-4.5 space-y-1.5">
-        <p className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-snug">
-          &ldquo;Minggu ini kamu aktif berpartisipasi{" "}
-          <span className="text-orange-600 dark:text-orange-400 font-mono underline decoration-orange-500/30 underline-offset-4">
-            {handRaiseCount}x angkat tangan
-          </span>{" "}
-          dan{" "}
-          <span className="text-emerald-600 dark:text-emerald-400 font-mono underline decoration-emerald-500/30 underline-offset-4">
-            {focusScore}% fokus belajar
-          </span>
-          .&rdquo;
-        </p>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Kerja bagus, {firstName}! Keberanianmu berdiskusi di kelas dan ketepatan hadir di bangku belajar mendapatkan apresiasi tinggi dari guru pengampu.
-        </p>
+        {hasData ? (
+          <>
+            <p className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-snug">
+              &ldquo;Minggu ini kamu aktif berpartisipasi{" "}
+              <span className="text-orange-600 dark:text-orange-400 font-mono underline decoration-orange-500/30 underline-offset-4">
+                {handRaiseCount}x angkat tangan
+              </span>{" "}
+              dan{" "}
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono underline decoration-emerald-500/30 underline-offset-4">
+                {focusScore}% fokus belajar
+              </span>
+              .&rdquo;
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Kerja bagus, {firstName}! Keberanianmu berdiskusi di kelas dan ketepatan hadir di bangku belajar mendapatkan apresiasi tinggi dari guru pengampu.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-snug">
+              &ldquo;Belum ada rekaman sesi belajar.&rdquo;
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Halo {firstName}, riwayat keaktifan dan atensi belajarmu akan terisi otomatis setelah mengikuti sesi pembelajaran terverifikasi di kelas.
+            </p>
+          </>
+        )}
       </div>
 
       {/* 3 Pilar Glanceable Metric Cards */}
@@ -131,7 +145,7 @@ export function StudentEngagementJournal({
             </span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-base font-bold font-mono text-foreground truncate">
-                {favoriteSeat || "Meja A-2"}
+                {favoriteSeat || "-"}
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate">

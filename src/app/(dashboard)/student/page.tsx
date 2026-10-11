@@ -94,11 +94,11 @@ export default async function StudentDashboard() {
   };
   const total = records?.length || 0;
   const rate =
-    total > 0 ? Math.round(((stats.present + stats.late) / total) * 100) : 100;
+    total > 0 ? Math.round(((stats.present + stats.late) / total) * 100) : 0;
 
   // Kalkulasi Metrik AI Vision untuk Jurnal Keaktifan Belajar Apresiatif
   const rawHandRaise = records?.reduce((acc, r) => acc + (r.hand_raise_count || 0), 0) || 0;
-  const totalHandRaise = rawHandRaise > 0 ? rawHandRaise : 6; // Nilai apresiatif default jika semester baru
+  const totalHandRaise = rawHandRaise;
   const totalRestingMin = records?.reduce((acc, r) => acc + (r.resting_posture_minutes || 0), 0) || 0;
   
   const seatCounts: Record<string, number> = {};
@@ -107,9 +107,9 @@ export default async function StudentDashboard() {
       seatCounts[r.seat_code] = (seatCounts[r.seat_code] || 0) + 1;
     }
   });
-  const favoriteSeat = Object.keys(seatCounts).sort((a, b) => seatCounts[b] - seatCounts[a])[0] || "Meja A-2";
-  const focusScore = Math.max(80, Math.min(98, 100 - Math.round((totalRestingMin / Math.max(1, (records?.length || 1) * 45)) * 100))) || 92;
-  const latestAiNote = recentRecords?.find((r) => r.notes?.includes("AI Vision"))?.notes || `Presensi otomatis terverifikasi di ${favoriteSeat}`;
+  const favoriteSeat = Object.keys(seatCounts).sort((a, b) => seatCounts[b] - seatCounts[a])[0] || "-";
+  const focusScore = total > 0 ? Math.max(0, Math.min(100, 100 - Math.round((totalRestingMin / (total * 45)) * 100))) : 0;
+  const latestAiNote = recentRecords?.find((r) => r.notes?.includes("AI Vision"))?.notes || (total > 0 ? `Presensi terverifikasi di ${favoriteSeat}` : undefined);
 
   const hour = nowWib.getUTCHours();
   const greeting =

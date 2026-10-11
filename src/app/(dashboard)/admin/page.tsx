@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
 
   const latestTrend =
     trendData && trendData.length > 0 ? trendData[trendData.length - 1] : null;
-  const attendanceRate = latestTrend?.presentRate ?? 94.2;
+  const attendanceRate = latestTrend?.presentRate ?? 0;
 
   // Format recent sessions for modern activity feed
   const mappedSessions: ActivitySessionItem[] = (
@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
     {
       id: "attendance",
       label: "Tepat Waktu",
-      value: `${Math.round(attendanceRate)}%`,
+      value: latestTrend ? `${Math.round(attendanceRate)}%` : "0%",
       sublabel: "Tingkat Hadir",
       icon: "check",
       variant: "success",
@@ -162,9 +162,7 @@ export default async function AdminDashboardPage() {
     {
       id: "ai-sensor",
       label: "Pantauan Kelas",
-      value: schoolOverview?.total_sessions_with_telemetry
-        ? `${schoolOverview.total_sessions_with_telemetry} Sesi`
-        : "Aktif",
+      value: `${schoolOverview?.total_sessions_with_telemetry || 0} Sesi`,
       sublabel: "Kamera Aktif",
       icon: "video",
       variant: "primary",
@@ -273,7 +271,7 @@ export default async function AdminDashboardPage() {
               <span className="font-bold text-slate-900">
                 {schoolOverview?.avg_hand_raises_per_session
                   ? `${schoolOverview.avg_hand_raises_per_session}x bertanya`
-                  : "Aktif menyimak"}
+                  : "0x bertanya"}
               </span>
             </div>
           </div>

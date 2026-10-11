@@ -19,7 +19,7 @@ const DEFAULT_METRICS: TriMetricItem[] = [
   {
     id: "attendance",
     label: "Tepat Waktu",
-    value: "94%",
+    value: "0%",
     sublabel: "Kehadiran",
     icon: "check",
     variant: "success",
@@ -27,7 +27,7 @@ const DEFAULT_METRICS: TriMetricItem[] = [
   {
     id: "attention",
     label: "Perlu Atensi",
-    value: "2",
+    value: "0",
     sublabel: "Siswa Alpa",
     icon: "warning",
     variant: "warning",
@@ -35,8 +35,8 @@ const DEFAULT_METRICS: TriMetricItem[] = [
   {
     id: "ai-sensor",
     label: "Kamera AI",
-    value: "100%",
-    sublabel: "Aktif Normal",
+    value: "0 Sesi",
+    sublabel: "Pantauan",
     icon: "video",
     variant: "primary",
   },

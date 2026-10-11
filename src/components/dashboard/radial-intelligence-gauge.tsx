@@ -11,7 +11,7 @@ interface RadialIntelligenceGaugeProps {
 }
 
 export function RadialIntelligenceGauge({
-  score = 94,
+  score = 0,
   title = "Smart Intelligence Score",
   subtitle = "Analisis Telemetri & Partisipasi Siswa",
   className = "",
@@ -30,6 +30,13 @@ export function RadialIntelligenceGauge({
 
   // Determine status label & color accent based on score
   const getStatusBadge = () => {
+    if (safeScore === 0) {
+      return {
+        label: "Belum Ada Data",
+        bg: "bg-slate-50/90 text-slate-600 border-slate-200/80",
+        dot: "bg-slate-400",
+      };
+    }
     if (safeScore >= 85) {
       return {
         label: "Sangat Optimal",
