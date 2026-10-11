@@ -80,7 +80,17 @@ export function HermesCopilotWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = (smooth = false) => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  };
 
   const handleCopyMessage = (id: string, text: string) => {
     try {
@@ -94,6 +104,17 @@ export function HermesCopilotWidget() {
     }
   };
 
+  // Lock body scroll while copilot sheet is active
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  // Handle mobile visual viewport resize without window bounce
   useEffect(() => {
     if (!isOpen || typeof window === "undefined") return;
 
@@ -101,9 +122,10 @@ export function HermesCopilotWidget() {
     if (!vv) return;
 
     const handleResize = () => {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 80);
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      scrollToBottom(false);
     };
 
     vv.addEventListener("resize", handleResize);
@@ -114,10 +136,16 @@ export function HermesCopilotWidget() {
 
   useEffect(() => {
     if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      inputRef.current?.focus();
+      scrollToBottom(false);
+      inputRef.current?.focus({ preventScroll: true });
     }
-  }, [isOpen, messages]);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom(true);
+    }
+  }, [isOpen, messages, isLoading]);
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputValue).trim();
@@ -400,7 +428,7 @@ export function HermesCopilotWidget() {
       {/* Floating Workspace / Mobile Bottom Sheet */}
       {isOpen && (
         <div
-          className={`fixed z-50 flex flex-col bg-white overflow-hidden transition-all duration-200 animate-in ${
+          className={`fixed z-50 flex flex-col bg-white overflow-hidden transition-none sm:transition-all sm:duration-200 animate-in ${
             /* Mobile: Apple Bottom Sheet | Desktop: Floating Card */
             "inset-x-0 bottom-0 h-[88dvh] max-h-[88dvh] rounded-t-[28px] border-t border-slate-200/90 shadow-[0_-10px_40px_rgba(15,23,42,0.18)] slide-in-from-bottom-full sm:inset-x-auto sm:bottom-6 sm:right-6 sm:rounded-3xl sm:border sm:border-slate-200/90 sm:shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:slide-in-from-bottom-4"
           } ${
@@ -503,7 +531,10 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Chat Messages Stream with Generative UI Workspaces */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 text-xs sm:text-[13px]">
+          <div
+            ref={chatContainerRef}
+            className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-slate-50/50 text-xs sm:text-[13px] overscroll-contain"
+          >
             {messages.map((m) => {
               const isUser = m.role === "user";
               return (
@@ -780,6 +811,11 @@ export function HermesCopilotWidget() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  if (typeof window !== "undefined" && window.scrollY !== 0) {
+                    window.scrollTo(0, 0);
+                  }
+                }}
                 placeholder="Tanyakan kehadiran, ringkasan kelas, atau siswa..."
                 disabled={isLoading}
                 className="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 py-1"
