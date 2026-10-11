@@ -126,13 +126,13 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
     <nav
       ref={navRef}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-4px_20px_rgba(0,0,0,0.06)]",
+        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-6px_25px_rgba(15,23,42,0.08)] dark:drop-shadow-[0_-8px_30px_rgba(0,0,0,0.5)]",
         !isMobileAppRole && "lg:hidden"
       )}
       aria-label="Navigasi Bawah"
     >
-      {/* Background connector extending down to bottom of screen */}
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-white dark:bg-card pointer-events-auto" />
+      {/* Background connector extending down to bottom of screen with frosted glass */}
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl pointer-events-auto transition-colors" />
 
       {/* Container with responsive max width on larger mobile / tablet */}
       <div className="relative mx-auto w-full max-w-lg h-[84px] pointer-events-auto select-none">
@@ -144,7 +144,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           viewBox="0 0 390 84"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Solid White Dock Body with Curved Scoop */}
+          {/* Frosted Dock Body with Curved Scoop */}
           <path
             d="
               M 0 22
@@ -156,7 +156,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
               L 0 84
               Z
             "
-            fill="#FFFFFF"
+            className="fill-white/95 dark:fill-slate-900/95 transition-colors"
           />
 
           {/* Hairline subtle top specular border for Apple HIG depth */}
@@ -169,7 +169,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
               L 390 22
             "
             fill="none"
-            stroke="rgba(226, 232, 240, 0.85)"
+            className="stroke-slate-200/90 dark:stroke-white/10"
             strokeWidth="1.2"
           />
         </svg>
@@ -177,18 +177,19 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
         {/* Sliding Active Indicator Pill (for side tabs) with Spring Curve */}
         <div
           className={cn(
-            "absolute top-[23px] h-1 w-8 rounded-full bg-blue-600 pointer-events-none -translate-x-1/2 z-20",
+            "absolute top-[22px] h-[2.5px] w-8 rounded-full pointer-events-none -translate-x-1/2 z-20",
+            "bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600",
             "transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
             indicatorLeft !== null ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
           style={{
             left: indicatorLeft !== null ? `${indicatorLeft}px` : "50%",
-            boxShadow: "0 2px 10px rgba(37, 99, 235, 0.55)",
+            boxShadow: "0 2px 10px rgba(37, 99, 235, 0.65)",
           }}
         />
 
         {/* Navigation Tabs Bar */}
-        <div className="absolute inset-x-0 bottom-0 h-16 flex items-center justify-between px-2 z-10">
+        <div className="absolute inset-x-0 bottom-0 h-16 flex items-center justify-between px-2.5 z-10">
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isCenter = tab.isCenter || idx === 2;
@@ -214,25 +215,27 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                     className={cn(
                       "absolute -top-3.5 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center text-white z-20",
                       "touch-manipulation cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-                      "active:scale-90",
+                      "active:scale-92 ring-4 ring-white dark:ring-slate-900",
                       isActive
-                        ? "scale-105 shadow-[0_16px_34px_-4px_rgba(37,99,235,0.5),0_8px_16px_-2px_rgba(15,23,42,0.4)] ring-4 ring-white"
-                        : "scale-100 shadow-[0_12px_26px_-4px_rgba(37,99,235,0.4),0_6px_12px_-2px_rgba(15,23,42,0.3)] ring-2 ring-white/80"
+                        ? "scale-105 shadow-[0_16px_34px_-4px_rgba(37,99,235,0.55),0_8px_16px_-2px_rgba(15,23,42,0.4)]"
+                        : "scale-100 shadow-[0_10px_24px_-4px_rgba(37,99,235,0.4),0_6px_12px_-2px_rgba(15,23,42,0.3)]"
                     )}
                     style={{
                       background:
-                        "linear-gradient(135deg, #0F172A 0%, #1E3A8A 48%, #2563EB 100%)",
+                        "linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%)",
+                      boxShadow:
+                        "inset 0 1.5px 1.5px 0 rgba(255,255,255,0.4), 0 10px 24px -4px rgba(37,99,235,0.4)",
                     }}
                   >
                     {/* Specular Rim Light on Center FAB */}
-                    <div className="absolute inset-0 rounded-full border border-blue-300/40 pointer-events-none" />
+                    <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none" />
                     {tab.asset ? (
                       <img
                         src={tab.asset}
                         alt=""
                         className={cn(
                           "w-8 h-8 object-contain transition-transform duration-300 relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]",
-                          isActive ? "scale-115" : "scale-100"
+                          isActive ? "scale-110" : "scale-100"
                         )}
                       />
                     ) : (
@@ -250,8 +253,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                     className={cn(
                       "text-[10px] tracking-tight transition-colors duration-200 mt-5",
                       isActive
-                        ? "font-bold text-blue-600"
-                        : "font-medium text-slate-500"
+                        ? "font-bold text-blue-600 dark:text-blue-400"
+                        : "font-medium text-slate-500 dark:text-slate-400"
                     )}
                   >
                     {tab.label}
@@ -268,12 +271,12 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                   data-tab-index={idx}
                   onClick={onOpenMenu}
                   aria-label="Buka Menu Lengkap"
-                  className="flex-1 h-full flex flex-col items-center justify-center py-1 text-center touch-manipulation transition-transform active:scale-95 text-slate-500 hover:text-slate-800"
+                  className="flex-1 h-full flex flex-col items-center justify-center py-1 text-center touch-manipulation transition-transform active:scale-95 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   <div className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-transform duration-300">
                     <Icon className="w-5 h-5 stroke-[1.8]" />
                   </div>
-                  <span className="mt-0.5 text-[10px] font-medium tracking-tight text-slate-500">
+                  <span className="mt-0.5 text-[10px] font-medium tracking-tight text-slate-500 dark:text-slate-400">
                     {tab.label}
                   </span>
                 </button>
@@ -290,16 +293,16 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                   "group relative flex-1 h-full flex flex-col items-center justify-center py-1 text-center touch-manipulation",
                   "transition-transform active:scale-95",
                   isActive
-                    ? "text-blue-600"
-                    : "text-slate-500 hover:text-slate-800"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
                 <div
                   className={cn(
                     "relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300",
                     isActive
-                      ? "scale-105 bg-blue-50/90 text-blue-600 shadow-sm border border-blue-100/70"
-                      : "scale-100 bg-transparent text-slate-500"
+                      ? "scale-105 bg-blue-50/90 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shadow-xs border border-blue-100/80 dark:border-blue-800/50"
+                      : "scale-100 bg-transparent text-slate-500 dark:text-slate-400"
                   )}
                 >
                   {tab.asset ? (
@@ -309,8 +312,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                       className={cn(
                         "w-6 h-6 object-contain transition-all duration-200 select-none",
                         isActive
-                          ? "scale-115 drop-shadow-[0_2px_4px_rgba(37,99,235,0.3)]"
-                          : "opacity-85 group-hover:opacity-100 group-hover:scale-105"
+                          ? "scale-110 drop-shadow-[0_2px_4px_rgba(37,99,235,0.3)]"
+                          : "opacity-80 group-hover:opacity-100 group-hover:scale-105"
                       )}
                     />
                   ) : (
@@ -326,8 +329,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                   className={cn(
                     "mt-0.5 text-[10px] tracking-tight transition-all duration-200",
                     isActive
-                      ? "font-bold text-blue-600"
-                      : "font-medium text-slate-500"
+                      ? "font-bold text-blue-600 dark:text-blue-400"
+                      : "font-medium text-slate-500 dark:text-slate-400"
                   )}
                 >
                   {tab.label}
@@ -338,7 +341,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
         </div>
       </div>
       {/* Device Safe Area Filler to ensure seamless background connection on iPhones & Android gesture bars */}
-      <div className="w-full bg-white dark:bg-card h-[env(safe-area-inset-bottom,0px)] pointer-events-auto" />
+      <div className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-[env(safe-area-inset-bottom,0px)] pointer-events-auto transition-colors" />
     </nav>
   );
 }
