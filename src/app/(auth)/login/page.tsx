@@ -21,9 +21,9 @@ export default function LoginPage() {
             <Image
               src="/brand/syntax-slayer-logo.png"
               alt="SYNTAX SLAYER"
-              width={220}
-              height={56}
-              className="h-8 sm:h-9 w-auto object-contain"
+              width={260}
+              height={70}
+              className="h-11 sm:h-12 w-auto object-contain"
               priority
             />
           </div>
@@ -35,7 +35,7 @@ export default function LoginPage() {
                 <GraduationCap className="h-3.5 w-3.5 text-blue-600" />
                 <span>Sistem Akademik Terpadu</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-none">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
                 Smart Learning
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 font-medium">
