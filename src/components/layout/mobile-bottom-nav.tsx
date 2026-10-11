@@ -34,10 +34,17 @@ interface BottomTab {
   isCenter?: boolean;
 }
 
+// Compute mathematically safe tab center ensuring corner clearance for all 5 tabs
+function getTabCenter(idx: number, W: number): number {
+  const minMargin = 56; // 44px notch radius + 12px shoulder clearance
+  const usable = Math.max(160, W - minMargin * 2);
+  return minMargin + idx * (usable / 4);
+}
+
 // Compute concentric circular cradle notch with smooth tangent fillets matching button geometry
 function getConcentricDockPaths(W: number, tabIdx: number) {
-  const safeW = Math.max(300, W);
-  const cx = (safeW * (tabIdx * 2 + 1)) / 10;
+  const safeW = Math.max(320, W);
+  const cx = getTabCenter(tabIdx, safeW);
   
   // Exact button physical alignment:
   // Button: w-14 (56px) at -top-3 (-12px) => center cyBtn = 16px
@@ -46,7 +53,7 @@ function getConcentricDockPaths(W: number, tabIdx: number) {
   const rCradle = 35;
   const rFillet = 10;
   const yBase = 22;
-  const shoulderR = 20;
+  const shoulderR = 14;
 
   const yF = yBase + rFillet;
   const dist = rCradle + rFillet;
@@ -57,37 +64,34 @@ function getConcentricDockPaths(W: number, tabIdx: number) {
   const uY = dy / dist;
 
   // Tangent transition points
-  const xLeftF = Math.max(shoulderR, cx - dxF);
+  const xLeftF = cx - dxF;
   const xLeftC = cx + rCradle * uX;
   const yLeftC = cyBtn + rCradle * uY;
 
   const xRightC = cx - rCradle * uX;
   const yRightC = yLeftC;
-  const xRightF = Math.min(safeW - shoulderR, cx + dxF);
-
-  const preLine = xLeftF > shoulderR ? `L ${xLeftF.toFixed(2)} ${yBase} ` : "";
-  const postLine = xRightF < safeW - shoulderR ? `L ${(safeW - shoulderR).toFixed(2)} ${yBase} ` : "";
+  const xRightF = cx + dxF;
 
   // Continuous seamless dock body
   const fillPath =
     `M 0 46 ` +
     `C 0 ${(46 - shoulderR * 0.55).toFixed(1)} ${(shoulderR * 0.45).toFixed(1)} ${yBase} ${shoulderR} ${yBase} ` +
-    `${preLine}` +
+    `L ${xLeftF.toFixed(2)} ${yBase} ` +
     `A ${rFillet} ${rFillet} 0 0 1 ${xLeftC.toFixed(2)} ${yLeftC.toFixed(2)} ` +
     `A ${rCradle} ${rCradle} 0 0 0 ${xRightC.toFixed(2)} ${yRightC.toFixed(2)} ` +
     `A ${rFillet} ${rFillet} 0 0 1 ${xRightF.toFixed(2)} ${yBase} ` +
-    `${postLine}` +
+    `L ${(safeW - shoulderR).toFixed(2)} ${yBase} ` +
     `C ${(safeW - shoulderR * 0.45).toFixed(1)} ${yBase} ${safeW} ${(46 - shoulderR * 0.55).toFixed(1)} ${safeW} 46 ` +
     `L ${safeW} 84 L 0 84 Z`;
 
   // Top hairline rim stroke
   const strokePath =
     `M ${shoulderR} ${yBase} ` +
-    `${preLine}` +
+    `L ${xLeftF.toFixed(2)} ${yBase} ` +
     `A ${rFillet} ${rFillet} 0 0 1 ${xLeftC.toFixed(2)} ${yLeftC.toFixed(2)} ` +
     `A ${rCradle} ${rCradle} 0 0 0 ${xRightC.toFixed(2)} ${yRightC.toFixed(2)} ` +
     `A ${rFillet} ${rFillet} 0 0 1 ${xRightF.toFixed(2)} ${yBase} ` +
-    `${postLine}`;
+    `L ${(safeW - shoulderR).toFixed(2)} ${yBase}`;
 
   return { fillPath, strokePath };
 }
@@ -96,7 +100,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   const pathname = usePathname();
   const [optimisticIdx, setOptimisticIdx] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dockWidth, setDockWidth] = useState<number>(390);
+  const [dockWidth, setDockWidth] = useState<number>(366);
 
   // Measure actual dock width dynamically to prevent non-uniform scaling on any device
   useEffect(() => {
@@ -184,7 +188,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   const currentIdx = optimisticIdx !== null ? optimisticIdx : (activeIndex >= 0 ? activeIndex : 2);
   const activeTab = currentIdx >= 0 && currentIdx < tabs.length ? tabs[currentIdx] : null;
   const ActiveIcon = activeTab?.icon;
-  const activePercent = (currentIdx * 2 + 1) * 10; // Exactly 10%, 30%, 50%, 70%, 90%
+  const activeCenterPx = getTabCenter(currentIdx, dockWidth);
 
   const { fillPath, strokePath } = getConcentricDockPaths(dockWidth, currentIdx);
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
@@ -200,10 +204,10 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
       }}
       aria-label="Navigasi Bawah Mobile"
     >
-      {/* Floating Island Container with Width constraint */}
+      {/* Floating Island Container with dedicated horizontal clearance */}
       <div
         ref={containerRef}
-        className="relative mx-auto w-full max-w-md px-3 sm:px-0 h-[84px] pointer-events-auto select-none"
+        className="relative mx-3.5 sm:mx-auto max-w-md h-[84px] pointer-events-auto select-none"
       >
         {/* Single Seamless Unified SVG Dock with Concentric Circular Cradle */}
         <svg
@@ -232,7 +236,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
             "absolute -top-3 pointer-events-none -translate-x-1/2 z-20 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
             activeIndex >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
-          style={{ left: `${activePercent}%` }}
+          style={{ left: `${activeCenterPx}px` }}
         >
           <div
             className="relative w-14 h-14 rounded-full flex items-center justify-center text-white ring-3 ring-white dark:ring-slate-900 transition-transform active:scale-95"
@@ -260,11 +264,12 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           </div>
         </div>
 
-        {/* Navigation Tabs Bar */}
-        <div className="absolute inset-0 flex items-center justify-between px-1 z-10">
+        {/* Navigation Tabs Bar — perfectly aligned with notch center */}
+        <div className="absolute inset-0 pointer-events-none z-10">
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = idx === currentIdx;
+            const cx = getTabCenter(idx, dockWidth);
 
             const handleClick = () => {
               setOptimisticIdx(idx);
@@ -315,7 +320,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                   key={tab.label}
                   href={tab.href}
                   onClick={handleClick}
-                  className="flex-1 h-full flex flex-col items-center justify-end pb-2.5 text-center touch-manipulation cursor-pointer group"
+                  style={{ left: `${cx}px` }}
+                  className="absolute -translate-x-1/2 top-0 bottom-0 w-16 flex flex-col items-center justify-end pb-2.5 text-center touch-manipulation cursor-pointer group pointer-events-auto"
                 >
                   {content}
                 </Link>
@@ -328,7 +334,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
                 type="button"
                 onClick={handleClick}
                 aria-label={tab.label}
-                className="flex-1 h-full flex flex-col items-center justify-end pb-2.5 text-center touch-manipulation cursor-pointer group"
+                style={{ left: `${cx}px` }}
+                className="absolute -translate-x-1/2 top-0 bottom-0 w-16 flex flex-col items-center justify-end pb-2.5 text-center touch-manipulation cursor-pointer group pointer-events-auto"
               >
                 {content}
               </button>
