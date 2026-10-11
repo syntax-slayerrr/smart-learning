@@ -178,6 +178,9 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
     );
   });
 
+  // If current route is not directly matched by any tab href, check if it's accessed via Menu drawer
+  const finalActiveIndex = activeIndex >= 0 ? activeIndex : tabs.findIndex((tab) => tab.action === "open-menu");
+
   // Reset optimistic state when route navigation completes
   useEffect(() => {
     setOptimisticIdx(null);
@@ -185,7 +188,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
 
   if (tabs.length === 0) return null;
 
-  const currentIdx = optimisticIdx !== null ? optimisticIdx : (activeIndex >= 0 ? activeIndex : 2);
+  const currentIdx = optimisticIdx !== null ? optimisticIdx : (finalActiveIndex >= 0 ? finalActiveIndex : 0);
   const activeTab = currentIdx >= 0 && currentIdx < tabs.length ? tabs[currentIdx] : null;
   const ActiveIcon = activeTab?.icon;
   const activeCenterPx = getTabCenter(currentIdx, dockWidth);
@@ -234,7 +237,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
         <div
           className={cn(
             "absolute -top-3 pointer-events-none -translate-x-1/2 z-20 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-            activeIndex >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-75"
+            currentIdx >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
           style={{ left: `${activeCenterPx}px` }}
         >

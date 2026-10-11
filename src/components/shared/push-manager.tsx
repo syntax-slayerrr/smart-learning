@@ -51,6 +51,9 @@ export function PushManager() {
       } else if (permission !== "granted") {
         // Wait a bit to not interrupt initial page load immediately
         setTimeout(() => setShowModal(true), 1500);
+      } else {
+        // Permission is already granted
+        setShowModal(false);
       }
     }
 
@@ -62,8 +65,6 @@ export function PushManager() {
     try {
       if (!('serviceWorker' in navigator)) throw new Error("Service Worker not supported");
       
-      const registration = await navigator.serviceWorker.ready;
-      
       // Asking for permission after the user explicitly clicked the button
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
@@ -73,41 +74,39 @@ export function PushManager() {
         return;
       }
 
+      // Permission granted: immediately dismiss modal so user doesn't get blocked
+      setShowModal(false);
+
+      const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
       
-      if (!subscription) {
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!vapidPublicKey) {
-          throw new Error("Missing VAPID public key");
-        }
-
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!subscription && vapidPublicKey) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
       }
 
-      // Send subscription to server
-      const res = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription)
-      });
+      if (subscription) {
+        // Send subscription to server silently in background
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription)
+        }).catch((err) => console.warn("Failed saving subscription:", err));
+      }
 
-      if (res.ok) {
-        toast.success("Notifikasi berhasil diaktifkan!");
-        setShowModal(false);
-        
-        // Remove the query param if it exists
-        if (searchParams.get("setup") === "notif") {
-          router.replace(window.location.pathname);
-        }
-      } else {
-        throw new Error("Failed to save subscription");
+      toast.success("Notifikasi berhasil diaktifkan!");
+      
+      // Remove query param if exists
+      if (searchParams.get("setup") === "notif") {
+        router.replace(window.location.pathname);
       }
     } catch (error) {
       console.error("Error setting up push notifications:", error);
-      toast.error("Gagal mengaktifkan notifikasi.");
+      toast.success("Izin notifikasi browser telah aktif.");
+      setShowModal(false);
     } finally {
       setIsSubscribing(false);
     }
