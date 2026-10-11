@@ -35,20 +35,17 @@ export function Header({
       <div className="absolute -top-10 -left-10 w-48 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
       <div className="absolute -bottom-10 right-20 w-48 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Left: Brand Logo & Title */}
-      <div className="relative z-10 flex items-center gap-2.5 min-w-0">
+      {/* Left: Brand Logo (Teks label role dihapus agar clean) */}
+      <div className="relative z-10 flex items-center min-w-0">
         <Link
           href={`/${role}`}
-          className="flex items-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
+          className="flex items-center transition-opacity hover:opacity-90 active:scale-98 shrink-0"
         >
           <img
             src="/brand/syntax-slayer-logo.png"
             alt="SYNTAX SLAYER"
             className="h-7 sm:h-8 w-auto object-contain dark:brightness-110"
           />
-          <span className="inline-flex items-center rounded-md border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-none">
-            {getRoleLabel(role)}
-          </span>
         </Link>
       </div>
 
