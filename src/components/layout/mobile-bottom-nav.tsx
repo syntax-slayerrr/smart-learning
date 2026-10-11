@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -34,28 +34,60 @@ interface BottomTab {
   isCenter?: boolean;
 }
 
-// 5 tab horizontal centers in SVG 0..390 coordinates
-// Mathematically tuned so scoop runs exactly between shoulder ends (24 and 366)
-const TAB_CXS = [50, 122, 195, 268, 340];
-const TAB_PERCENTS = [12.82, 31.28, 50.0, 68.72, 87.18];
+// Compute concentric circular cradle notch with smooth tangent fillets matching button geometry
+function getConcentricDockPaths(W: number, tabIdx: number) {
+  const safeW = Math.max(300, W);
+  const cx = (safeW * (tabIdx * 2 + 1)) / 10;
+  
+  // Exact button physical alignment:
+  // Button: w-14 (56px) at -top-3 (-12px) => center cyBtn = 16px
+  // Radius with ring (3px) = 31px. Cradle radius = 35px => uniform 4px clearance
+  const cyBtn = 16;
+  const rCradle = 35;
+  const rFillet = 10;
+  const yBase = 22;
+  const shoulderR = 20;
 
-// Compute SVG path with rounded shoulders and smooth scooped notch around active tab
-function getScoopedDockPaths(tabIdx: number) {
-  const cx = TAB_CXS[Math.max(0, Math.min(4, tabIdx))];
-  const scoopHw = 26; // half-width = 26px (52px wide cradle, fits w-14 button)
-  const l = (cx - scoopHw).toFixed(1);
-  const r = (cx + scoopHw).toFixed(1);
-  const c1 = (cx - 16).toFixed(1);
-  const c2 = (cx - 12).toFixed(1);
-  const c3 = (cx + 12).toFixed(1);
-  const c4 = (cx + 16).toFixed(1);
-  const cxStr = cx.toFixed(1);
+  const yF = yBase + rFillet;
+  const dist = rCradle + rFillet;
+  const dy = yF - cyBtn;
+  const dxF = Math.sqrt(Math.max(0, dist * dist - dy * dy));
 
-  // Full dock body with rounded top shoulders (Apple HIG style)
-  const fillPath = `M 0 46 C 0 32.5 10.5 22 24 22 L ${l} 22 C ${c1} 22 ${c2} 52 ${cxStr} 52 C ${c3} 52 ${c4} 22 ${r} 22 L 366 22 C 379.5 22 390 32.5 390 46 L 390 84 L 0 84 Z`;
+  const uX = -dxF / dist;
+  const uY = dy / dist;
 
-  // Top hairline rim stroke matching the exact contour
-  const strokePath = `M 24 22 L ${l} 22 C ${c1} 22 ${c2} 52 ${cxStr} 52 C ${c3} 52 ${c4} 22 ${r} 22 L 366 22`;
+  // Tangent transition points
+  const xLeftF = Math.max(shoulderR, cx - dxF);
+  const xLeftC = cx + rCradle * uX;
+  const yLeftC = cyBtn + rCradle * uY;
+
+  const xRightC = cx - rCradle * uX;
+  const yRightC = yLeftC;
+  const xRightF = Math.min(safeW - shoulderR, cx + dxF);
+
+  const preLine = xLeftF > shoulderR ? `L ${xLeftF.toFixed(2)} ${yBase} ` : "";
+  const postLine = xRightF < safeW - shoulderR ? `L ${(safeW - shoulderR).toFixed(2)} ${yBase} ` : "";
+
+  // Continuous seamless dock body
+  const fillPath =
+    `M 0 46 ` +
+    `C 0 ${(46 - shoulderR * 0.55).toFixed(1)} ${(shoulderR * 0.45).toFixed(1)} ${yBase} ${shoulderR} ${yBase} ` +
+    `${preLine}` +
+    `A ${rFillet} ${rFillet} 0 0 1 ${xLeftC.toFixed(2)} ${yLeftC.toFixed(2)} ` +
+    `A ${rCradle} ${rCradle} 0 0 0 ${xRightC.toFixed(2)} ${yRightC.toFixed(2)} ` +
+    `A ${rFillet} ${rFillet} 0 0 1 ${xRightF.toFixed(2)} ${yBase} ` +
+    `${postLine}` +
+    `C ${(safeW - shoulderR * 0.45).toFixed(1)} ${yBase} ${safeW} ${(46 - shoulderR * 0.55).toFixed(1)} ${safeW} 46 ` +
+    `L ${safeW} 84 L 0 84 Z`;
+
+  // Top hairline rim stroke
+  const strokePath =
+    `M ${shoulderR} ${yBase} ` +
+    `${preLine}` +
+    `A ${rFillet} ${rFillet} 0 0 1 ${xLeftC.toFixed(2)} ${yLeftC.toFixed(2)} ` +
+    `A ${rCradle} ${rCradle} 0 0 0 ${xRightC.toFixed(2)} ${yRightC.toFixed(2)} ` +
+    `A ${rFillet} ${rFillet} 0 0 1 ${xRightF.toFixed(2)} ${yBase} ` +
+    `${postLine}`;
 
   return { fillPath, strokePath };
 }
@@ -63,6 +95,33 @@ function getScoopedDockPaths(tabIdx: number) {
 export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   const pathname = usePathname();
   const [optimisticIdx, setOptimisticIdx] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dockWidth, setDockWidth] = useState<number>(390);
+
+  // Measure actual dock width dynamically to prevent non-uniform scaling on any device
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const measured = Math.round(containerRef.current.getBoundingClientRect().width);
+        if (measured > 0) setDockWidth(measured);
+      }
+    };
+    updateWidth();
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setDockWidth(Math.round(entry.contentRect.width));
+        }
+      }
+    });
+    ro.observe(containerRef.current);
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
 
   // Define tailored 5-item thumb-accessible primary tabs
   const getTabs = (): BottomTab[] => {
@@ -125,9 +184,9 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   const currentIdx = optimisticIdx !== null ? optimisticIdx : (activeIndex >= 0 ? activeIndex : 2);
   const activeTab = currentIdx >= 0 && currentIdx < tabs.length ? tabs[currentIdx] : null;
   const ActiveIcon = activeTab?.icon;
-  const activePercent = TAB_PERCENTS[currentIdx] ?? 50;
+  const activePercent = (currentIdx * 2 + 1) * 10; // Exactly 10%, 30%, 50%, 70%, 90%
 
-  const { fillPath, strokePath } = getScoopedDockPaths(currentIdx);
+  const { fillPath, strokePath } = getConcentricDockPaths(dockWidth, currentIdx);
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
 
   return (
@@ -141,14 +200,15 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
       }}
       aria-label="Navigasi Bawah Mobile"
     >
-      {/* Floating Island Container with Width constraint (ada width nya & margin samping) */}
-      <div className="relative mx-auto w-full max-w-md px-3 sm:px-0 h-[84px] pointer-events-auto select-none">
-        
-        {/* Single Seamless Unified SVG Dock with Dynamic Scooped Notch & Rounded Shoulders */}
+      {/* Floating Island Container with Width constraint */}
+      <div
+        ref={containerRef}
+        className="relative mx-auto w-full max-w-md px-3 sm:px-0 h-[84px] pointer-events-auto select-none"
+      >
+        {/* Single Seamless Unified SVG Dock with Concentric Circular Cradle */}
         <svg
           className="absolute inset-0 w-full h-full block overflow-visible pointer-events-none"
-          preserveAspectRatio="none"
-          viewBox="0 0 390 84"
+          viewBox={`0 0 ${dockWidth} 84`}
           xmlns="http://www.w3.org/2000/svg"
         >
           {/* Frosted Unified White Dock Body */}
@@ -166,16 +226,16 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           />
         </svg>
 
-        {/* Elevated Tactile Floating Circular Button (w-14 h-14 like Center FAB) */}
+        {/* Elevated Tactile Floating Circular Button (w-14 h-14, center cy=16px) */}
         <div
           className={cn(
-            "absolute -top-3.5 pointer-events-none -translate-x-1/2 z-20 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+            "absolute -top-3 pointer-events-none -translate-x-1/2 z-20 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
             activeIndex >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
           style={{ left: `${activePercent}%` }}
         >
           <div
-            className="relative w-14 h-14 rounded-full flex items-center justify-center text-white ring-4 ring-white dark:ring-slate-900 transition-transform active:scale-95"
+            className="relative w-14 h-14 rounded-full flex items-center justify-center text-white ring-3 ring-white dark:ring-slate-900 transition-transform active:scale-95"
             style={{
               background:
                 "linear-gradient(135deg, #0F172A 0%, #1E3A8A 48%, #2563EB 100%)",
