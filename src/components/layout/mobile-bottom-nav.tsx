@@ -73,7 +73,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           { label: "Riwayat", href: "/parent/history", icon: History },
           { label: "Presensi", href: "/parent/attendance", icon: ClipboardCheck, asset: "/icons/absensi-siswa.png", isCenter: true },
           { label: "Notifikasi", href: "/parent/notifications", icon: Bell, asset: "/icons/log-notifikasi.png" },
-          { label: "Menu", icon: Menu, action: "open-menu" },
+          { label: "Profil", href: "/parent/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
         ];
       default:
         return [];
@@ -120,14 +120,19 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
 
   if (tabs.length === 0) return null;
 
+  const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
+
   return (
     <nav
       ref={navRef}
-      className="fixed inset-x-0 bottom-0 z-40 lg:hidden pointer-events-none filter drop-shadow-[0_-6px_24px_rgba(0,0,0,0.06)]"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-6px_24px_rgba(0,0,0,0.06)]",
+        !isMobileAppRole && "lg:hidden"
+      )}
       style={{
         paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
       }}
-      aria-label="Navigasi Bawah Mobile"
+      aria-label="Navigasi Bawah"
     >
       {/* Container with responsive max width on larger mobile / tablet */}
       <div className="relative mx-auto w-full max-w-lg h-[84px] pointer-events-auto select-none">

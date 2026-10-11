@@ -75,6 +75,7 @@ export const NAV_ITEMS = {
     { label: "Kehadiran & Keaktifan", href: "/parent/attendance", icon: "ClipboardCheck", group: "STATUS ANAK" },
     { label: "Riwayat Bulanan", href: "/parent/history", icon: "History", group: "CATATAN" },
     { label: "Pemberitahuan", href: "/parent/notifications", icon: "Bell", group: "INFORMASI" },
+    { label: "Profil Akun", href: "/parent/profile", icon: "UserCircle", group: "AKUN" },
   ],
 } as const;
 
