@@ -69,12 +69,12 @@ export function CameraSourceModal({
   if (!showCameraModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-4 sm:p-5 shadow-2xl my-auto max-h-[calc(100dvh-2rem)] flex flex-col">
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-border pb-3.5">
+        <div className="flex items-start justify-between border-b border-border pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
               <Camera className="h-5 w-5" />
             </div>
             <div>
@@ -90,19 +90,21 @@ export function CameraSourceModal({
             type="button"
             onClick={() => setShowCameraModal(false)}
             aria-label="Tutup modal"
-            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Notification / Feedback Banner */}
-        {cameraSwitchNotice && (
-          <div className="rounded-xl border border-primary/20 bg-primary/10 p-2.5 flex items-center gap-2 text-xs text-primary animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span className="text-xs font-medium flex-1">{cameraSwitchNotice}</span>
-          </div>
-        )}
+        {/* Scrollable Modal Content */}
+        <div className="flex-1 overflow-y-auto pr-1 -mr-1 space-y-4 min-h-0 py-2">
+          {/* Notification / Feedback Banner */}
+          {cameraSwitchNotice && (
+            <div className="rounded-xl border border-primary/20 bg-primary/10 p-2.5 flex items-center gap-2 text-xs text-primary animate-in fade-in">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span className="text-xs font-medium flex-1">{cameraSwitchNotice}</span>
+            </div>
+          )}
 
         {/* Current Active Source Pill */}
         <div className="rounded-xl border border-border bg-muted/30 p-3 flex items-center justify-between text-xs">
@@ -497,9 +499,10 @@ export function CameraSourceModal({
             </div>
           </div>
         )}
+        </div>
 
         {/* Modal Footer */}
-        <div className="border-t border-border pt-3 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="border-t border-border pt-3 flex items-center justify-between text-xs text-muted-foreground shrink-0">
           <span className="text-xs font-medium flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Jaringan Siap Terhubung

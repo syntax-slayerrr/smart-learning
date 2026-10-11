@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   CameraChannel,
@@ -15,70 +15,22 @@ import { StreamViewport } from "./camera-monitor/StreamViewport";
 import { TelemetryPanel } from "./camera-monitor/TelemetryPanel";
 import { CameraSourceModal } from "./camera-monitor/CameraSourceModal";
 
-const DEFAULT_CHANNELS: CameraChannel[] = [
+const INITIAL_DEFAULT_CHANNELS: CameraChannel[] = [
   {
-    id: "cam-1",
-    name: "Ruang Teori XI RPL 1",
-    subject: "Pemrograman Web & Mobile",
-    teacher: "Budi Santoso, S.Kom",
+    id: "cam-main",
+    name: "Ruang Kelas Utama",
+    subject: "Monitoring Presensi & Aktivitas",
+    teacher: "Pengampu Kelas",
     streamUrl: "http://localhost:5000/video_feed",
     statusUrl: "http://localhost:5000/status",
-    ipAddress: "Kamera Kelas Utama (OpenCV AI Engine :5000)",
-    port: 8080,
+    ipAddress: "Engine Vision :5000",
+    port: 5000,
     studentsCount: 0,
     sittingCount: 0,
     standingCount: 0,
     handRaiseCount: 0,
     sleepCount: 0,
     isOnline: true,
-  },
-  {
-    id: "cam-2",
-    name: "Laboratorium Komputer 2",
-    subject: "Basis Data & Cloud",
-    teacher: "Siti Rahmawati, M.Kom",
-    streamUrl: "http://localhost:5001/video_feed",
-    statusUrl: "http://localhost:5001/status",
-    ipAddress: "Kamera Lab 2 (RTSP Stream :5001)",
-    port: 5001,
-    studentsCount: 0,
-    sittingCount: 0,
-    standingCount: 0,
-    handRaiseCount: 0,
-    sleepCount: 0,
-    isOnline: false,
-  },
-  {
-    id: "cam-3",
-    name: "Ruang Kelas XI RPL 2",
-    subject: "Pemodelan Perangkat Lunak",
-    teacher: "Hendro Wijaya, S.Pd",
-    streamUrl: "http://localhost:5002/video_feed",
-    statusUrl: "http://localhost:5002/status",
-    ipAddress: "Kamera Ruang XI RPL 2 (:5002)",
-    port: 5002,
-    studentsCount: 0,
-    sittingCount: 0,
-    standingCount: 0,
-    handRaiseCount: 0,
-    sleepCount: 0,
-    isOnline: false,
-  },
-  {
-    id: "cam-4",
-    name: "Laboratorium TKJ 1",
-    subject: "Infrastruktur Jaringan",
-    teacher: "Ahmad Fauzi, M.T",
-    streamUrl: "http://localhost:5003/video_feed",
-    statusUrl: "http://localhost:5003/status",
-    ipAddress: "Kamera Lab TKJ 1 (:5003)",
-    port: 5003,
-    studentsCount: 0,
-    sittingCount: 0,
-    standingCount: 0,
-    handRaiseCount: 0,
-    sleepCount: 0,
-    isOnline: false,
   },
 ];
 
@@ -375,27 +327,56 @@ export function LiveCameraMonitor({
     }
   };
 
-  const effectiveChannels: CameraChannel[] =
-    role === "teacher"
-      ? [
-          {
-            id: "cam-teacher-active",
-            name: lockedClassName ? `Ruang ${lockedClassName}` : "Ruang Kelas Anda",
-            subject: lockedSubjectName || "Mata Pelajaran Aktif",
-            teacher: "Anda (Guru Pengampu)",
-            streamUrl: "http://localhost:5000/video_feed",
-            statusUrl: "http://localhost:5000/status",
-            ipAddress: "Kamera Kelas Aktif (:5000)",
-            port: 5000,
-            studentsCount: 0,
-            sittingCount: 0,
-            standingCount: 0,
-            handRaiseCount: 0,
-            sleepCount: 0,
-            isOnline: true,
-          },
-        ]
-      : DEFAULT_CHANNELS;
+  const effectiveChannels: CameraChannel[] = useMemo(() => {
+    if (role === "teacher") {
+      return [
+        {
+          id: lockedClassId || "cam-teacher-active",
+          name: lockedClassName ? `Ruang ${lockedClassName}` : "Ruang Kelas Anda",
+          subject: lockedSubjectName || "Mata Pelajaran Aktif",
+          teacher: "Anda (Guru Pengampu)",
+          streamUrl: `${edgeServerUrl}/video_feed`,
+          statusUrl: `${edgeServerUrl}/status`,
+          ipAddress: "Kamera Kelas Aktif (:5000)",
+          port: 5000,
+          studentsCount: 0,
+          sittingCount: 0,
+          standingCount: 0,
+          handRaiseCount: 0,
+          sleepCount: 0,
+          isOnline: streamOnline,
+        },
+      ];
+    }
+
+    if (classesList && classesList.length > 0) {
+      return classesList.map((cls, idx) => ({
+        id: cls.id,
+        name: `Ruang ${cls.name}`,
+        subject: "Monitoring Presensi & Aktivitas",
+        teacher: "Pengampu Kelas",
+        streamUrl: idx === 0 ? `${edgeServerUrl}/video_feed` : `http://localhost:${5000 + idx}/video_feed`,
+        statusUrl: idx === 0 ? `${edgeServerUrl}/status` : `http://localhost:${5000 + idx}/status`,
+        ipAddress: idx === 0 ? "Engine :5000" : `Engine :${5000 + idx}`,
+        port: 5000 + idx,
+        studentsCount: 0,
+        sittingCount: 0,
+        standingCount: 0,
+        handRaiseCount: 0,
+        sleepCount: 0,
+        isOnline: idx === 0 ? streamOnline : false,
+      }));
+    }
+
+    return INITIAL_DEFAULT_CHANNELS;
+  }, [role, lockedClassId, lockedClassName, lockedSubjectName, classesList, edgeServerUrl, streamOnline]);
+
+  useEffect(() => {
+    const currentCam = effectiveChannels[activeCamIndex];
+    if (currentCam && currentCam.id && !currentCam.id.startsWith("cam-")) {
+      setSelectedClassId(currentCam.id);
+    }
+  }, [activeCamIndex, effectiveChannels]);
 
   const activeChannel = effectiveChannels[activeCamIndex] || effectiveChannels[0];
 

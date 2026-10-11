@@ -126,14 +126,14 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
     <nav
       ref={navRef}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-6px_24px_rgba(0,0,0,0.06)]",
+        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-4px_20px_rgba(0,0,0,0.06)]",
         !isMobileAppRole && "lg:hidden"
       )}
-      style={{
-        paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
-      }}
       aria-label="Navigasi Bawah"
     >
+      {/* Background connector extending down to bottom of screen */}
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-white dark:bg-card pointer-events-auto" />
+
       {/* Container with responsive max width on larger mobile / tablet */}
       <div className="relative mx-auto w-full max-w-lg h-[84px] pointer-events-auto select-none">
         
@@ -147,13 +147,11 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           {/* Solid White Dock Body with Curved Scoop */}
           <path
             d="
-              M 0 46
-              C 0 32.5 10.5 22 24 22
+              M 0 22
               L 146 22
               C 162 22 168 54 195 54
               C 222 54 228 22 244 22
-              L 366 22
-              C 379.5 22 390 32.5 390 46
+              L 390 22
               L 390 84
               L 0 84
               Z
@@ -164,11 +162,11 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           {/* Hairline subtle top specular border for Apple HIG depth */}
           <path
             d="
-              M 24 22
+              M 0 22
               L 146 22
               C 162 22 168 54 195 54
               C 222 54 228 22 244 22
-              L 366 22
+              L 390 22
             "
             fill="none"
             stroke="rgba(226, 232, 240, 0.85)"
@@ -339,6 +337,8 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           })}
         </div>
       </div>
+      {/* Device Safe Area Filler to ensure seamless background connection on iPhones & Android gesture bars */}
+      <div className="w-full bg-white dark:bg-card h-[env(safe-area-inset-bottom,0px)] pointer-events-auto" />
     </nav>
   );
 }
