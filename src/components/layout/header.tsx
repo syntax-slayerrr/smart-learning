@@ -26,9 +26,16 @@ export function Header({
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/85 px-4 sm:px-6 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 transition-colors shadow-2xs">
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between border-b border-slate-200/60 bg-white/70 px-4 sm:px-6 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 transition-colors shadow-2xs relative overflow-hidden">
+      {/* Background Banner Image with Subtle Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none mix-blend-multiply"
+        style={{ backgroundImage: "url('/brand/header-banner.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/70 to-white/90 pointer-events-none" />
+
       {/* Left: Brand Identity & Role Badge */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="relative z-10 flex items-center gap-3 min-w-0">
         <Link
           href={`/${role}`}
           className="flex items-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
@@ -50,7 +57,7 @@ export function Header({
       </div>
 
       {/* Center: Live Telemetry Indicator (Tablet & Desktop only) */}
-      <div className="hidden md:flex items-center gap-2 shrink-0">
+      <div className="relative z-10 hidden md:flex items-center gap-2 shrink-0">
         {role === "admin" ? (
           <Link
             href="/admin/camera-monitor"
@@ -76,7 +83,7 @@ export function Header({
       </div>
 
       {/* Right: Actions Cluster (Sync status, Notifications, User Avatar) */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0">
         {/* Offline Badge */}
         {!isOnline && (
           <div
