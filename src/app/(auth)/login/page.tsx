@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { LoginForm } from "./login-form";
-import { User, GraduationCap, Sparkles } from "lucide-react";
+import { User, GraduationCap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -84,13 +84,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Divider with Center Star Accent */}
-        <div className="relative flex items-center justify-center my-3">
-          <div className="w-full border-t border-slate-300/50" />
-          <div className="absolute bg-white/80 px-2 text-slate-400 text-xs">
-            <Sparkles className="w-3 h-3 text-blue-500/70" />
-          </div>
-        </div>
+        {/* Clean Divider */}
+        <div className="w-full border-t border-slate-300/40 my-3" />
 
         {/* Motivational Quote & Signature */}
         <div className="text-center space-y-1 pb-10 sm:pb-4">
