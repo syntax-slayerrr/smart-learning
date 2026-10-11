@@ -58,7 +58,7 @@ export default async function TeacherDashboard() {
   > | null;
   const teacherName = (teacherProfile?.full_name as string) || "Bapak/Ibu Guru";
   // Check if push reminder banner dismissed in cookie / state
-  const hasPushSubscription = !!teacherProfile?.push_subscription;
+
 
   // 1. Get current time in WIB
   const nowUtc = new Date();
@@ -252,32 +252,6 @@ export default async function TeacherDashboard() {
           }
         />
       </div>
-
-      {/* Push Notification Reminder Banner */}
-      {!hasPushSubscription && (
-        <div className="card-3d-ceramic p-4 relative overflow-hidden flex flex-col sm:flex-row gap-4 items-center justify-between border-blue-200/80 bg-gradient-to-r from-blue-50/70 to-indigo-50/50">
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
-              <Bell className="h-5 w-5 stroke-[1.8]" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
-                Pengingat Jadwal Mengajar
-              </h3>
-              <p className="text-xs text-slate-600 mt-0.5 max-w-lg leading-relaxed font-medium">
-                Aktifkan push notification untuk mendapatkan reminder presensi
-                30 menit sebelum sesi kelas dimulai.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/teacher?setup=notif"
-            className="card-3d-chip shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-sm whitespace-nowrap w-full sm:w-auto"
-          >
-            Aktifkan Sekarang
-          </Link>
-        </div>
-      )}
 
       {/* Current Active Schedule Banner (Elevated 3D) */}
       {currentSchedule && (
