@@ -215,25 +215,48 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
       {/* Full Width Dock Container attached flush to bottom */}
       <div
         ref={containerRef}
-        className="relative w-full h-[84px] pointer-events-auto select-none"
+        className="relative w-full h-[84px] pointer-events-auto select-none overflow-hidden"
       >
+        {/* Ambient Cyber Aura Glow (Identik dengan Header: radial indigo-cyan + subtle texture) */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-[0.06] pointer-events-none mix-blend-luminosity filter blur-xs"
+          style={{ backgroundImage: "url('/brand/header-banner.jpg')" }}
+        />
+        <div className="absolute -bottom-8 -left-10 w-44 h-28 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-8 -right-10 w-44 h-28 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-16 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
+
         {/* Single Seamless Unified SVG Dock with Concentric Circular Cradle */}
         <svg
           className="absolute inset-0 w-full h-full block overflow-visible pointer-events-none"
           viewBox={`0 0 ${dockWidth} 84`}
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Frosted Unified White Dock Body */}
+          <defs>
+            {/* Subtle Gradient fill for unified dock matching ambient header glow */}
+            <linearGradient id="dockAmbientGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96" />
+              <stop offset="50%" stopColor="#f8faff" stopOpacity="0.94" />
+              <stop offset="100%" stopColor="#f0f7ff" stopOpacity="0.96" />
+            </linearGradient>
+            <linearGradient id="dockAmbientGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#0f172a" stopOpacity="0.96" />
+              <stop offset="50%" stopColor="#0c1322" stopOpacity="0.94" />
+              <stop offset="100%" stopColor="#08101e" stopOpacity="0.96" />
+            </linearGradient>
+          </defs>
+
+          {/* Frosted Unified Dock Body with Subtle Ambient Tint */}
           <path
             d={fillPath}
-            className="fill-white dark:fill-slate-900 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            className="fill-[url(#dockAmbientGradient)] dark:fill-[url(#dockAmbientGradientDark)] transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
           />
 
-          {/* Hairline Rim Stroke on Top Boundary */}
+          {/* Hairline Rim Stroke on Top Boundary with soft cyan/indigo shimmer */}
           <path
             d={strokePath}
             fill="none"
-            className="stroke-slate-200/85 dark:stroke-white/10 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            className="stroke-blue-200/70 dark:stroke-cyan-500/25 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
             strokeWidth="1.2"
           />
         </svg>

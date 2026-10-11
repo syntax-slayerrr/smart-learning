@@ -41,9 +41,11 @@ export function Header({
           href={`/${role}`}
           className="flex items-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
         >
-          <span className="text-sm font-bold tracking-tight text-foreground leading-none">
-            SYNTAX SLAYER
-          </span>
+          <img
+            src="/brand/syntax-slayer-logo.png"
+            alt="SYNTAX SLAYER"
+            className="h-7 sm:h-8 w-auto object-contain dark:brightness-110"
+          />
           <span className="inline-flex items-center rounded-md border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-none">
             {getRoleLabel(role)}
           </span>
