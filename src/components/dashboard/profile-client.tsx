@@ -135,58 +135,40 @@ export default function ProfileClient({
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-md bg-primary hover:bg-primary/90 px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50 min-h-[36px]"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span>Menyimpan Perubahan...</span>
-              </>
-            ) : (
-              "Simpan Kata Sandi"
-            )}
-          </button>
-        </form>
-      </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border/60">
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center rounded-md bg-primary hover:bg-primary/90 px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50 min-h-[36px]"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Menyimpan Perubahan...</span>
+                </>
+              ) : (
+                "Simpan Kata Sandi"
+              )}
+            </button>
 
-      {/* Grouped Card: Keluar Akun */}
-      <div className="rounded-xl border border-destructive/20 bg-destructive/[0.02] p-5 sm:p-6 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-destructive flex items-center gap-2 tracking-tight">
-              <LogOut className="h-4 w-4" />
-              Keluar Sesi
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Keluar dari akun Anda di perangkat ini.
-            </p>
+            <button
+              type="button"
+              disabled={loggingOut}
+              onClick={async () => {
+                setLoggingOut(true);
+                await logoutAction();
+              }}
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1.5 rounded-md transition-colors self-start sm:self-center cursor-pointer disabled:opacity-50"
+            >
+              {loggingOut ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <LogOut className="h-3.5 w-3.5" />
+              )}
+              <span>{loggingOut ? "Keluar..." : "Keluar Sesi"}</span>
+            </button>
           </div>
-
-          <button
-            type="button"
-            disabled={loggingOut}
-            onClick={async () => {
-              setLoggingOut(true);
-              await logoutAction();
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-destructive hover:bg-destructive/90 text-white px-4 py-2 text-xs font-bold shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50 min-h-[36px]"
-          >
-            {loggingOut ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Memproses Keluar...</span>
-              </>
-            ) : (
-              <>
-                <LogOut className="h-4 w-4" />
-                <span>Keluar Akun</span>
-              </>
-            )}
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Camera,
   ArrowRight,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import { getTeacherSessionsAnalytics } from "@/services/student-analytics";
@@ -56,6 +57,7 @@ export default async function TeacherDashboard() {
     unknown
   > | null;
   const teacherName = (teacherProfile?.full_name as string) || "Bapak/Ibu Guru";
+  // Check if push reminder banner dismissed in cookie / state
   const hasPushSubscription = !!teacherProfile?.push_subscription;
 
   // 1. Get current time in WIB
@@ -438,18 +440,18 @@ export default async function TeacherDashboard() {
           </Link>
 
           <Link
-            href="/teacher/scan"
+            href="/teacher/assignments"
             className="card-3d-chip flex items-center gap-3 p-3 text-left sm:flex-col sm:items-center sm:text-center sm:p-3.5 group active:scale-95 transition-all"
           >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100/60 sm:mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
-              <QrCode className="h-5 w-5 stroke-[1.8]" />
+              <ClipboardList className="h-5 w-5 stroke-[1.8]" />
             </div>
             <div className="flex-1 min-w-0 flex flex-col sm:items-center">
               <span className="text-xs sm:text-xs font-bold text-slate-900 tracking-tight truncate sm:line-clamp-1">
-                Scan Siswa
+                Tugas Siswa
               </span>
-              <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-slate-100 w-fit">
-                Kamera
+              <span className="text-[9px] sm:text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border border-indigo-100/60 w-fit">
+                Evaluasi
               </span>
             </div>
           </Link>
