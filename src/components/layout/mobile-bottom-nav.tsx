@@ -144,7 +144,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
           { label: "Tugas", href: "/teacher/assignments", icon: ClipboardList, asset: "/icons/absensi-siswa.png" },
           { label: "Scan QR", href: "/teacher/scan", icon: QrCode, isCenter: true },
           { label: "Rekap", href: "/teacher/recap", icon: BarChart3, asset: "/icons/laporan-rekap.png" },
-          { label: "Profil", href: "/teacher/profile", icon: UserCircle, asset: "/icons/profil-akun.png" },
+          { label: "AI Vision", href: "/teacher/camera-monitor", icon: Video, asset: "/icons/ai-classroom.png" },
         ];
       case "student":
         return [

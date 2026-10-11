@@ -129,49 +129,37 @@ export default async function TeacherCameraMonitorPage() {
   // 5. KONDISI A: TIDAK ADA SESI ATAU JADWAL AKTIF (Akses Dibatasi Demi Privasi Kelas)
   if (!activeClass) {
     return (
-      <div className="dashboard-container max-w-5xl space-y-6 animate-fade-in">
-        <PageHeader
-          eyebrow="KEAMANAN & PRIVASI RUANG KELAS"
-          title="AI Classroom Vision & Live Monitor"
-          description="Sistem perlindungan privasi kelas sekolah — kamera monitoring hanya dapat diakses saat sesi mengajar Anda sedang berlangsung."
-        />
-
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
-              <ShieldAlert className="h-6 w-6 stroke-[2]" />
-            </div>
-            <div className="space-y-1.5 flex-1">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/20 mb-1">
-                <span>AKSES KAMERA TERBATAS JADWAL</span>
-              </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
-                Tidak Ada Sesi Mengajar Aktif untuk Anda Saat Ini
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
-                Demi melindungi privasi seluruh siswa dan ketertiban ruangan kelas sekolah,
-                Bapak/Ibu <strong>{teacherName}</strong> hanya dapat mengakses visual kamera di kelas tempat Anda sedang mengajar pada jam aktif. Anda tidak memiliki akses ke kamera kelas lain.
-              </p>
-            </div>
+      <div className="dashboard-container max-w-xl mx-auto space-y-4 animate-fade-in pb-28 pt-2 sm:pt-6">
+        <div className="card-3d-ceramic p-6 sm:p-7 text-center flex flex-col items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 mb-4 shadow-sm">
+            <ShieldAlert className="h-7 w-7 stroke-[2]" />
           </div>
 
-          {/* Jam Pelajaran Hari Ini */}
-          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-xs font-bold text-foreground tracking-tight">
-                  Jadwal Mengajar Anda Hari Ini
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Waktu Sekarang: {timeDisplay} WIB</span>
-              </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20 mb-2.5">
+            AKSES TERBATAS JADWAL
+          </span>
+
+          <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
+            Tidak Ada Kelas Aktif
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
+            Kamera AI hanya aktif saat jam mengajar Anda berlangsung demi menjaga privasi kelas.
+          </p>
+
+          <div className="w-full mt-5 pt-4 border-t border-border/60">
+            <div className="flex items-center justify-between text-xs mb-3">
+              <span className="font-bold text-foreground flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                Jadwal Mengajar Hari Ini
+              </span>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {timeDisplay} WIB
+              </span>
             </div>
 
             {todaySchedules.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-2 pt-1">
+              <div className="space-y-2 text-left">
                 {todaySchedules.map((sched: any) => {
                   const cls = Array.isArray(sched.classes) ? sched.classes[0] : sched.classes;
                   const sbj = Array.isArray(sched.subjects) ? sched.subjects[0] : sched.subjects;
@@ -181,17 +169,17 @@ export default async function TeacherCameraMonitorPage() {
                   return (
                     <div
                       key={sched.id}
-                      className="rounded-lg border border-border/70 bg-muted/30 p-3 flex items-center justify-between text-xs"
+                      className="rounded-xl border border-border/70 bg-muted/30 p-2.5 flex items-center justify-between text-xs"
                     >
                       <div className="min-w-0 pr-2">
                         <div className="font-semibold text-foreground truncate">
                           {sbj?.name || "Mata Pelajaran"}
                         </div>
-                        <div className="text-[11px] text-muted-foreground truncate">
-                          Kelas: <strong>{cls?.name || "-"}</strong>
+                        <div className="text-[11px] text-muted-foreground">
+                          Kelas {cls?.name || "-"}
                         </div>
                       </div>
-                      <span className="font-mono text-[11px] font-semibold text-primary shrink-0 bg-background px-2 py-1 rounded border border-border">
+                      <span className="font-mono text-[11px] font-bold text-primary bg-background px-2 py-1 rounded-lg border border-border shrink-0">
                         {startStr} - {endStr}
                       </span>
                     </div>
@@ -199,27 +187,28 @@ export default async function TeacherCameraMonitorPage() {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground py-2 italic">
-                Anda tidak memiliki jadwal mata pelajaran terjadwal untuk hari ini.
-              </p>
+              <div className="rounded-xl border border-dashed border-border/80 p-4 text-center">
+                <p className="text-xs text-muted-foreground">
+                  Tidak ada jadwal mata pelajaran hari ini.
+                </p>
+              </div>
             )}
           </div>
 
-          {/* Tombol Aksi Alternatif */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <div className="w-full flex flex-col sm:flex-row gap-2 mt-5">
             <Link
               href="/teacher/scan"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all min-h-[42px]"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-bold shadow-xs hover:bg-primary/90 transition-all min-h-[42px]"
             >
               <QrCode className="h-4 w-4" />
               <span>Scan Presensi Siswa</span>
             </Link>
             <Link
               href="/teacher"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background hover:bg-muted text-foreground px-4 py-2.5 text-xs font-semibold shadow-xs transition-all min-h-[42px]"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background hover:bg-muted text-foreground px-4 py-2.5 text-xs font-semibold shadow-xs transition-all min-h-[42px]"
             >
               <ArrowRight className="h-4 w-4 rotate-180" />
-              <span>Kembali ke Dashboard Guru</span>
+              <span>Kembali</span>
             </Link>
           </div>
         </div>
