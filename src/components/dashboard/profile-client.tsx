@@ -54,27 +54,52 @@ export default function ProfileClient({
 
   return (
     <div className="w-full space-y-4">
-      {/* Grouped Card: Informasi Akun */}
-      <div className="rounded-xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs">
-        <h3 className="text-sm font-semibold mb-3.5 flex items-center gap-2 text-foreground tracking-tight">
-          <User className="h-4 w-4 text-primary" />
-          Informasi Akun
-        </h3>
-        
-        <div className="divide-y divide-border/40 text-xs">
-          <div className="flex justify-between items-center py-2.5">
-            <span className="text-muted-foreground font-medium">Nama Lengkap</span>
-            <span className="font-semibold text-foreground">{cleanFullName}</span>
+      {/* Grouped Card: Informasi Akun dengan Cover Banner (Opsi 2) */}
+      <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+        {/* Banner Cover Artwork */}
+        <div className="relative h-28 sm:h-36 w-full bg-slate-900 overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url('/brand/header-banner.jpg')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          
+          <div className="absolute bottom-2.5 right-3 text-right">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-black/50 text-[10px] font-mono text-cyan-300 font-semibold backdrop-blur-md border border-cyan-400/30">
+              SYNTAX SLAYER
+            </span>
           </div>
-          <div className="flex justify-between items-center py-2.5">
-            <span className="text-muted-foreground font-medium">Alamat Email</span>
-            <span className="font-mono text-foreground tabular-nums">{userProfile.email}</span>
-          </div>
-          <div className="flex justify-between items-center py-2.5">
-            <span className="text-muted-foreground font-medium">Peran Pengguna</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-foreground font-medium text-xs capitalize border border-border">
+        </div>
+
+        {/* Profile Card Body with Overlapping Avatar */}
+        <div className="p-5 sm:p-6 pt-0 relative">
+          <div className="flex items-end justify-between -mt-10 sm:-mt-12 mb-3.5">
+            <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-slate-900 border-4 border-card flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-md relative z-10">
+              {cleanFullName.slice(0, 2).toUpperCase()}
+            </div>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary font-semibold text-xs capitalize border border-primary/20 mb-1">
               {userProfile.role}
             </span>
+          </div>
+
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
+              {cleanFullName}
+            </h2>
+            <p className="text-xs font-mono text-muted-foreground tabular-nums">
+              {userProfile.email}
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3.5 border-t border-border/60 grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-muted-foreground block text-[11px]">ID Akses</span>
+              <span className="font-semibold text-foreground font-mono">AKTIF • TERCATAT</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[11px]">Mode Enkripsi</span>
+              <span className="font-semibold text-foreground font-mono">SUPABASE SSL</span>
+            </div>
           </div>
         </div>
       </div>

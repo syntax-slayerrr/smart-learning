@@ -26,30 +26,42 @@ export function Header({
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between border-b border-black/20 px-4 sm:px-6 shadow-md relative overflow-hidden">
-      {/* Background Banner Image Jelas Langsung */}
+    <header className="sticky top-0 z-30 flex h-14 sm:h-16 w-full items-center justify-between border-b border-border/80 bg-background/85 px-4 sm:px-6 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75 transition-colors shadow-2xs relative overflow-hidden">
+      {/* Ambient Cyber Aura Glow (Opsi 3: Tekstur halus ungu-biru tidak norak) */}
       <div 
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center opacity-[0.07] pointer-events-none mix-blend-luminosity filter blur-xs"
         style={{ backgroundImage: "url('/brand/header-banner.jpg')" }}
       />
-      {/* Soft gradient bottom edge for smooth transition */}
-      <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+      <div className="absolute -top-10 -left-10 w-48 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-10 right-20 w-48 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Left: Spacer (Teks Smart Learning & Guru Dihapus) */}
-      <div className="relative z-10 flex items-center min-w-0" />
+      {/* Left: Brand Logo & Title */}
+      <div className="relative z-10 flex items-center gap-2.5 min-w-0">
+        <Link
+          href={`/${role}`}
+          className="flex items-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shrink-0"
+        >
+          <span className="text-sm font-bold tracking-tight text-foreground leading-none">
+            SYNTAX SLAYER
+          </span>
+          <span className="inline-flex items-center rounded-md border border-border/80 bg-muted/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-none">
+            {getRoleLabel(role)}
+          </span>
+        </Link>
+      </div>
 
       {/* Center: Spacer */}
       <div className="relative z-10 hidden md:flex items-center gap-2 shrink-0" />
 
       {/* Right: Actions Cluster (Notifications, User Avatar) */}
-      <div className="relative z-10 flex items-center gap-2.5 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Offline Badge */}
         {!isOnline && (
           <div
-            className="flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/50 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-amber-300 shadow-sm"
+            className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 shadow-2xs"
             title="Mode Offline Aktif"
           >
-            <WifiOff className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+            <WifiOff className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <span className="hidden sm:inline">Offline</span>
           </div>
         )}
@@ -60,7 +72,7 @@ export function Header({
         {/* User Profile Avatar Link */}
         <Link
           href={`/${role}/profile`}
-          className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-black/50 text-[11px] sm:text-xs font-bold text-white shadow-sm ring-2 ring-white/60 hover:ring-white active:scale-95 transition-all shrink-0 backdrop-blur-md"
+          className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-primary text-[11px] sm:text-xs font-bold text-primary-foreground shadow-2xs ring-2 ring-background hover:ring-border active:scale-95 transition-all shrink-0"
           title={`Profil: ${userName || userEmail || getRoleLabel(role)}`}
           aria-label="Profil Akun"
         >
@@ -71,7 +83,7 @@ export function Header({
         {!isMobileAppRole && onLogout && (
           <button
             onClick={onLogout}
-            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/80 hover:text-rose-400 hover:bg-black/60 transition-colors active:scale-95 touch-manipulation ring-1 ring-white/30 backdrop-blur-md"
+            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors active:scale-95 touch-manipulation"
             title="Keluar / Logout"
             aria-label="Keluar"
           >

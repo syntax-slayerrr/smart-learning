@@ -96,12 +96,12 @@ export function NotificationBell() {
     <div className="relative" ref={popoverRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-all active:scale-95 touch-manipulation ring-1 ring-white/30 shadow-sm"
+        className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors active:scale-95 touch-manipulation"
         aria-label="Buka notifikasi"
       >
-        <Bell className="h-4 w-4 text-white" />
+        <Bell className="h-4.5 w-4.5 text-muted-foreground" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background animate-pulse" />
         )}
       </button>
       
