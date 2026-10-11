@@ -384,7 +384,7 @@ export function HermesCopilotWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-22 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-2 pr-3.5 sm:pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 ring-1 ring-black/[0.04] hover:border-blue-400 hover:shadow-[0_18px_46px_rgba(59,130,246,0.24)] active:scale-[0.98] transition-all duration-300 group"
+          className="fixed bottom-26 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-2 pr-3.5 sm:pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 ring-1 ring-black/[0.04] hover:border-blue-400 hover:shadow-[0_18px_46px_rgba(59,130,246,0.24)] active:scale-[0.98] transition-all duration-300 group"
           title="Buka Smart AI"
         >
           {/* Wrapped Character Icon */}
