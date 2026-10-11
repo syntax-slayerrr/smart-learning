@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Plus,
   BookOpen,
+  QrCode,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -207,11 +208,11 @@ export default async function TeacherCameraMonitorPage() {
           {/* Tombol Aksi Alternatif */}
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <Link
-              href="/teacher/attendance/new"
+              href="/teacher/scan"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all min-h-[42px]"
             >
-              <Plus className="h-4 w-4" />
-              <span>Buka Sesi Presensi Sekarang</span>
+              <QrCode className="h-4 w-4" />
+              <span>Scan Presensi Siswa</span>
             </Link>
             <Link
               href="/teacher"
