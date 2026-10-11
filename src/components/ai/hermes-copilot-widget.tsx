@@ -94,8 +94,6 @@ export function HermesCopilotWidget() {
     }
   };
 
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-
   useEffect(() => {
     if (!isOpen || typeof window === "undefined") return;
 
@@ -103,21 +101,14 @@ export function HermesCopilotWidget() {
     if (!vv) return;
 
     const handleResize = () => {
-      // Hitung tinggi keyboard yang menutupi viewport bawah
-      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardOffset(offset);
-      if (offset > 0) {
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 80);
-      }
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 80);
     };
 
     vv.addEventListener("resize", handleResize);
-    vv.addEventListener("scroll", handleResize);
     return () => {
       vv.removeEventListener("resize", handleResize);
-      vv.removeEventListener("scroll", handleResize);
     };
   }, [isOpen]);
 
@@ -409,10 +400,9 @@ export function HermesCopilotWidget() {
       {/* Floating Workspace / Mobile Bottom Sheet */}
       {isOpen && (
         <div
-          style={keyboardOffset > 0 ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}
           className={`fixed z-50 flex flex-col bg-white overflow-hidden transition-all duration-200 animate-in ${
             /* Mobile: Apple Bottom Sheet | Desktop: Floating Card */
-            "inset-x-0 bottom-0 h-[88vh] max-h-[88vh] rounded-t-[28px] border-t border-slate-200/90 shadow-[0_-10px_40px_rgba(15,23,42,0.18)] slide-in-from-bottom-full sm:inset-x-auto sm:bottom-6 sm:right-6 sm:rounded-3xl sm:border sm:border-slate-200/90 sm:shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:slide-in-from-bottom-4"
+            "inset-x-0 bottom-0 h-[88dvh] max-h-[88dvh] rounded-t-[28px] border-t border-slate-200/90 shadow-[0_-10px_40px_rgba(15,23,42,0.18)] slide-in-from-bottom-full sm:inset-x-auto sm:bottom-6 sm:right-6 sm:rounded-3xl sm:border sm:border-slate-200/90 sm:shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:slide-in-from-bottom-4"
           } ${
             isExpanded
               ? "sm:h-[680px] sm:w-[580px] sm:max-w-[calc(100vw-32px)] sm:max-h-[calc(100vh-5rem)]"
