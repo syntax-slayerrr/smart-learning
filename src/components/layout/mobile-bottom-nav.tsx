@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,6 @@ import {
   BarChart3,
   UserCircle,
   Bell,
-  Calendar,
   BookOpen,
   ClipboardList,
 } from "lucide-react";
@@ -37,10 +36,9 @@ interface BottomTab {
 
 export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   const pathname = usePathname();
-  const navRef = useRef<HTMLElement>(null);
-  const [indicatorLeft, setIndicatorLeft] = useState<number | null>(null);
+  const [optimisticIdx, setOptimisticIdx] = useState<number | null>(null);
 
-  // Define tailored 5-item thumb-accessible primary tabs with center elevated action
+  // Define tailored 5-item thumb-accessible primary tabs
   const getTabs = (): BottomTab[] => {
     switch (role) {
       case "admin":
@@ -82,7 +80,7 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
 
   const tabs = getTabs();
 
-  // Find active tab index
+  // Find active tab index based on current URL
   const activeIndex = tabs.findIndex((tab) => {
     if (!tab.href) return false;
     return (
@@ -91,256 +89,155 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
     );
   });
 
-  // Calculate indicator position when activeIndex or window size changes
+  // Reset optimistic state when route navigation completes
   useEffect(() => {
-    if (activeIndex === -1 || activeIndex === 2) {
-      // If center tab or unknown, hide side pill indicator
-      setIndicatorLeft(null);
-      return;
-    }
-
-    const updateIndicator = () => {
-      if (!navRef.current) return;
-      const targetBtn = navRef.current.querySelector(
-        `[data-tab-index="${activeIndex}"]`
-      ) as HTMLElement | null;
-
-      if (targetBtn) {
-        const navRect = navRef.current.getBoundingClientRect();
-        const btnRect = targetBtn.getBoundingClientRect();
-        const centerOffset = btnRect.left + btnRect.width / 2 - navRect.left;
-        setIndicatorLeft(centerOffset);
-      }
-    };
-
-    updateIndicator();
-    window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
-  }, [activeIndex, pathname]);
+    setOptimisticIdx(null);
+  }, [pathname]);
 
   if (tabs.length === 0) return null;
+
+  const currentIdx = optimisticIdx !== null ? optimisticIdx : activeIndex;
+  const activeTab = currentIdx >= 0 && currentIdx < tabs.length ? tabs[currentIdx] : null;
+  const ActiveIcon = activeTab?.icon;
+  const activePercent = currentIdx >= 0 ? currentIdx * 20 + 10 : 50;
 
   const isMobileAppRole = role === "teacher" || role === "student" || role === "parent";
 
   return (
     <nav
-      ref={navRef}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-6px_25px_rgba(15,23,42,0.08)] dark:drop-shadow-[0_-8px_30px_rgba(0,0,0,0.5)]",
+        "fixed inset-x-0 bottom-0 z-40 pointer-events-none filter drop-shadow-[0_-6px_25px_rgba(15,23,42,0.06)] dark:drop-shadow-[0_-8px_30px_rgba(0,0,0,0.45)]",
         !isMobileAppRole && "lg:hidden"
       )}
       aria-label="Navigasi Bawah"
     >
-      {/* Background connector extending down to bottom of screen with frosted glass */}
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl pointer-events-auto transition-colors" />
+      <div className="relative mx-auto w-full max-w-lg h-[68px] pointer-events-auto select-none">
+        {/* Main Flat Navbar Body */}
+        <div className="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-white/10 transition-colors" />
 
-      {/* Container with responsive max width on larger mobile / tablet */}
-      <div className="relative mx-auto w-full max-w-lg h-[84px] pointer-events-auto select-none">
-        
-        {/* SVG Dock Background with Scooped Center Notch */}
-        <svg
-          className="absolute inset-0 w-full h-full block"
-          preserveAspectRatio="none"
-          viewBox="0 0 390 84"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Frosted Dock Body with Curved Scoop */}
-          <path
-            d="
-              M 0 22
-              L 146 22
-              C 162 22 168 54 195 54
-              C 222 54 228 22 244 22
-              L 390 22
-              L 390 84
-              L 0 84
-              Z
-            "
-            className="fill-white/95 dark:fill-slate-900/95 transition-colors"
-          />
-
-          {/* Hairline subtle top specular border for Apple HIG depth */}
-          <path
-            d="
-              M 0 22
-              L 146 22
-              C 162 22 168 54 195 54
-              C 222 54 228 22 244 22
-              L 390 22
-            "
-            fill="none"
-            className="stroke-slate-200/90 dark:stroke-white/10"
-            strokeWidth="1.2"
-          />
-        </svg>
-
-        {/* Sliding Active Indicator Pill (for side tabs) with Spring Curve */}
+        {/* Moving Fluid Mound & Elevated Active Circle */}
         <div
           className={cn(
-            "absolute top-[22px] h-[2.5px] w-8 rounded-full pointer-events-none -translate-x-1/2 z-20",
-            "bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600",
-            "transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-            indicatorLeft !== null ? "opacity-100 scale-100" : "opacity-0 scale-75"
+            "absolute top-0 pointer-events-none -translate-x-1/2 z-20 transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+            currentIdx >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
-          style={{
-            left: indicatorLeft !== null ? `${indicatorLeft}px` : "50%",
-            boxShadow: "0 2px 10px rgba(37, 99, 235, 0.65)",
-          }}
-        />
+          style={{ left: `${activePercent}%` }}
+        >
+          {/* Smooth Bell Curve Mound SVG */}
+          <svg
+            className="absolute -top-[19px] left-1/2 -translate-x-1/2 w-[92px] h-[21px] pointer-events-none overflow-visible"
+            viewBox="0 0 92 21"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Body Fill connecting flush to navbar top */}
+            <path
+              d="M 0 20 C 23 20 27 0 46 0 C 65 0 69 20 92 20 L 92 22 L 0 22 Z"
+              className="fill-white/95 dark:fill-slate-900/95 transition-colors"
+            />
+            {/* Rim Border Stroke */}
+            <path
+              d="M 0 20 C 23 20 27 0 46 0 C 65 0 69 20 92 20"
+              className="stroke-slate-200/90 dark:stroke-white/10"
+              strokeWidth="1.2"
+              fill="none"
+            />
+          </svg>
+
+          {/* Elevated Circular Badge */}
+          <div className="absolute -top-[25px] left-1/2 -translate-x-1/2 w-[52px] h-[52px] rounded-full bg-white dark:bg-slate-900 flex items-center justify-center shadow-[0_10px_22px_-4px_rgba(37,99,235,0.4),0_4px_10px_rgba(0,0,0,0.12)] ring-4 ring-white dark:ring-slate-900 transition-colors">
+            {ActiveIcon && (
+              activeTab?.asset ? (
+                <img
+                  src={activeTab.asset}
+                  alt=""
+                  className="w-6 h-6 object-contain drop-shadow-[0_2px_6px_rgba(37,99,235,0.35)] transition-transform duration-200 scale-105"
+                />
+              ) : (
+                <ActiveIcon className="w-6 h-6 text-blue-600 dark:text-blue-400 stroke-[2.3] transition-transform duration-200 scale-105" />
+              )
+            )}
+          </div>
+        </div>
 
         {/* Navigation Tabs Bar */}
-        <div className="absolute inset-x-0 bottom-0 h-16 flex items-center justify-between px-2.5 z-10">
+        <div className="absolute inset-x-0 bottom-0 h-[68px] flex items-center justify-between z-10">
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
-            const isCenter = tab.isCenter || idx === 2;
-            const isActive =
-              tab.href &&
-              (pathname === tab.href ||
-                (tab.href !== `/${role}` && pathname.startsWith(tab.href)));
+            const isActive = idx === currentIdx;
 
-            // 1. Center Action FAB (Resting in the Scooped Notch)
-            if (isCenter) {
-              const CenterComponent = tab.href ? Link : "button";
-              return (
-                <div
-                  key={tab.label}
-                  data-tab-index={idx}
-                  className="flex-1 h-full flex flex-col items-center justify-end pb-1.5 relative group"
-                >
-                  {/* Floating Circular Elevated Button */}
-                  <CenterComponent
-                    href={tab.href as any}
-                    onClick={tab.action === "open-menu" ? onOpenMenu : undefined}
-                    aria-label={tab.label}
-                    className={cn(
-                      "absolute -top-3.5 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center text-white z-20",
-                      "touch-manipulation cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-                      "active:scale-92 ring-4 ring-white dark:ring-slate-900",
-                      isActive
-                        ? "scale-105 shadow-[0_16px_34px_-4px_rgba(37,99,235,0.55),0_8px_16px_-2px_rgba(15,23,42,0.4)]"
-                        : "scale-100 shadow-[0_10px_24px_-4px_rgba(37,99,235,0.4),0_6px_12px_-2px_rgba(15,23,42,0.3)]"
-                    )}
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%)",
-                      boxShadow:
-                        "inset 0 1.5px 1.5px 0 rgba(255,255,255,0.4), 0 10px 24px -4px rgba(37,99,235,0.4)",
-                    }}
-                  >
-                    {/* Specular Rim Light on Center FAB */}
-                    <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none" />
-                    {tab.asset ? (
-                      <img
-                        src={tab.asset}
-                        alt=""
-                        className={cn(
-                          "w-8 h-8 object-contain transition-transform duration-300 relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]",
-                          isActive ? "scale-110" : "scale-100"
-                        )}
-                      />
-                    ) : (
-                      <Icon
-                        className={cn(
-                          "w-6 h-6 stroke-[2.2] transition-transform duration-300 relative z-10",
-                          isActive ? "scale-110" : "scale-100"
-                        )}
-                      />
-                    )}
-                  </CenterComponent>
+            const handleClick = () => {
+              setOptimisticIdx(idx);
+              if (tab.action === "open-menu") {
+                onOpenMenu();
+              }
+            };
 
-                  {/* Center Tab Label */}
-                  <span
-                    className={cn(
-                      "text-[10px] tracking-tight transition-colors duration-200 mt-5",
-                      isActive
-                        ? "font-bold text-blue-600 dark:text-blue-400"
-                        : "font-medium text-slate-500 dark:text-slate-400"
-                    )}
-                  >
-                    {tab.label}
-                  </span>
-                </div>
-              );
-            }
-
-            // 2. Menu Drawer Action Button (Side Tab)
-            if (tab.action === "open-menu") {
-              return (
-                <button
-                  key="menu-tab"
-                  data-tab-index={idx}
-                  onClick={onOpenMenu}
-                  aria-label="Buka Menu Lengkap"
-                  className="flex-1 h-full flex flex-col items-center justify-center py-1 text-center touch-manipulation transition-transform active:scale-95 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  <div className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-transform duration-300">
-                    <Icon className="w-5 h-5 stroke-[1.8]" />
-                  </div>
-                  <span className="mt-0.5 text-[10px] font-medium tracking-tight text-slate-500 dark:text-slate-400">
-                    {tab.label}
-                  </span>
-                </button>
-              );
-            }
-
-            // 3. Regular Side Navigation Link Tabs
-            return (
-              <Link
-                key={tab.href}
-                data-tab-index={idx}
-                href={tab.href!}
-                className={cn(
-                  "group relative flex-1 h-full flex flex-col items-center justify-center py-1 text-center touch-manipulation",
-                  "transition-transform active:scale-95",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                )}
-              >
+            const content = (
+              <>
+                {/* Inactive Icon Container (fades/lifts out when active) */}
                 <div
                   className={cn(
-                    "relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300",
+                    "relative flex items-center justify-center w-7 h-7 mb-1 transition-all duration-300",
                     isActive
-                      ? "scale-105 bg-blue-50/90 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shadow-xs border border-blue-100/80 dark:border-blue-800/50"
-                      : "scale-100 bg-transparent text-slate-500 dark:text-slate-400"
+                      ? "opacity-0 -translate-y-2 scale-75 pointer-events-none"
+                      : "opacity-100 translate-y-0 scale-100 text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
                   )}
                 >
                   {tab.asset ? (
                     <img
                       src={tab.asset}
                       alt=""
-                      className={cn(
-                        "w-6 h-6 object-contain transition-all duration-200 select-none",
-                        isActive
-                          ? "scale-110 drop-shadow-[0_2px_4px_rgba(37,99,235,0.3)]"
-                          : "opacity-80 group-hover:opacity-100 group-hover:scale-105"
-                      )}
+                      className="w-5 h-5 object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
                     />
                   ) : (
-                    <Icon
-                      className={cn(
-                        "w-5 h-5 transition-all duration-200",
-                        isActive ? "stroke-[2.2]" : "stroke-[1.8]"
-                      )}
-                    />
+                    <Icon className="w-5 h-5 stroke-[1.8]" />
                   )}
                 </div>
+
+                {/* Tab Label */}
                 <span
                   className={cn(
-                    "mt-0.5 text-[10px] tracking-tight transition-all duration-200",
+                    "text-[10px] tracking-tight transition-colors duration-200",
                     isActive
-                      ? "font-bold text-blue-600 dark:text-blue-400"
-                      : "font-medium text-slate-500 dark:text-slate-400"
+                      ? "font-bold text-slate-900 dark:text-white"
+                      : "font-medium text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
                   )}
                 >
                   {tab.label}
                 </span>
-              </Link>
+              </>
+            );
+
+            if (tab.href) {
+              return (
+                <Link
+                  key={tab.label}
+                  href={tab.href}
+                  onClick={handleClick}
+                  className="flex-1 h-full flex flex-col items-center justify-end pb-2 pt-1 touch-manipulation cursor-pointer group"
+                >
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                onClick={handleClick}
+                aria-label={tab.label}
+                className="flex-1 h-full flex flex-col items-center justify-end pb-2 pt-1 touch-manipulation cursor-pointer group"
+              >
+                {content}
+              </button>
             );
           })}
         </div>
       </div>
-      {/* Device Safe Area Filler to ensure seamless background connection on iPhones & Android gesture bars */}
+
+      {/* Device Safe Area Filler */}
       <div className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-[env(safe-area-inset-bottom,0px)] pointer-events-auto transition-colors" />
     </nav>
   );
