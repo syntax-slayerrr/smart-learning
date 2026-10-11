@@ -350,21 +350,21 @@ export function LiveCameraMonitor({
     }
 
     if (classesList && classesList.length > 0) {
-      return classesList.map((cls, idx) => ({
+      return classesList.map((cls) => ({
         id: cls.id,
-        name: `Ruang ${cls.name}`,
+        name: cls.name,
         subject: "Monitoring Presensi & Aktivitas",
         teacher: "Pengampu Kelas",
-        streamUrl: idx === 0 ? `${edgeServerUrl}/video_feed` : `http://localhost:${5000 + idx}/video_feed`,
-        statusUrl: idx === 0 ? `${edgeServerUrl}/status` : `http://localhost:${5000 + idx}/status`,
-        ipAddress: idx === 0 ? "Engine :5000" : `Engine :${5000 + idx}`,
-        port: 5000 + idx,
+        streamUrl: `${edgeServerUrl}/video_feed`,
+        statusUrl: `${edgeServerUrl}/status`,
+        ipAddress: "Engine :5000",
+        port: 5000,
         studentsCount: 0,
         sittingCount: 0,
         standingCount: 0,
         handRaiseCount: 0,
         sleepCount: 0,
-        isOnline: idx === 0 ? streamOnline : false,
+        isOnline: streamOnline,
       }));
     }
 
