@@ -200,14 +200,14 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
         !isMobileAppRole && "lg:hidden"
       )}
       style={{
-        paddingBottom: "max(0.6rem, env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
       aria-label="Navigasi Bawah Mobile"
     >
-      {/* Floating Island Container with dedicated horizontal clearance */}
+      {/* Full Width Dock Container attached flush to bottom */}
       <div
         ref={containerRef}
-        className="relative mx-3.5 sm:mx-auto max-w-md h-[84px] pointer-events-auto select-none"
+        className="relative w-full h-[84px] pointer-events-auto select-none"
       >
         {/* Single Seamless Unified SVG Dock with Concentric Circular Cradle */}
         <svg
