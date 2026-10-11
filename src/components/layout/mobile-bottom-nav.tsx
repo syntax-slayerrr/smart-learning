@@ -172,6 +172,11 @@ export function MobileBottomNav({ role, onOpenMenu }: MobileBottomNavProps) {
   // Find active tab index based on current URL
   const activeIndex = tabs.findIndex((tab) => {
     if (!tab.href) return false;
+    if (tab.href === "/admin/students") {
+      if (pathname.startsWith("/admin/classes/print-cards") || pathname.startsWith("/admin/students")) {
+        return true;
+      }
+    }
     return (
       pathname === tab.href ||
       (tab.href !== `/${role}` && pathname.startsWith(tab.href))

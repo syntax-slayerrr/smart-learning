@@ -220,15 +220,15 @@ export function PrintClassClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 flex flex-col items-center">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-border max-w-3xl w-full">
-        <div className="flex items-center w-full justify-between mb-6">
-          <Link href="/admin/classes" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 pb-32 sm:pb-8 flex flex-col items-center">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-border max-w-3xl w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center w-full justify-between gap-3 mb-6">
+          <Link href="/admin/classes" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             Kembali
           </Link>
-          <h1 className="font-bold text-lg">Pilih Siswa: Kelas {classData.name}</h1>
-          <div className="w-20"></div>
+          <h1 className="font-bold text-base sm:text-lg text-slate-800">Pilih Siswa: Kelas {classData.name}</h1>
+          <div className="hidden sm:block w-20"></div>
         </div>
 
         <div className="flex justify-between items-center mb-4">
