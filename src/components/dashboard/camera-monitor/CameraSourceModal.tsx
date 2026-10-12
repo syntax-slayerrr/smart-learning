@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Camera,
   X,
@@ -66,11 +67,17 @@ export function CameraSourceModal({
   updateEdgeServerUrl,
   edgeServerUrl,
 }: CameraSourceModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!showCameraModal) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-      <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-4 sm:p-5 shadow-2xl my-auto max-h-[calc(100dvh-2rem)] flex flex-col">
+  const modalContent = (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-150 overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xl my-auto max-h-[calc(100dvh-3rem)] flex flex-col">
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-border pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -518,4 +525,6 @@ export function CameraSourceModal({
       </div>
     </div>
   );
+
+  return mounted ? createPortal(modalContent, document.body) : modalContent;
 }
