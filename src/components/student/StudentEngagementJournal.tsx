@@ -22,7 +22,7 @@ interface StudentEngagementJournalProps {
 /**
  * StudentEngagementJournal — Jurnal Keaktifan Belajar & Apresiasi Mingguan Siswa.
  * Mengubah data telemetri kamera AI Vision menjadi feedback positif yang memotivasi siswa.
- * Mematuhi pedoman AGENTS.md: Hairline borders, Monospace metrics, Tanpa AI slop / tanpa sparkles.
+ * Desain: Hairline borders, Monospace metrics, aksen terkalibrasi.
  */
 export function StudentEngagementJournal({
   studentName,
