@@ -49,6 +49,7 @@ export function KameraHpClient() {
     : rawParam;
 
   const [edgeUrl, setEdgeUrl] = useState<string>(DEFAULT_EDGE_URL);
+  const [protocolMode, setProtocolMode] = useState<"websocket" | "http">("websocket");
   const [showConfig, setShowConfig] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
@@ -78,6 +79,7 @@ export function KameraHpClient() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const fpsCounterRef = useRef<number>(0);
   const inFlightCountRef = useRef<number>(0);
   const seqCounterRef = useRef<number>(0);
@@ -200,6 +202,12 @@ export function KameraHpClient() {
   }, []);
 
   const stopCamera = useCallback(() => {
+    if (wsRef.current) {
+      try {
+        wsRef.current.close();
+      } catch {}
+      wsRef.current = null;
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -262,86 +270,167 @@ export function KameraHpClient() {
       inFlightCountRef.current = 0;
       seqCounterRef.current = 0;
 
-      // Pipelined Ingestion Engine: Target 20 FPS (50ms) dengan Pipa Paralel 4 Slot
-      // Mengatasi RTT lintas benua (Indonesia - Jerman) tanpa membebani memori
-      timerRef.current = setInterval(() => {
-        // Backpressure Guard: Maksimal 4 request mengambang di jaringan WAN
-        if (inFlightCountRef.current >= 4) return;
-        if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
+      if (protocolMode === "websocket") {
+        // ========================================================
+        // JALUR 1: WEBSOCKET STREAM (CLOUD TURBO WAN - DEPLEXO)
+        // Menembus Cloudflare tanpa HTTP request buffering!
+        // ========================================================
+        const wsProtocol = cleanEdge.startsWith("https") ? "wss:" : "ws:";
+        const host = cleanEdge.replace(/^https?:\/\//, "");
+        const batQuery =
+          batteryLevel !== null
+            ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
+            : "";
+        const wsUrl = `${wsProtocol}//${host}/ws/camera?class_id=${encodeURIComponent(
+          selectedClassId
+        )}&kelas=${encodeURIComponent(selectedClassName)}${batQuery}`;
 
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
-        if (!ctx) return;
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+        wsRef.current = ws;
 
-        if (canvas.width !== 480 || canvas.height !== 270) {
-          canvas.width = 480;
-          canvas.height = 270;
-        }
-        ctx.drawImage(video, 0, 0, 480, 270);
+        ws.onopen = () => {
+          setStatus("live");
+          setErrorMessage(null);
+          consecutiveErrorsRef.current = 0;
+        };
 
-        inFlightCountRef.current += 1;
-        const seq = ++seqCounterRef.current;
+        ws.onerror = () => {
+          consecutiveErrorsRef.current += 1;
+          if (consecutiveErrorsRef.current >= 6) {
+            setStatus("reconnecting");
+            setErrorMessage("Koneksi WebSocket terganggu. Menghubungkan ulang...");
+          }
+        };
 
-        canvas.toBlob(
-          async (blob) => {
-            if (!blob) {
-              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
-              return;
-            }
+        ws.onclose = () => {
+          if (streamRef.current) {
+            setStatus("reconnecting");
+            setErrorMessage("WebSocket terputus. Menyambung kembali...");
+          }
+        };
 
-            const startT = performance.now();
-            const batQuery =
-              batteryLevel !== null
-                ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
-                : "";
-            const pushUrl = `${cleanEdge}/push_frame?class_id=${encodeURIComponent(
-              selectedClassId
-            )}&kelas=${encodeURIComponent(selectedClassName)}&seq=${seq}${batQuery}`;
+        // Loop frame transmisi binary stream: 50ms (~20 FPS)
+        timerRef.current = setInterval(() => {
+          if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
+          if (ws.readyState !== WebSocket.OPEN) return;
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500);
+          // Backpressure Guard: jika antrean socket HP > 48KB, drop frame ini untuk cegah lag drift
+          if (ws.bufferedAmount > 49152) return;
 
-            try {
-              const res = await fetch(pushUrl, {
-                method: "POST",
-                headers: { "Content-Type": "image/jpeg" },
-                body: blob,
-                cache: "no-store",
-                keepalive: true,
-                signal: controller.signal,
-              });
-              clearTimeout(timeoutId);
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
+          if (!ctx) return;
 
-              if (res.ok) {
-                consecutiveErrorsRef.current = 0;
+          if (canvas.width !== 480 || canvas.height !== 270) {
+            canvas.width = 480;
+            canvas.height = 270;
+          }
+          ctx.drawImage(video, 0, 0, 480, 270);
+
+          const startT = performance.now();
+          canvas.toBlob(
+            async (blob) => {
+              if (!blob || ws.readyState !== WebSocket.OPEN) return;
+              try {
+                const buffer = await blob.arrayBuffer();
+                ws.send(buffer);
                 fpsCounterRef.current += 1;
                 setFramesSent((prev) => prev + 1);
                 setLatencyMs(Math.round(performance.now() - startT));
                 setStatus("live");
                 setErrorMessage(null);
-              } else {
+              } catch {}
+            },
+            "image/jpeg",
+            0.45
+          );
+        }, 50);
+      } else {
+        // ========================================================
+        // JALUR 2: HTTP POST PIPELINING (JARINGAN LOKAL IP WI-FI)
+        // Dipertahankan utuh untuk koneksi IP LAN lokal (misal: http://192.168.x.x:5000)
+        // ========================================================
+        timerRef.current = setInterval(() => {
+          // Backpressure Guard: Maksimal 4 request mengambang di jaringan WAN
+          if (inFlightCountRef.current >= 4) return;
+          if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
+
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
+          if (!ctx) return;
+
+          if (canvas.width !== 480 || canvas.height !== 270) {
+            canvas.width = 480;
+            canvas.height = 270;
+          }
+          ctx.drawImage(video, 0, 0, 480, 270);
+
+          inFlightCountRef.current += 1;
+          const seq = ++seqCounterRef.current;
+
+          canvas.toBlob(
+            async (blob) => {
+              if (!blob) {
+                inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+                return;
+              }
+
+              const startT = performance.now();
+              const batQuery =
+                batteryLevel !== null
+                  ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
+                  : "";
+              const pushUrl = `${cleanEdge}/push_frame?class_id=${encodeURIComponent(
+                selectedClassId
+              )}&kelas=${encodeURIComponent(selectedClassName)}&seq=${seq}${batQuery}`;
+
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+              try {
+                const res = await fetch(pushUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "image/jpeg" },
+                  body: blob,
+                  cache: "no-store",
+                  keepalive: true,
+                  signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                  consecutiveErrorsRef.current = 0;
+                  fpsCounterRef.current += 1;
+                  setFramesSent((prev) => prev + 1);
+                  setLatencyMs(Math.round(performance.now() - startT));
+                  setStatus("live");
+                  setErrorMessage(null);
+                } else {
+                  consecutiveErrorsRef.current += 1;
+                  if (consecutiveErrorsRef.current >= 8) {
+                    setStatus("reconnecting");
+                    setErrorMessage(`Sinyal tidak stabil (${res.status}). Menghubungkan ulang...`);
+                  }
+                }
+              } catch {
+                clearTimeout(timeoutId);
                 consecutiveErrorsRef.current += 1;
                 if (consecutiveErrorsRef.current >= 8) {
                   setStatus("reconnecting");
-                  setErrorMessage(`Sinyal tidak stabil (${res.status}). Menghubungkan ulang...`);
+                  setErrorMessage("Koneksi Wi-Fi terputus. Mencoba menghubungkan kembali...");
                 }
+              } finally {
+                inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
               }
-            } catch {
-              clearTimeout(timeoutId);
-              consecutiveErrorsRef.current += 1;
-              if (consecutiveErrorsRef.current >= 8) {
-                setStatus("reconnecting");
-                setErrorMessage("Koneksi Wi-Fi terputus. Mencoba menghubungkan kembali...");
-              }
-            } finally {
-              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
-            }
-          },
-          "image/jpeg",
-          0.42 // Kualitas 42%: super ramping ~6-8 KB per frame, melesat cepat ke Cloud
-        );
-      }, 50);
+            },
+            "image/jpeg",
+            0.42 // Kualitas 42%: super ramping ~6-8 KB per frame, melesat cepat di LAN
+          );
+        }, 50);
+      }
     } catch (err: any) {
       console.error("Camera access error:", err);
       setStatus("error");
@@ -612,6 +701,16 @@ export function KameraHpClient() {
           </div>
 
           <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                protocolMode === "websocket"
+                  ? "bg-orange-500/10 text-orange-400 border-orange-500/30"
+                  : "bg-blue-500/10 text-blue-400 border-blue-500/30"
+              }`}
+              title={protocolMode === "websocket" ? "Mode WebSocket (Cloud Turbo)" : "Mode HTTP POST (LAN Wi-Fi)"}
+            >
+              {protocolMode === "websocket" ? "⚡ WS" : "🌐 HTTP"}
+            </span>
             {batteryLevel !== null && (
               <span className="flex items-center gap-1">
                 {isCharging ? <BatteryCharging className="h-3 w-3 text-emerald-400" /> : <Battery className="h-3 w-3" />}
@@ -668,20 +767,57 @@ export function KameraHpClient() {
 
         {/* Server Config Accordion */}
         {showConfig && (
-          <div className="mt-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-2 animate-in fade-in">
-            <label className="block text-zinc-400 font-medium text-[11px]">
-              Alamat Edge Server Cloud (Deplexo):
-            </label>
-            <input
-              type="text"
-              value={edgeUrl}
-              onChange={(e) => setEdgeUrl(e.target.value)}
-              placeholder="https://smart-learning.de.deplexo.com"
-              className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-zinc-200 font-mono text-xs focus:outline-none focus:border-orange-500"
-            />
-            <p className="text-[10px] text-zinc-500">
-              Frame video dialirkan via HTTPS POST langsung ke server di atas.
-            </p>
+          <div className="mt-3 p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-3 animate-in fade-in">
+            <div>
+              <label className="block text-zinc-400 font-medium text-[11px] mb-1.5">
+                Pilih Protokol Transmisi:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => setProtocolMode("websocket")}
+                  className={`py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                    protocolMode === "websocket"
+                      ? "bg-orange-600/20 border-orange-500/50 text-orange-400 font-semibold"
+                      : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <span>⚡ WebSocket (Cloud)</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => setProtocolMode("http")}
+                  className={`py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                    protocolMode === "http"
+                      ? "bg-orange-600/20 border-orange-500/50 text-orange-400 font-semibold"
+                      : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <span>🌐 HTTP POST (LAN)</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-1">
+                {protocolMode === "websocket"
+                  ? "⚡ WebSocket: Melewati Cloudflare tanpa buffering (sangat cepat untuk Cloud Jerman)."
+                  : "🌐 HTTP POST: Mode standar untuk jaringan lokal satu Wi-Fi (IP LAN sekolah)."}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-zinc-400 font-medium text-[11px] mb-1">
+                Alamat Edge Server ({protocolMode === "websocket" ? "Cloud / WSS" : "LAN / HTTP"}):
+              </label>
+              <input
+                type="text"
+                value={edgeUrl}
+                disabled={isStreaming}
+                onChange={(e) => setEdgeUrl(e.target.value)}
+                placeholder="https://smart-learning.de.deplexo.com"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-zinc-200 font-mono text-xs focus:outline-none focus:border-orange-500"
+              />
+            </div>
           </div>
         )}
       </main>
