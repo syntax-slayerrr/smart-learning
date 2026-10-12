@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import { PushManager } from "@/components/shared/push-manager";
 import { NetworkStatusIndicator } from "@/components/shared/network-status-indicator";
 import { AmbientBackground } from "@/components/layout/ambient-background";
+import { PwaLaunchSplash } from "@/components/brand/pwa-launch-splash";
 import { SCHOOL_NAME } from "@/lib/constants";
 import "./globals.css";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="h-full">
       <body className="h-full min-h-full font-sans relative antialiased selection:bg-orange-600/20 selection:text-orange-700">
+        <PwaLaunchSplash />
         <AmbientBackground intensity="medium" />
         <NetworkStatusIndicator />
         <Suspense fallback={null}>
