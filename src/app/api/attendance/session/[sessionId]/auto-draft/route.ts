@@ -60,20 +60,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Fallback demo enrolled roster if empty or demo session
-    if (enrolledStudents.length === 0) {
-      enrolledStudents = [
-        { id: "demo-std-1", nis: "20250001", name: "Andi Pratama" },
-        { id: "demo-std-2", nis: "20250002", name: "Budi Santoso" },
-        { id: "demo-std-3", nis: "20250003", name: "Citra Dewi" },
-        { id: "demo-std-4", nis: "20250004", name: "Zaldy Muhammad Fazri" },
-        { id: "demo-std-5", nis: "20250005", name: "Dina Lestari" },
-        { id: "demo-std-6", nis: "20250006", name: "Eko Prasetyo" },
-        { id: "demo-std-7", nis: "20250007", name: "Fajar Nugraha" },
-        { id: "demo-std-8", nis: "20250008", name: "Gita Savitri" },
-      ];
-    }
-
     // 3. Fetch already recorded attendance
     let recordedStudentIds = new Set<string>();
     if (!isDemoSession) {
@@ -117,23 +103,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // If matched and qualified or in demo mode with Andi/Zaldy
+      // Hanya verifikasi jika benar-benar terdeteksi oleh AI Kamera dan memenuhi syarat
       const isQualified = match?.attendance_qualified || Boolean(match && (match.confidence >= 0.35 || match.dwell_seconds >= 5));
-      const dwellSeconds = match?.dwell_seconds || (isDemoSession && (student.name.includes("Andi") || student.name.includes("Zaldy")) ? 52 : 0);
-      const confidence = match?.confidence || 0.98;
+      const dwellSeconds = match?.dwell_seconds || 0;
+      const confidence = match?.confidence || 0.0;
       const seatId = match?.seat_id || "SEAT_A1";
 
-      if ((match && isQualified) || (isDemoSession && (student.name.includes("Andi") || student.name.includes("Zaldy")))) {
+      if (match && isQualified) {
         verifiedList.push({
           student_id: student.id,
           nis: student.nis,
           name: student.name,
-          dwell_seconds: dwellSeconds || 48.5,
+          dwell_seconds: dwellSeconds,
           confidence: confidence,
           seat_id: seatId,
           already_recorded: isAlreadyRecorded,
           status_recommendation: "present",
-          qualification_reason: `Duduk stabil ${dwellSeconds || 48}s di ${seatId} (Konsensus ${(confidence * 100).toFixed(1)}%)`,
+          qualification_reason: `Duduk stabil ${dwellSeconds}s di ${seatId} (Konsensus ${(confidence * 100).toFixed(1)}%)`,
         });
       } else {
         pendingList.push({

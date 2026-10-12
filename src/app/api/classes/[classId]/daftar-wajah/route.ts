@@ -106,36 +106,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 4. Fallback Demo Siswa jika database masih kosong atau kelas demo aktif
-    if (roster.length === 0) {
-      roster.push(
-        {
-          student_id: "00000000-0000-0000-0000-000000000101",
-          nis: "20250001",
-          name: "Zaldy (Siswa)",
-          role: "student",
-          embedding: null,
-          quality_score: 98.8,
-        },
-        {
-          student_id: "00000000-0000-0000-0000-000000000102",
-          nis: "20250002",
-          name: "Andi Pratama",
-          role: "student",
-          embedding: null,
-          quality_score: 97.5,
-        },
-        {
-          student_id: "00000000-0000-0000-0000-000000000103",
-          nis: "20250003",
-          name: "Citra Dewi",
-          role: "student",
-          embedding: null,
-          quality_score: 96.0,
-        }
-      );
-    }
-
     // 5. Tambahkan Guru jika tersedia agar kamera mengenali Guru vs Siswa
     if (teacherProfile?.profiles?.full_name) {
       roster.push({

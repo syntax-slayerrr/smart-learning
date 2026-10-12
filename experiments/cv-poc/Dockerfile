@@ -28,10 +28,8 @@ WORKDIR /app
 # ─── Copy requirements first for Docker layer caching ─────────────────────────
 COPY requirements.txt .
 
-# ─── Install Python dependencies (CPU-only torch untuk hemat memory) ──────────
+# ─── Install Python dependencies (hemat memory & cepat) ───────────────────────
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
-        torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
 # ─── Copy seluruh source code CV Engine ───────────────────────────────────────
