@@ -50,6 +50,7 @@ class StatusServerStreaming:
         # Penampung Multi-Kamera / Multi-Kelas
         self.bingkai_per_kelas: Dict[str, bytes] = {}
         self.waktu_frame_per_kelas: Dict[str, float] = {}
+        self.urutan_frame_per_kelas: Dict[str, int] = {}
         self.baterai_per_kelas: Dict[str, Dict[str, Any]] = {}
         self.rotasi_per_kelas: Dict[str, str] = {}
         self.cermin_per_kelas: Dict[str, bool] = {}
@@ -102,6 +103,9 @@ class StatusServerStreaming:
         with self.kunci_bingkai:
             self.bingkai_jpeg_terakhir = data_bytes_jpeg
             self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
+            for k in list(self.bingkai_per_kelas.keys()):
+                self.bingkai_per_kelas[k] = data_bytes_jpeg
+                self.waktu_frame_per_kelas[k] = time.time()
 
     def perbarui_bingkai_kelas(self, id_kelas: str, data_bytes_jpeg: bytes) -> None:
         """Memperbarui frame untuk channel / kelas tertentu."""
@@ -198,6 +202,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             try:
                 parameter = urllib.parse.parse_qs(diurai.query)
                 id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
+                seq_str = parameter.get("seq", [None])[0]
                 bat_val = parameter.get("battery", [None])[0]
                 chg_val = parameter.get("charging", [None])[0]
                 if bat_val is not None and self.state:
@@ -208,6 +213,23 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                             "updated_at": time.time(),
                         }
                     except Exception:
+                        pass
+
+                # Guard Out-of-Order Pipelining: Drop frame usang yang tiba terlambat akibat variasi latensi WAN
+                if seq_str is not None and self.state:
+                    try:
+                        seq_num = int(seq_str)
+                        terakhir_seq = self.state.urutan_frame_per_kelas.get(id_kelas, 0)
+                        if seq_num <= terakhir_seq and (terakhir_seq - seq_num) < 100000:
+                            # Frame usang tiba belakangan -> drop langsung tanpa decode demi menjaga kelancaran 20+ FPS
+                            self.send_response(200)
+                            self.send_header("Content-type", "application/json")
+                            self.send_header("Access-Control-Allow-Origin", "*")
+                            self.end_headers()
+                            self.wfile.write(b'{"success":true,"dropped":true}')
+                            return
+                        self.state.urutan_frame_per_kelas[id_kelas] = seq_num
+                    except (ValueError, TypeError):
                         pass
 
                 panjang_konten = int(self.headers.get("Content-Length", 0))

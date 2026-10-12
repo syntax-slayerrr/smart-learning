@@ -78,13 +78,9 @@ export function KameraHpClient() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  // rAF capture loop refs
-  const rafIdRef = useRef<number | null>(null);
-  const lastCaptureTsRef = useRef<number>(0);
-  const latestBlobRef = useRef<Blob | null>(null); // Frame terbaru dari capture loop
-  const sendingRef = useRef<boolean>(false);       // Guard: hanya 1 pengiriman aktif sekaligus
   const fpsCounterRef = useRef<number>(0);
   const inFlightCountRef = useRef<number>(0);
+  const seqCounterRef = useRef<number>(0);
   const consecutiveErrorsRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
@@ -204,17 +200,12 @@ export function KameraHpClient() {
   }, []);
 
   const stopCamera = useCallback(() => {
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    latestBlobRef.current = null;
-    sendingRef.current = false;
     inFlightCountRef.current = 0;
+    seqCounterRef.current = 0;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -243,7 +234,7 @@ export function KameraHpClient() {
           facingMode: cameraFacing,
           width: { ideal: 640 },
           height: { ideal: 360 },
-          frameRate: { ideal: 20, max: 24 },
+          frameRate: { ideal: 24, max: 30 },
         },
         audio: false,
       };
@@ -262,105 +253,95 @@ export function KameraHpClient() {
 
       const cleanEdge = edgeUrl.trim().replace(/\/+$/, "");
 
-      // ARSITEKTUR DUAL-LOOP: Pemisahan Capture dari Network I/O
-      // Layer 1: requestAnimationFrame — capture frame dari video ke canvas secara halus
-      // Layer 2: setInterval — kirim blob terbaru ke server secara non-blocking
-
-      const CAPTURE_INTERVAL_MS = 67; // ~15fps capture ke canvas
-      const SEND_INTERVAL_MS   = 80;  // ~12fps kirim ke server (lebih lambat, lebih stabil)
-
-      // Pastikan canvas siap sebelum loop dimulai
+      // Inisialisasi canvas dimensi 480x270 sekali di awal
       if (canvasRef.current) {
-        canvasRef.current.width  = 480;
+        canvasRef.current.width = 480;
         canvasRef.current.height = 270;
       }
 
-      // --- Loop Capture (rAF, smooth 60fps dengan throttle manual) ---
-      const captureLoop = (ts: number) => {
-        // rafIdRef.current = null berarti stopCamera() sudah dipanggil → hentikan loop
-        if (rafIdRef.current === null) return;
+      inFlightCountRef.current = 0;
+      seqCounterRef.current = 0;
 
-        if (ts - lastCaptureTsRef.current >= CAPTURE_INTERVAL_MS) {
-          const video  = videoRef.current;
-          const canvas = canvasRef.current;
-          if (video && canvas && video.readyState >= 2) {
-            const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
-            if (ctx) {
-              ctx.drawImage(video, 0, 0, 480, 270);
-              // Encode ke JPEG secara async tapi tidak menunggu — simpan hasil ke ref
-              canvas.toBlob(
-                (blob) => {
-                  if (blob) latestBlobRef.current = blob;
-                },
-                "image/jpeg",
-                0.55 // Kualitas 55%: ~8–12 KB, tajam untuk YOLO tapi ringan untuk WAN
-              );
-              lastCaptureTsRef.current = ts;
-            }
-          }
+      // Pipelined Ingestion Engine: Target 20 FPS (50ms) dengan Pipa Paralel 4 Slot
+      // Mengatasi RTT lintas benua (Indonesia - Jerman) tanpa membebani memori
+      timerRef.current = setInterval(() => {
+        // Backpressure Guard: Maksimal 4 request mengambang di jaringan WAN
+        if (inFlightCountRef.current >= 4) return;
+        if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
+        if (!ctx) return;
+
+        if (canvas.width !== 480 || canvas.height !== 270) {
+          canvas.width = 480;
+          canvas.height = 270;
         }
+        ctx.drawImage(video, 0, 0, 480, 270);
 
-        rafIdRef.current = requestAnimationFrame(captureLoop);
-      };
-      rafIdRef.current = requestAnimationFrame(captureLoop);
+        inFlightCountRef.current += 1;
+        const seq = ++seqCounterRef.current;
 
-      // --- Loop Kirim ke Server (setInterval, terisolasi dari capture) ---
-      const sendLoop = async () => {
-        const blob = latestBlobRef.current;
-        if (!blob || sendingRef.current) return;
-
-        sendingRef.current = true;
-        latestBlobRef.current = null; // Konsumsi blob, cegah kirim ulang frame sama
-
-        const startT = performance.now();
-        const batQuery =
-          batteryLevel !== null
-            ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
-            : "";
-        const pushUrl = `${cleanEdge}/push_frame?class_id=${encodeURIComponent(
-          selectedClassId
-        )}&kelas=${encodeURIComponent(selectedClassName)}${batQuery}`;
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-        try {
-          const res = await fetch(pushUrl, {
-            method: "POST",
-            headers: { "Content-Type": "image/jpeg" },
-            body: blob,
-            cache: "no-store",
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (res.ok) {
-            consecutiveErrorsRef.current = 0;
-            fpsCounterRef.current += 1;
-            setFramesSent((prev) => prev + 1);
-            setLatencyMs(Math.round(performance.now() - startT));
-            setStatus("live");
-            setErrorMessage(null);
-          } else {
-            consecutiveErrorsRef.current += 1;
-            if (consecutiveErrorsRef.current >= 8) {
-              setStatus("reconnecting");
-              setErrorMessage(`Sinyal tidak stabil (${res.status}). Menghubungkan ulang...`);
+        canvas.toBlob(
+          async (blob) => {
+            if (!blob) {
+              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+              return;
             }
-          }
-        } catch {
-          clearTimeout(timeoutId);
-          consecutiveErrorsRef.current += 1;
-          if (consecutiveErrorsRef.current >= 8) {
-            setStatus("reconnecting");
-            setErrorMessage("Koneksi terputus. Mencoba menghubungkan kembali...");
-          }
-        } finally {
-          sendingRef.current = false;
-        }
-      };
 
-      timerRef.current = setInterval(sendLoop, SEND_INTERVAL_MS);
+            const startT = performance.now();
+            const batQuery =
+              batteryLevel !== null
+                ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
+                : "";
+            const pushUrl = `${cleanEdge}/push_frame?class_id=${encodeURIComponent(
+              selectedClassId
+            )}&kelas=${encodeURIComponent(selectedClassName)}&seq=${seq}${batQuery}`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+            try {
+              const res = await fetch(pushUrl, {
+                method: "POST",
+                headers: { "Content-Type": "image/jpeg" },
+                body: blob,
+                cache: "no-store",
+                keepalive: true,
+                signal: controller.signal,
+              });
+              clearTimeout(timeoutId);
+
+              if (res.ok) {
+                consecutiveErrorsRef.current = 0;
+                fpsCounterRef.current += 1;
+                setFramesSent((prev) => prev + 1);
+                setLatencyMs(Math.round(performance.now() - startT));
+                setStatus("live");
+                setErrorMessage(null);
+              } else {
+                consecutiveErrorsRef.current += 1;
+                if (consecutiveErrorsRef.current >= 8) {
+                  setStatus("reconnecting");
+                  setErrorMessage(`Sinyal tidak stabil (${res.status}). Menghubungkan ulang...`);
+                }
+              }
+            } catch {
+              clearTimeout(timeoutId);
+              consecutiveErrorsRef.current += 1;
+              if (consecutiveErrorsRef.current >= 8) {
+                setStatus("reconnecting");
+                setErrorMessage("Koneksi Wi-Fi terputus. Mencoba menghubungkan kembali...");
+              }
+            } finally {
+              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+            }
+          },
+          "image/jpeg",
+          0.42 // Kualitas 42%: super ramping ~6-8 KB per frame, melesat cepat ke Cloud
+        );
+      }, 50);
     } catch (err: any) {
       console.error("Camera access error:", err);
       setStatus("error");
