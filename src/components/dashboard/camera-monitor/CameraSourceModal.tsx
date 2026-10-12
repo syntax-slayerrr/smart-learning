@@ -7,6 +7,7 @@ import {
   X,
   Laptop,
   Smartphone,
+  Video,
   CheckCircle2,
   ExternalLink,
   Copy,
@@ -61,6 +62,8 @@ export function CameraSourceModal({
   switchCameraSource,
   cameraSwitchNotice,
   isCameraHardwareConnected,
+  customIpUrl,
+  setCustomIpUrl,
   customEdgeInput,
   setCustomEdgeInput,
   updateEdgeServerUrl,
@@ -76,10 +79,18 @@ export function CameraSourceModal({
   const [showGuide, setShowGuide] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isLocalEngineActive, setIsLocalEngineActive] = useState<boolean | null>(null);
+  const [ipInput, setIpInput] = useState<string>(customIpUrl || "");
 
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
+      const savedIp = localStorage.getItem("SYNTAX_SLAYER_LAST_IP_CAM");
+      if (savedIp && !customIpUrl) {
+        setIpInput(savedIp);
+      } else if (customIpUrl) {
+        setIpInput(customIpUrl);
+      }
+
       const targetUrl = `${window.location.origin}/kamera-hp`;
       QRCode.toDataURL(targetUrl, {
         width: 140,
@@ -109,14 +120,19 @@ export function CameraSourceModal({
       };
       checkLocal();
     }
-  }, [showCameraModal]);
+  }, [showCameraModal, customIpUrl]);
 
   if (!showCameraModal) return null;
 
   // Cek sumber aktif saat ini
   const rawSource = String(currentCameraSource).toLowerCase().trim();
   const isLaptopActive = rawSource === "0";
-  const isHpActive = rawSource === "web" || rawSource.startsWith("http://") || rawSource.startsWith("https://");
+  const isHpWebActive = rawSource === "web";
+  const isIpCamActive =
+    (rawSource.startsWith("http://") ||
+      rawSource.startsWith("https://") ||
+      rawSource.startsWith("rtsp://")) &&
+    rawSource !== "web";
 
   // Cek lokasi server saat ini
   const isLocalServer = edgeServerUrl.includes("localhost") || edgeServerUrl.includes("127.0.0.1");
@@ -218,10 +234,13 @@ export function CameraSourceModal({
               </div>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px] leading-relaxed">
                 <li>
-                  <strong className="text-foreground">Kamera Laptop:</strong> Terbaik untuk <strong>demo langsung di laptop</strong>. Bebas internet dan tanpa delay (0 ms), tapi membutuhkan aplikasi server AI berjalan di laptop ini.
+                  <strong className="text-foreground">1. Kamera Laptop:</strong> Demo langsung di webcam laptop. Bebas internet dan tanpa delay (0 ms), membutuhkan engine Python aktif di laptop ini.
                 </li>
                 <li>
-                  <strong className="text-foreground">Kamera Smartphone (HP):</strong> Terbaik untuk <strong>memantau kelas dari sudut ruangan</strong> atau saat membuka web dari link Vercel online. Cukup scan QR dengan HP siswa/guru.
+                  <strong className="text-foreground">2. Kamera Smartphone (Scan QR):</strong> Cukup buka browser Chrome di HP dan scan QR code, tanpa perlu install aplikasi apa pun.
+                </li>
+                <li>
+                  <strong className="text-foreground">3. CCTV / Aplikasi IP Webcam:</strong> Hubungkan CCTV sekolah atau aplikasi Android IP Webcam / DroidCam via URL stream lokal (Wi-Fi) tanpa lewat terminal.
                 </li>
               </ul>
             </div>
@@ -332,11 +351,11 @@ export function CameraSourceModal({
           </div>
 
           {/* ======================================================== */}
-          {/* OPSI 2: KAMERA SMARTPHONE (HP NIRKABEL)                  */}
+          {/* OPSI 2: KAMERA SMARTPHONE (HP WEB SCAN QR)               */}
           {/* ======================================================== */}
           <div
             className={`rounded-xl border p-4 transition-all space-y-3 ${
-              isHpActive && streamOnline
+              isHpWebActive && streamOnline
                 ? "border-emerald-500/50 bg-emerald-500/5 shadow-xs"
                 : "border-border bg-card"
             }`}
@@ -344,7 +363,7 @@ export function CameraSourceModal({
             <div className="flex items-start gap-3">
               <div
                 className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  isHpActive && streamOnline
+                  isHpWebActive && streamOnline
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
                 }`}
@@ -354,16 +373,16 @@ export function CameraSourceModal({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
                   <h4 className="text-sm font-semibold text-foreground">
-                    2. Kamera Smartphone (HP)
+                    2. Kamera Smartphone (Scan QR Browser)
                   </h4>
-                  {isHpActive && streamOnline && (
+                  {isHpWebActive && streamOnline && (
                     <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                       Aktif &amp; Menyala
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Bagus untuk memantau kelas dari sudut ruangan (bisa diakses via internet / Vercel).
+                  Bebas install aplikasi—cukup scan QR code lewat Google Chrome di HP Anda.
                 </p>
               </div>
             </div>
@@ -437,7 +456,7 @@ export function CameraSourceModal({
               onClick={() => handleActivateCamera("web")}
               disabled={isActivating || isSwitchingCamera}
               className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all cursor-pointer min-h-[40px] ${
-                isHpActive && streamOnline
+                isHpWebActive && streamOnline
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
                   : "bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white shadow-xs"
               }`}
@@ -447,7 +466,7 @@ export function CameraSourceModal({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Menyambungkan ke Kamera HP...</span>
                 </>
-              ) : isHpActive && streamOnline ? (
+              ) : isHpWebActive && streamOnline ? (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
                   <span>✓ Kamera HP Sedang Digunakan (Klik untuk Refresh)</span>
@@ -456,6 +475,144 @@ export function CameraSourceModal({
                 <>
                   <Play className="h-4 w-4 fill-current" />
                   <span>Sambungkan &amp; Tampilkan Kamera HP</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* ======================================================== */}
+          {/* OPSI 3: CCTV KELAS / APLIKASI IP WEBCAM (WI-FI)          */}
+          {/* ======================================================== */}
+          <div
+            className={`rounded-xl border p-4 transition-all space-y-3 ${
+              isIpCamActive && streamOnline
+                ? "border-emerald-500/50 bg-emerald-500/5 shadow-xs"
+                : "border-border bg-card"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  isIpCamActive && streamOnline
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                }`}
+              >
+                <Video className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    3. CCTV Kelas / Aplikasi IP Webcam (Wi-Fi)
+                  </h4>
+                  {isIpCamActive && streamOnline ? (
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      Aktif &amp; Menyala
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
+                      Input URL
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Hubungkan kamera CCTV kelas atau aplikasi IP Webcam dari HP Android ke mesin AI lokal tanpa menyentuh terminal.
+                </p>
+              </div>
+            </div>
+
+            {/* Kotak Petunjuk Langkah demi Langkah */}
+            <div className="rounded-lg bg-muted/40 p-2.5 border border-border text-xs space-y-1.5">
+              <span className="font-semibold text-foreground text-[11px] block">
+                📋 Cara Menggunakan IP Webcam (Tanpa Terminal):
+              </span>
+              <ol className="list-decimal list-inside text-[11px] text-muted-foreground space-y-1 leading-normal">
+                <li>
+                  Buka aplikasi <strong>IP Webcam</strong> di HP Android (tersedia gratis di Google Play Store).
+                </li>
+                <li>
+                  Scroll ke paling bawah, ketuk <strong>&quot;Start server&quot;</strong>. Layar HP akan menampilkan alamat IP (contoh: <code className="font-mono text-orange-600 font-medium">http://192.168.1.15:8080</code>).
+                </li>
+                <li>
+                  Ketik alamat tersebut pada kotak di bawah (atau klik salah satu tombol contoh cepat), lalu tekan <strong>Hubungkan Kamera</strong>.
+                </li>
+              </ol>
+            </div>
+
+            {/* Input Alamat IP & Presets */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-medium text-foreground block">
+                Alamat Stream Kamera (HTTP / RTSP):
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={ipInput}
+                  onChange={(e) => setIpInput(e.target.value)}
+                  placeholder="http://192.168.1.XX:8080/video atau rtsp://..."
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+                />
+              </div>
+
+              {/* Template / Contoh Cepat */}
+              <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+                <span className="text-muted-foreground">Contoh Cepat:</span>
+                <button
+                  type="button"
+                  onClick={() => setIpInput("http://192.168.1.15:8080/video")}
+                  className="rounded bg-muted px-2 py-0.5 text-foreground hover:bg-muted/80 font-mono transition-colors cursor-pointer border border-border"
+                >
+                  IP Webcam (:8080)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIpInput("http://192.168.1.15:4747/video")}
+                  className="rounded bg-muted px-2 py-0.5 text-foreground hover:bg-muted/80 font-mono transition-colors cursor-pointer border border-border"
+                >
+                  DroidCam (:4747)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIpInput("rtsp://admin:admin123@192.168.1.100:554/stream1")}
+                  className="rounded bg-muted px-2 py-0.5 text-foreground hover:bg-muted/80 font-mono transition-colors cursor-pointer border border-border"
+                >
+                  CCTV RTSP (:554)
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const target = ipInput.trim();
+                if (!target) return;
+                setCustomIpUrl(target);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("SYNTAX_SLAYER_LAST_IP_CAM", target);
+                }
+                await handleActivateCamera(target);
+              }}
+              disabled={isActivating || isSwitchingCamera || !ipInput.trim()}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all cursor-pointer min-h-[40px] ${
+                isIpCamActive && streamOnline
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              }`}
+            >
+              {isActivating || isSwitchingCamera ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Menghubungkan ke Stream IP Kamera...</span>
+                </>
+              ) : isIpCamActive && streamOnline ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>✓ Kamera IP Sedang Digunakan (Klik untuk Refresh)</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 fill-current" />
+                  <span>Hubungkan &amp; Gunakan Kamera IP Ini</span>
                 </>
               )}
             </button>
