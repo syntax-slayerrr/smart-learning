@@ -1,4 +1,3 @@
-import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { SCHOOL_NAME, SCHOOL_TAGLINE } from './constants';
 
@@ -41,6 +40,7 @@ export const exportProfessionalExcel = async ({
   filename,
   withPrintFooter = false
 }: ExportData) => {
+  const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = `${SCHOOL_NAME} Smart Learning Platform`;
   workbook.lastModifiedBy = `${SCHOOL_NAME} Academic Engine`;

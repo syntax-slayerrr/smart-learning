@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 export interface AccreditationReportData {
@@ -33,6 +32,7 @@ export interface AccreditationReportData {
 }
 
 export async function exportAccreditationExcel(report: AccreditationReportData) {
+  const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Smart Learning Platform (SYNTAX SLAYER)";
   workbook.lastModifiedBy = "Admin Sistem";

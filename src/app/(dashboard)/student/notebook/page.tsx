@@ -140,6 +140,7 @@ function StudentNotebookContent() {
   // Data & Network State
   const [notebookData, setNotebookData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadingProgress, setLoadingProgress] = useState<number>(15);
   const { isOnline, offlineQueueCount, isSyncing, triggerSync } = useOfflineStatus();
 
   // Oral Defense Modal State
@@ -179,6 +180,23 @@ function StudentNotebookContent() {
     }, 2800);
     return () => clearInterval(interval);
   }, [isLoading, loadingTips.length]);
+
+  // Loading Progress Indicator Simulation
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingProgress(100);
+      return;
+    }
+    setLoadingProgress(18);
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 92) return prev;
+        const step = Math.max(1, Math.round((95 - prev) * 0.15));
+        return Math.min(92, prev + step);
+      });
+    }, 180);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // Audio 60s progress simulation
   useEffect(() => {
@@ -306,7 +324,10 @@ function StudentNotebookContent() {
       }
     } finally {
       if (activeFetchingIdRef.current === (targetMaterialId || "initial")) {
-        setIsLoading(false);
+        setLoadingProgress(100);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 200);
       }
     }
   }, [currentStudentId, notebookData?.material?.id, notebookData?.chapters?.length, selectedSubjectId]);
@@ -537,22 +558,22 @@ interface QuizQuestionItem {
   if (isLoading && !notebookData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] p-6 text-center animate-fade-in">
-        {/* Apple-grade Interactive Robot Stage */}
+        {/* Apple-grade Interactive Robot / Syntax Slayer Stage */}
         <div className="relative mb-5 flex flex-col items-center justify-center">
           {/* Subtle Ambient Studio Glow */}
-          <div className="absolute -top-6 w-72 h-72 rounded-full bg-gradient-to-b from-[#007AFF]/10 via-cyan-400/5 to-transparent blur-3xl pointer-events-none" />
+          <div className="absolute -top-6 w-72 h-72 rounded-full bg-gradient-to-b from-[#007AFF]/15 via-cyan-400/10 to-transparent blur-3xl pointer-events-none" />
           
           {/* Studio Video Pedestal */}
-          <div className="relative w-44 sm:w-52 aspect-[9/16] max-h-72 flex items-center justify-center">
+          <div className="relative w-48 sm:w-56 aspect-[9/16] max-h-[380px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-cyan-500/20 bg-black/40 flex items-center justify-center">
             <video
               autoPlay
               loop
               muted
               playsInline
-              className="w-full h-full object-contain select-none pointer-events-none"
+              className="w-full h-full object-cover select-none pointer-events-none"
             >
-              <source src="/assets/hermes-robot-loading-alpha.webm" type="video/webm" />
-              <source src="/assets/hermes-robot-loading.mp4" type="video/mp4" />
+              <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
+              <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
@@ -573,9 +594,20 @@ interface QuizQuestionItem {
           </p>
         </div>
 
-        {/* Tactile Progress Indicator */}
-        <div className="w-48 sm:w-56 h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden mt-4 border border-neutral-200/60 dark:border-neutral-700/60">
-          <div className="h-full bg-gradient-to-r from-[#007AFF] to-cyan-400 rounded-full animate-pulse w-3/4" />
+        {/* Tactile Progress Indicator with Exact Percentage */}
+        <div className="w-52 sm:w-60 mt-4 space-y-1.5">
+          <div className="flex justify-between items-center text-[11px] font-medium text-[#86868B]">
+            <span>Memuat Modul Belajar</span>
+            <span className="font-mono font-bold text-[#007AFF] dark:text-cyan-400">
+              {Math.round(loadingProgress)}%
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-neutral-200/70 dark:bg-neutral-800 rounded-full overflow-hidden border border-neutral-300/40 dark:border-neutral-700/60">
+            <div
+              className="h-full bg-gradient-to-r from-[#007AFF] via-cyan-400 to-emerald-400 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${Math.min(100, Math.max(8, loadingProgress))}%` }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -1334,8 +1366,8 @@ interface QuizQuestionItem {
                   playsInline
                   className="h-full w-full object-cover scale-125"
                 >
-                  <source src="/assets/hermes-robot-loading-alpha.webm" type="video/webm" />
-                  <source src="/assets/hermes-robot-loading.mp4" type="video/mp4" />
+                  <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
+                  <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
                 </video>
               </div>
               <div className="flex flex-col">
