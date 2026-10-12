@@ -327,6 +327,8 @@ export function LiveCameraMonitor({
     }
   };
 
+  const [classBatteries, setClassBatteries] = useState<Record<string, { level: number; charging: boolean }>>({});
+
   const effectiveChannels: CameraChannel[] = useMemo(() => {
     if (role === "teacher") {
       return [
@@ -350,26 +352,31 @@ export function LiveCameraMonitor({
     }
 
     if (classesList && classesList.length > 0) {
-      return classesList.map((cls, idx) => ({
-        id: cls.id,
-        name: cls.name,
-        subject: "Monitoring Presensi & Aktivitas",
-        teacher: "Pengampu Kelas",
-        streamUrl: `${edgeServerUrl}/video_feed?class_id=${encodeURIComponent(cls.id)}&channel=${idx + 1}`,
-        statusUrl: `${edgeServerUrl}/status?class_id=${encodeURIComponent(cls.id)}`,
-        ipAddress: `Kamera Kelas #${idx + 1}`,
-        port: 5000 + idx,
-        studentsCount: 0,
-        sittingCount: 0,
-        standingCount: 0,
-        handRaiseCount: 0,
-        sleepCount: 0,
-        isOnline: streamOnline,
-      }));
+      return classesList.map((cls, idx) => {
+        const bat = classBatteries[cls.id] || classBatteries[cls.name] || classBatteries[String(idx + 1)];
+        return {
+          id: cls.id,
+          name: cls.name,
+          subject: "Monitoring Presensi & Aktivitas",
+          teacher: "Pengampu Kelas",
+          streamUrl: `${edgeServerUrl}/video_feed?class_id=${encodeURIComponent(cls.id)}&channel=${idx + 1}`,
+          statusUrl: `${edgeServerUrl}/status?class_id=${encodeURIComponent(cls.id)}`,
+          ipAddress: `Kamera Kelas #${idx + 1}`,
+          port: 5000 + idx,
+          studentsCount: 0,
+          sittingCount: 0,
+          standingCount: 0,
+          handRaiseCount: 0,
+          sleepCount: 0,
+          isOnline: streamOnline,
+          battery: bat?.level,
+          isCharging: bat?.charging,
+        };
+      });
     }
 
     return INITIAL_DEFAULT_CHANNELS;
-  }, [role, lockedClassId, lockedClassName, lockedSubjectName, classesList, edgeServerUrl, streamOnline]);
+  }, [role, lockedClassId, lockedClassName, lockedSubjectName, classesList, edgeServerUrl, streamOnline, classBatteries]);
 
   useEffect(() => {
     const currentCam = effectiveChannels[activeCamIndex];
@@ -403,6 +410,9 @@ export function LiveCameraMonitor({
           if (typeof data?.flip_h === "boolean") setIsFlipped(data.flip_h);
           if (data?.current_source !== undefined) setCurrentCameraSource(data.current_source);
           if (typeof data?.camera_connected === "boolean") setIsCameraHardwareConnected(data.camera_connected);
+          if (data?.batteries && typeof data.batteries === "object") {
+            setClassBatteries(data.batteries);
+          }
           if (data?.latest_telemetry) {
             applyTelemetry(data.latest_telemetry);
           }
@@ -418,6 +428,24 @@ export function LiveCameraMonitor({
       if (failedStatusCountRef.current >= 2) {
         setStreamOnline(false);
       }
+    }
+  };
+
+  const handleRotateChannel = async (classId: string) => {
+    try {
+      const isCloud =
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        !window.location.hostname.includes("localhost");
+      const nextRot = cameraRotation === "0" ? "90" : cameraRotation === "90" ? "180" : cameraRotation === "180" ? "270" : "0";
+      const targetUrl = isCloud
+        ? `/api/camera/stream?target=rotate&deg=${nextRot}&class_id=${encodeURIComponent(classId)}&tunnel=${encodeURIComponent(edgeServerUrl)}`
+        : `${edgeServerUrl}/rotate?deg=${nextRot}&class_id=${encodeURIComponent(classId)}`;
+      await fetch(targetUrl);
+      setCameraRotation(nextRot);
+      setFeedTimestamp(Date.now());
+    } catch (err) {
+      console.warn("Gagal merotasi kamera kelas:", err);
     }
   };
 
@@ -748,6 +776,7 @@ export function LiveCameraMonitor({
           focusIndex={focusIndex}
           setActiveCamIndex={setActiveCamIndex}
           setViewMode={setViewMode}
+          onRotateChannel={handleRotateChannel}
         />
       ) : (
         /* VIEW MODE 2: SINGLE FOCUS DEEP MONITORING */

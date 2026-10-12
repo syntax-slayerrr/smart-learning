@@ -23,6 +23,8 @@ export interface CameraChannel {
   handRaiseCount: number;
   sleepCount: number;
   isOnline: boolean;
+  battery?: number;
+  isCharging?: boolean;
 }
 
 export interface TelemetryPoint {

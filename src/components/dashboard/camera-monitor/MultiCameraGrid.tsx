@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Smartphone, Square } from "lucide-react";
+import { Smartphone, Square, RotateCw, Battery, BatteryCharging } from "lucide-react";
 import { CameraChannel } from "./types";
 
 interface MultiCameraGridProps {
@@ -11,6 +11,7 @@ interface MultiCameraGridProps {
   focusIndex: number;
   setActiveCamIndex: (idx: number) => void;
   setViewMode: (mode: "single" | "quad") => void;
+  onRotateChannel?: (classId: string) => void;
 }
 
 export function MultiCameraGrid({
@@ -20,6 +21,7 @@ export function MultiCameraGrid({
   focusIndex,
   setActiveCamIndex,
   setViewMode,
+  onRotateChannel,
 }: MultiCameraGridProps) {
   return (
     <div className="p-4 sm:p-5 bg-card">
@@ -31,24 +33,53 @@ export function MultiCameraGrid({
               key={cam.id}
               className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs transition-all hover:border-primary/40 flex flex-col justify-between"
             >
+              {/* Header Card CCTV */}
               <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3.5 py-2.5 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-foreground truncate">
                     CAM #{idx + 1} — {cam.name}
                   </span>
                 </div>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-mono font-medium ${
-                    isCamOnline
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                      : "bg-muted text-muted-foreground border border-border"
-                  }`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${isCamOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"}`} />
-                  {isCamOnline ? "LIVE STREAM" : "STANDBY"}
-                </span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Battery Telemetry Pill */}
+                  {cam.battery !== undefined && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium border ${
+                        cam.battery <= 20
+                          ? "bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse"
+                          : "bg-muted text-muted-foreground border-border"
+                      }`}
+                      title={cam.isCharging ? "Sedang Mengisi Daya" : "Daya Baterai HP"}
+                    >
+                      {cam.isCharging ? (
+                        <BatteryCharging className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <Battery className="h-3 w-3" />
+                      )}
+                      <span>{cam.battery}%</span>
+                    </span>
+                  )}
+
+                  {/* Online/Standby Badge */}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-mono font-medium ${
+                      isCamOnline
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-muted text-muted-foreground border border-border"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isCamOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                      }`}
+                    />
+                    {isCamOnline ? "LIVE STREAM" : "STANDBY"}
+                  </span>
+                </div>
               </div>
 
+              {/* Video Feed Viewport */}
               <div className="relative aspect-video w-full bg-slate-950 flex items-center justify-center overflow-hidden">
                 {isCamOnline ? (
                   <>
@@ -60,9 +91,24 @@ export function MultiCameraGrid({
                     />
                     <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
                       <span className="rounded-lg bg-slate-950/80 backdrop-blur-md px-2 py-0.5 text-xs font-mono font-semibold text-white border border-white/10">
-                        🔴 CAM #{idx + 1} • {totalDetected} Subjek
+                        🔴 CAM #{idx + 1} • {idx === 0 ? totalDetected : 0} Subjek
                       </span>
                     </div>
+
+                    {/* Quick Remote Rotation Button */}
+                    {onRotateChannel && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRotateChannel(cam.id);
+                        }}
+                        title="Putar Sudut Kamera (90°)"
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-950/70 hover:bg-slate-900 border border-white/10 text-white hover:text-orange-400 transition-colors cursor-pointer backdrop-blur-md shadow-xs"
+                      >
+                        <RotateCw className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </>
                 ) : (
                   <div className="p-4 text-center text-white">
@@ -73,6 +119,7 @@ export function MultiCameraGrid({
                 )}
               </div>
 
+              {/* Footer Panel */}
               <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3 font-mono text-xs">
                   <span className="text-muted-foreground">

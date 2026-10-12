@@ -50,6 +50,9 @@ class StatusServerStreaming:
         # Penampung Multi-Kamera / Multi-Kelas
         self.bingkai_per_kelas: Dict[str, bytes] = {}
         self.waktu_frame_per_kelas: Dict[str, float] = {}
+        self.baterai_per_kelas: Dict[str, Dict[str, Any]] = {}
+        self.rotasi_per_kelas: Dict[str, str] = {}
+        self.cermin_per_kelas: Dict[str, bool] = {}
 
         self.rotasi: str = "auto"
         self.cermin_h: bool = False
@@ -136,6 +139,17 @@ class StatusServerStreaming:
                 self.flip_h = self.cermin_h
             return self.rotasi, self.cermin_h
 
+    def atur_orientasi_kelas(self, id_kelas: str, rotasi: Optional[str] = None, cermin_h: Optional[bool] = None) -> Tuple[str, bool]:
+        """Mengubah sudut rotasi atau pencerminan khusus untuk kelas/channel tertentu."""
+        with self.kunci_rotasi:
+            if rotasi in ("0", "90", "180", "270", "auto"):
+                self.rotasi_per_kelas[id_kelas] = rotasi
+            if cermin_h is not None:
+                self.cermin_per_kelas[id_kelas] = cermin_h
+            rot = self.rotasi_per_kelas.get(id_kelas, self.rotasi)
+            cerm = self.cermin_per_kelas.get(id_kelas, self.cermin_h)
+            return rot, cerm
+
     def ambil_orientasi(self) -> Tuple[str, bool]:
         with self.kunci_rotasi:
             return self.rotasi, self.cermin_h
@@ -177,6 +191,18 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             try:
                 parameter = urllib.parse.parse_qs(diurai.query)
                 id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
+                bat_val = parameter.get("battery", [None])[0]
+                chg_val = parameter.get("charging", [None])[0]
+                if bat_val is not None and self.state:
+                    try:
+                        self.state.baterai_per_kelas[id_kelas] = {
+                            "level": int(bat_val),
+                            "charging": chg_val in ("1", "true", "True"),
+                            "updated_at": time.time(),
+                        }
+                    except Exception:
+                        pass
+
                 panjang_konten = int(self.headers.get("Content-Length", 0))
                 if panjang_konten > 0:
                     data_mentah = self.rfile.read(panjang_konten)
@@ -246,6 +272,8 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                 "cloud_sync": sinkron_val,
                 "current_source": sumber_aktif,
                 "camera_connected": kamera_konek,
+                "active_classes": list(state.bingkai_per_kelas.keys()),
+                "batteries": state.baterai_per_kelas,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             self.wfile.write(json.dumps(muatan).encode("utf-8"))
@@ -322,12 +350,17 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
 
             sudut_baru = parameter.get("deg", [None])[0]
             cermin_baru = parameter.get("flip", [None])[0]
+            id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0]
             nilai_cermin = None
             if cermin_baru is not None:
                 nilai_cermin = cermin_baru in ("1", "true", "True")
 
-            rot_ret, cermin_ret = state.atur_orientasi(sudut_baru, nilai_cermin)
-            jawaban = {"success": True, "rotation": rot_ret, "flip_h": cermin_ret}
+            if id_kelas:
+                rot_ret, cermin_ret = state.atur_orientasi_kelas(id_kelas, sudut_baru, nilai_cermin)
+            else:
+                rot_ret, cermin_ret = state.atur_orientasi(sudut_baru, nilai_cermin)
+
+            jawaban = {"success": True, "class_id": id_kelas, "rotation": rot_ret, "flip_h": cermin_ret}
             self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
