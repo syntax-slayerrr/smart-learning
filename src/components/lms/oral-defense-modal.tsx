@@ -29,6 +29,7 @@ interface OralDefenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   assignmentTitle: string;
+  studentName?: string;
   submissionFilename?: string;
   onConfirmOfficialSubmit: (defenseData: {
     score: number;
@@ -41,6 +42,7 @@ export function OralDefenseModal({
   isOpen,
   onClose,
   assignmentTitle,
+  studentName = "Siswa",
   submissionFilename = "Tugas_Subnetting_VLSM.pdf",
   onConfirmOfficialSubmit,
 }: OralDefenseModalProps) {
@@ -286,7 +288,7 @@ export function OralDefenseModal({
             {/* 1. Hero Warm Greeting (Ella Reference: "Hai, saya Ella") */}
             <div className="space-y-0.5 pt-1">
               <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
-                Hai, Zaldy 👋
+                Hai, {studentName} 👋
               </h2>
               <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
                 Mari diskusikan tugas <strong className="text-slate-700 font-semibold">{assignmentTitle}</strong> secara santai.

@@ -320,7 +320,7 @@ export function SocraticDocumentViewer({
       {
         id: `welcome-${Date.now()}`,
         sender: "assistant",
-        text: `Halo Zaldy! Aku **Smart AI**, mentor dialektikamu untuk materi **${activeChapter.title}**.\n\nPembahasan kita **terkunci penuh pada materi bab ini**. Silakan ajukan pertanyaan seputar konsep materi ini.`,
+        text: `Halo! Aku **Smart AI**, mentor dialektikamu untuk materi **${activeChapter.title}**.\n\nPembahasan kita **terkunci penuh pada materi bab ini**. Silakan ajukan pertanyaan seputar konsep materi ini.`,
         timestamp: "Baru saja",
       },
     ]);

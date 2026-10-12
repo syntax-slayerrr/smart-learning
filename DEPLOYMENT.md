@@ -64,7 +64,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="your_vapid_public_key"
 VAPID_PRIVATE_KEY="your_vapid_private_key"
 VAPID_SUBJECT="mailto:admin@slayer.test"
 
-# --- AI Gateway (Opsional untuk Socratic Tutor & Hermès Copilot) ---
+# --- AI Gateway (Opsional untuk Socratic Tutor & Smart AI Assistant) ---
 NINEROUTER_BASE_URL="http://127.0.0.1:20128/v1"
 NINEROUTER_API_KEY="your_api_key"
 GROQ_API_KEY="gsk_your_groq_key"

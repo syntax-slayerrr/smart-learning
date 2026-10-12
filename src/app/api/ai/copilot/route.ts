@@ -362,7 +362,7 @@ STANDAR JAWABAN (ANTI-ASAL JAWAB & TERARAH):
 
     return NextResponse.json({
       success: true,
-      source: "hermes-workspace-engine",
+      source: "workspace-engine",
       reply: textReply,
       workspace,
     });

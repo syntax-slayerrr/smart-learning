@@ -1,7 +1,6 @@
 /**
- * 9Router & Hermes Agent Client
+ * AI Gateway Client
  * Dedicated AI Gateway for Smart Learning (SYNTAX SLAYER)
- * Direct connection to local 9Router daemon (:20128)
  */
 
 export interface AIClientMessage {

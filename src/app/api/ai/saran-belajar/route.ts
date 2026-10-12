@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       phaseMinutes = 30,
     } = body;
 
-    const systemPrompt = `Anda adalah Hermes Autonomous Pedagogical Co-pilot di platform Smart Learning (SYNTAX SLAYER).
+    const systemPrompt = `Anda adalah Smart AI Pedagogical Assistant di platform Smart Learning (SYNTAX SLAYER).
 Tugas Anda adalah memantau telemetri kelas secara real-time dan memberikan 1 intervensi pedagogis taktis yang singkat, ramah, dan aplikatif bagi guru.
 
 Panduan respons:
@@ -51,7 +51,7 @@ Berikan rekomendasi taktis pedagogis yang paling tepat untuk situasi di atas.`;
     if (aiResponse.success && aiResponse.content) {
       return NextResponse.json({
         success: true,
-        source: "hermes-9router",
+        source: "ai-gateway",
         model: aiResponse.model,
         nudge: aiResponse.content.trim(),
         timestamp: new Date().toISOString(),
@@ -72,7 +72,7 @@ Berikan rekomendasi taktis pedagogis yang paling tepat untuk situasi di atas.`;
 
     return NextResponse.json({
       success: true,
-      source: "hermes-heuristic-engine",
+      source: "heuristic-engine",
       nudge: fallbackNudge,
       timestamp: new Date().toISOString(),
     });
