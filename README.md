@@ -109,26 +109,6 @@ Proyek ini menerapkan konsep **Struktur Data & Algoritma (DSA)** tingkat enterpr
 
 ---
 
-## 📖 Kamus Terminologi & Glosarium Presentasi (Bahasa Indonesia)
-
-Glosarium ini dibuat agar seluruh anggota tim dapat menjelaskan teknologi kepada juri/evaluator menggunakan istilah baku Bahasa Indonesia yang jelas dan berbobot:
-
-| Istilah Teknis Asli | Istilah Baku Bahasa Indonesia | Cara Menjelaskan Saat Presentasi ke Penguji / Juri |
-|---|---|---|
-| **YOLO26 Macro Detector** | *Detektor Spasial Makro* | *"Model AI yang mendeteksi posisi kotak seluruh siswa dalam kelas secara instan dengan arsitektur NMS-free yang bebas dari kotak ganda."* |
-| **MediaPipe Heavy 3D** | *Pelacak Kerangka Anatomi 3D* | *"Model AI yang membaca 33 titik sendi anatomi tubuh manusia secara 3 dimensi untuk mengetahui postur duduk, berdiri, dan arah kepala."* |
-| **ArcFace 512-d Biometrics** | *Mesin Biometrik Fitur Wajah 512-d* | *"Model AI yang mengekstrak sidik biometrik wajah siswa menjadi 512 angka matematis dan mencocokkannya ke database profil kelas."* |
-| **SubjectTracker** | *Pelacak Subjek Spasio-Temporal* | *"Komponen yang menjaga agar ID dan nama siswa tetap konsisten dari detik ke detik menggunakan fusi spasial dan filter matematika terpadu."* |
-| **Elbow Angle Kinematics** | *Kinematika Sudut Siku* | *"Filter trigonometri sudut siku $\ge 105^\circ$ agar gerakan menggaruk kepala atau membetulkan kacamata tidak salah terhitung sebagai angkat tangan."* |
-| **Hand Motion Energy** | *Verifikator Energi Kinetik Tangan* | *"Algoritma sliding window yang menghitung kecepatan tangan di meja. Siswa yang tekun menulis dilarang divonis tidur meskipun kepalanya menunduk."* |
-| **Temporal Identity Voting** | *Buffer Voting Identitas Temporal* | *"Sistem penguncian kursi yang menuntut minimal 2 kecocokan wajah berturut-turut sebelum mengunci nama siswa pada kursi tersebut."* |
-| **EMA Smoothing** | *Filter Penghalus Rata-Rata Bergerak Eksponensial* | *"Filter koordinat ($0.22 \times \text{baru} + 0.78 \times \text{lama}$) agar kotak HUD terlihat tenang, rapi, dan bebas kedipan (*zero jitter*)."* |
-| **Seat-Anchored Re-ID** | *Penahan Identitas Kursi Toleransi Oklusi* | *"Mekanisme toleransi 4 detik saat siswa terhalang orang lewat, sehingga nama siswa langsung pulih tanpa membuat ID baru."* |
-| **Composite Risk Scoring** | *Skor Komposit Risiko Siswa* | *"Formula terbobot ($0.6 \times \text{Ketidakhadiran} + 0.4 \times \text{Frekuensi Tidur}$) untuk mendeteksi siswa yang membutuhkan pendampingan khusus."* |
-| **Bounded FIFO Queue** | *Antrean Terbatas Masuk-Pertama-Keluar-Pertama* | *"Antrean berkapasitas 100 slot yang mencegah memori bocor (OOM) jika internet terputus dan memastikan pengiriman telemetri tidak membuat video siaran ngelag."* |
-
----
-
 ## 🛠️ Panduan Instalasi & Menjalankan Sistem
 
 ### 1. Prasyarat Sistem
@@ -142,7 +122,7 @@ Glosarium ini dibuat agar seluruh anggota tim dapat menjelaskan teknologi kepada
 ### 2. Menjalankan Platform Web (Next.js & Supabase)
 ```bash
 # 1. Masuk ke direktori utama
-cd /home/zaldy/antigravity/smart-learning
+cd smart-learning
 
 # 2. Instal dependensi Node.js
 npm install
