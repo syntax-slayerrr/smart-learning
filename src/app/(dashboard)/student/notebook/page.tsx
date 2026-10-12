@@ -173,6 +173,44 @@ function StudentNotebookContent() {
     []
   );
 
+  // Intro Splash State - Dimainkan HANYA saat awal masuk Halaman Notebook dalam satu sesi
+  const [showIntroSplash, setShowIntroSplash] = useState<boolean>(false);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const alreadySeen = sessionStorage.getItem("syntax_slayer_notebook_intro_seen");
+      if (alreadySeen !== "true") {
+        setShowIntroSplash(true);
+      }
+    } catch {
+      // sessionStorage tidak tersedia
+    }
+  }, []);
+
+  // Selesaikan intro splash setelah video selesai secara utuh
+  const handleIntroComplete = useCallback(() => {
+    try {
+      sessionStorage.setItem("syntax_slayer_notebook_intro_seen", "true");
+    } catch {
+      // ignore
+    }
+    setIsFadingOut(true);
+    setTimeout(() => {
+      setShowIntroSplash(false);
+      setIsFadingOut(false);
+    }, 450);
+  }, []);
+
+  // Safety fallback: jika autoplay tertahan browser, selesaikan otomatis setelah 10.5 detik
+  useEffect(() => {
+    if (!showIntroSplash) return;
+    const safetyTimer = setTimeout(() => {
+      handleIntroComplete();
+    }, 10500);
+    return () => clearTimeout(safetyTimer);
+  }, [showIntroSplash, handleIntroComplete]);
+
   useEffect(() => {
     if (!isLoading) return;
     const interval = setInterval(() => {
@@ -554,10 +592,14 @@ interface QuizQuestionItem {
       });
   }, [quizQuestions, quizSubmitted, quizFilter, quizAnswers]);
 
-  // Loading State - Fullscreen Video Splash
-  if (isLoading && !notebookData) {
+  // Loading State - Fullscreen Video Splash (Hanya saat awal masuk dan belum selesai)
+  if (showIntroSplash) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#07090E] flex items-center justify-center overflow-hidden animate-fade-in select-none">
+      <div
+        className={`fixed inset-0 z-[100] bg-[#07090E] flex items-center justify-center overflow-hidden select-none transition-opacity duration-500 ${
+          isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
         {/* Ambient Video Backdrop for Ultrawide & Desktop Displays */}
         <video
           autoPlay
@@ -570,18 +612,38 @@ interface QuizQuestionItem {
           <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
         </video>
 
-        {/* Crisp Fullscreen Video — fills phone edge-to-edge, fits cleanly on desktop */}
+        {/* Crisp Fullscreen Video — Video diputar penuh sampai onEnded (tanpa loop) */}
         <div className="relative w-full h-full flex items-center justify-center">
           <video
             autoPlay
-            loop
             muted
             playsInline
-            className="w-full h-full object-cover sm:object-contain pointer-events-none drop-shadow-2xl"
+            onEnded={handleIntroComplete}
+            className="w-full h-full object-cover sm:object-contain drop-shadow-2xl"
           >
             <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
             <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
           </video>
+
+          {/* Tombol Lewati untuk kenyamanan user */}
+          <button
+            onClick={handleIntroComplete}
+            className="absolute top-5 right-5 z-20 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white/80 hover:text-white text-xs font-medium transition-all border border-white/10 cursor-pointer pointer-events-auto shadow-lg"
+          >
+            Lewati →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading State Standar — Saat Refresh atau kunjungan berikutnya ketika data sedang dimuat
+  if (isLoading && !notebookData) {
+    return (
+      <div className="h-full flex-1 flex flex-col items-center justify-center min-h-[75vh] bg-transparent text-[#1D1D1F]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-semibold text-[#86868B] animate-pulse">Menyiapkan Buku Pintar Siswa...</p>
         </div>
       </div>
     );
