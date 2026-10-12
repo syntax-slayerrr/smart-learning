@@ -1,0 +1,39 @@
+# ==============================================================================
+# .dockerignore — Syntax Slayer CV Engine
+# Mencegah file besar tidak perlu masuk ke Docker build context
+# ==============================================================================
+
+# Python cache & venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv*/
+venv/
+.env
+
+# Model file InsightFace (besar, diunduh terpisah)
+insightface_models/
+
+# File debug & development
+*.jpg
+*.png
+test_*.py
+*.ipynb
+
+# Git & editor
+.git/
+.gitignore
+*.md
+
+# Skrip Windows
+*.bat
+*.sh
+
+# Model YOLO (besar, tidak digunakan dalam deployment cloud)
+*.onnx
+!face_detection_yunet_2023mar.onnx
+!face_recognition_sface_2021dec.onnx
+
+# Log & temporary files
+*.log

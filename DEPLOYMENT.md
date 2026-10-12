@@ -177,3 +177,37 @@ Disediakan endpoint cron untuk menjaga kestabilan kapasitas basis data:
   * Gunakan opsi kertas **A4** dengan orientasi **Portrait** atau **Landscape** sesuai pratinjau.
   * Seluruh sidebar, header navigasi, tombol kontrol, dan floating widget disembunyikan secara otomatis.
   * Latar belakang dicetak putih murni bebas noda grafis untuk menghemat tinta printer.
+
+---
+
+## ☁️ 9. Panduan Deploy Python CV Engine di Deplexo
+
+Platform [Deplexo](https://deplexo.com) digunakan untuk menjalankan kontainer Docker Python CV Engine di cloud secara *always-on* dengan HTTPS otomatis.
+
+### A. Berkas Konfigurasi yang Telah Disiapkan
+1. `experiments/cv-poc/Dockerfile`: Base Python 3.12-slim, dependensi headless OpenCV/MediaPipe, port 5000, serta healthcheck `/status`.
+2. `experiments/cv-poc/.dockerignore`: Memangkas file gambar/cache agar build context cepat dan ringan.
+3. `experiments/cv-poc/deplexo.yaml`: Menetapkan framework `dockerfile` dan port `5000`.
+
+### B. Langkah Deploy di Deplexo Dashboard
+1. Buka [deplexo.com](https://deplexo.com) dan login dengan akun GitHub kamu.
+2. Klik **Deploy new** / **New Project** → Pilih repository `smart-learning`.
+3. Pada form konfigurasi:
+   * **Root Directory:** `experiments/cv-poc` *(Wajib diisi agar Deplexo mendeteksi Dockerfile Python, bukan Next.js)*
+   * **Branch:** `main` (atau branch produksi kamu)
+   * **Port:** `5000`
+4. Di tab **Environment Variables**, tambahkan:
+   * `CAMERA_SOURCE`: URL RTSP atau IP Webcam kamu (contoh: `http://10.10.10.33:8080/video` atau URL streaming CCTV publik/VPN)
+   * `API_URL`: `https://smart-learning-black.vercel.app/api/telemetry/ingest`
+   * `DEVICE_KEY`: Isi dengan nilai secret `EDGE_DEVICE_SECRET` kamu
+   * `SESSION_ID`: `00000000-0000-0000-0000-000000000001` (opsional)
+5. Klik **Deploy**. Tunggu proses build selesai hingga status menjadi `running` dan Deplexo memberikan URL HTTPS (misal: `https://cv-engine.de.deplexo.com`).
+
+### C. Sambungkan ke Next.js (Vercel)
+Setelah kontainer aktif di Deplexo:
+1. Buka dashboard Vercel → Project Settings → **Environment Variables**.
+2. Perbarui / tambahkan:
+   * `NEXT_PUBLIC_EDGE_SERVER`: `https://cv-engine.de.deplexo.com`
+   * `CV_ENGINE_URL`: `https://cv-engine.de.deplexo.com`
+3. Lakukan **Redeploy** di Vercel agar perubahan URL tersimpan ke frontend produksi.
+

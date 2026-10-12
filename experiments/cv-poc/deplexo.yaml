@@ -1,0 +1,9 @@
+# ==============================================================================
+# Deplexo Configuration — Syntax Slayer CV Engine
+# ==============================================================================
+# Gunakan konfigurasi ini ketika Root Directory di Deplexo diarahkan ke:
+# experiments/cv-poc
+# ==============================================================================
+
+framework: dockerfile
+port: 5000
