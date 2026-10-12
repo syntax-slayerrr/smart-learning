@@ -400,7 +400,7 @@ export default async function StudentNotificationsPage() {
               </h3>
             </div>
             <Link
-              href="/student/attendance"
+              href="/student/history"
               className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
             >
               <span>Semua Presensi</span>

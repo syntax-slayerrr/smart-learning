@@ -25,6 +25,7 @@ import {
   Send,
 } from "lucide-react";
 import { OralDefenseModal } from "@/components/lms/oral-defense-modal";
+import { toast } from "sonner";
 
 interface AssignmentData {
   id: string;
@@ -248,10 +249,11 @@ export default function StudentAssignmentsPage() {
       setPendingSubmission(null);
       setSelectedFile(null);
       setNotes("");
+      toast.success("Ujian lisan AI & tugas berhasil dikonfirmasi!");
       await fetchData();
     } catch (err: any) {
       console.error("Oral defense submit error:", err);
-      alert(err.message || "Terjadi kesalahan saat mengonfirmasi hasil ujian lisan AI.");
+      toast.error(err.message || "Terjadi kesalahan saat mengonfirmasi hasil ujian lisan AI.");
     } finally {
       setIsSubmitting(false);
     }

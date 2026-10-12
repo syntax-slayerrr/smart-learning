@@ -811,47 +811,58 @@ interface QuizQuestionItem {
           </div>
 
           {/* 3. Section: Daftar Tugas & Oral Defense Terkait */}
-          <div className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-1.5">
-                <FileCheck className="h-4 w-4 text-[#007AFF]" />
-                <span>Tugas Mata Pelajaran Ini</span>
-              </h3>
-              <span className="text-[11px] text-[#6E6E73]">Verifikasi mandiri</span>
-            </div>
-
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/80 backdrop-blur-2xl border border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] border border-blue-200/60 flex items-center justify-center shrink-0">
-                  <FileCheck className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] line-clamp-2">
-                      Tugas 02: Desain Subnetting & Simulasi Topologi Hybrid
-                    </h4>
-                    <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
-                      Perlu Uji Pemahaman
-                    </span>
-                  </div>
-                  <p className="text-[11px] sm:text-xs text-[#6E6E73]">
-                    Batas waktu: <span className="font-semibold text-[#1D1D1F]">Jumat, 23:59 WIB</span> • Bobot: 25% Nilai Akhir
-                  </p>
-                </div>
+          {activeSubject?.assignments && activeSubject.assignments.length > 0 && (
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs sm:text-sm font-bold text-[#1D1D1F] flex items-center gap-1.5">
+                  <FileCheck className="h-4 w-4 text-[#007AFF]" />
+                  <span>Tugas Mata Pelajaran Ini</span>
+                </h3>
+                <span className="text-[11px] text-[#6E6E73]">Verifikasi mandiri</span>
               </div>
 
-              <button
-                onClick={() => {
-                  setDefenseTopic("Desain Subnetting & Simulasi Topologi Hybrid");
-                  setIsDefenseModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/85 hover:bg-white border border-white/90 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center shrink-0"
-              >
-                <FileCheck className="h-3.5 w-3.5 text-[#007AFF]" />
-                <span>Uji Pemahaman Tugas</span>
-              </button>
+              {activeSubject.assignments.slice(0, 1).map((assign: any) => (
+                <div
+                  key={assign.id}
+                  className="p-3.5 sm:p-5 rounded-2xl bg-white/65 hover:bg-white/80 backdrop-blur-2xl border border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-blue-50/80 text-[#007AFF] border border-blue-200/60 flex items-center justify-center shrink-0">
+                      <FileCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-xs sm:text-sm font-bold text-[#1D1D1F] line-clamp-2">
+                          {assign.title || "Tugas Mandiri"}
+                        </h4>
+                        <span className="text-[9px] font-semibold text-[#007AFF] bg-blue-50/80 border border-blue-200/60 px-2 py-0.5 rounded-full shrink-0">
+                          {assign.status === "completed" ? "Selesai" : "Perlu Uji Pemahaman"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] sm:text-xs text-[#6E6E73]">
+                        Batas waktu:{" "}
+                        <span className="font-semibold text-[#1D1D1F]">
+                          {assign.deadline || "Sesuai Jadwal"}
+                        </span>{" "}
+                        • Mata Pelajaran: {activeSubject.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setDefenseTopic(assign.title || `Tugas ${activeSubject.name}`);
+                      setIsDefenseModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/85 hover:bg-white border border-white/90 text-[#1D1D1F] text-xs font-semibold shadow-2xs active:scale-95 transition-all self-end sm:self-center shrink-0 cursor-pointer"
+                  >
+                    <FileCheck className="h-3.5 w-3.5 text-[#007AFF]" />
+                    <span>Uji Pemahaman Tugas</span>
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </main>
 
         {/* Oral Defense Modal */}
@@ -859,9 +870,8 @@ interface QuizQuestionItem {
           isOpen={isDefenseModalOpen}
           onClose={() => setIsDefenseModalOpen(false)}
           assignmentTitle={defenseTopic}
-          submissionFilename="dokumen_tugas_subnetting_vlsm.pdf"
-          onConfirmOfficialSubmit={(data) => {
-            console.log("Defense confirmed:", data);
+          submissionFilename={`tugas_${(activeSubject?.name || "mandiri").toLowerCase().replace(/[^a-z0-9]/g, "_")}.pdf`}
+          onConfirmOfficialSubmit={(_data) => {
             setIsDefenseModalOpen(false);
           }}
         />
