@@ -14,13 +14,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Wifi,
+  ExternalLink,
+  Sparkles,
 } from "lucide-react";
 
 interface CameraSourceModalProps {
   showCameraModal: boolean;
   setShowCameraModal: (show: boolean) => void;
-  cameraModalTab: "webcam" | "ip" | "cloud";
-  setCameraModalTab: (tab: "webcam" | "ip" | "cloud") => void;
+  cameraModalTab: "web_hp" | "webcam" | "ip" | "cloud";
+  setCameraModalTab: (tab: "web_hp" | "webcam" | "ip" | "cloud") => void;
   isScanningCameras: boolean;
   fetchAvailableCameras: () => void;
   availableWebcams: { index: number; name: string; device_path?: string }[];
@@ -138,7 +140,19 @@ export function CameraSourceModal({
         </div>
 
         {/* Tab Navigation (Segmented Pill) */}
-        <div className="flex rounded-xl bg-muted/60 p-1 border border-border text-xs font-medium gap-1">
+        <div className="flex rounded-xl bg-muted/60 p-1 border border-border text-xs font-medium gap-1 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setCameraModalTab("web_hp")}
+            className={`flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+              cameraModalTab === "web_hp"
+                ? "bg-background text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Kamera HP (Web)</span>
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -147,40 +161,105 @@ export function CameraSourceModal({
                 scanNetworkCameras();
               }
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
               cameraModalTab === "ip"
                 ? "bg-background text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Smartphone className="h-3.5 w-3.5 text-primary" />
-            <span>Kamera HP (Wi-Fi)</span>
+            <span>IP / RTSP</span>
           </button>
           <button
             type="button"
             onClick={() => setCameraModalTab("webcam")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
               cameraModalTab === "webcam"
                 ? "bg-background text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Usb className="h-3.5 w-3.5 text-primary" />
-            <span>Webcam Laptop</span>
+            <span>Webcam USB</span>
           </button>
           <button
             type="button"
             onClick={() => setCameraModalTab("cloud")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all cursor-pointer ${
               cameraModalTab === "cloud"
                 ? "bg-background text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Globe className="h-3.5 w-3.5 text-primary" />
-            <span>Server Edge</span>
+            <span>Server</span>
           </button>
         </div>
+
+        {/* Tab Content: Kamera HP Langsung via Web (100% Bebas Terminal & Gratis) */}
+        {cameraModalTab === "web_hp" && (
+          <div className="space-y-3.5">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2.5">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-xs">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>Kamera HP via Browser Web (0 Rupiah &amp; 0 Terminal)</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tidak perlu install aplikasi Play Store dan tidak perlu langganan cloud berbayar. Buka tautan pemancar ini langsung di Google Chrome HP Anda:
+              </p>
+
+              <div className="rounded-lg bg-background border border-border p-2.5 flex items-center justify-between gap-2">
+                <code className="text-xs font-mono text-primary font-semibold truncate select-all">
+                  https://smart-learning-black.vercel.app/kamera-hp
+                </code>
+                <a
+                  href="/kamera-hp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1 text-xs font-semibold transition-colors shrink-0"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Buka di HP</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="rounded-lg bg-card p-2.5 border border-border shadow-2xs">
+                <span className="font-semibold text-primary block text-[11px] mb-0.5">1. Buka di HP</span>
+                <span className="text-muted-foreground text-[11px] leading-tight block">Buka URL di atas via Chrome di HP Anda.</span>
+              </div>
+              <div className="rounded-lg bg-card p-2.5 border border-border shadow-2xs">
+                <span className="font-semibold text-primary block text-[11px] mb-0.5">2. Klik Mulai</span>
+                <span className="text-muted-foreground text-[11px] leading-tight block">Tekan &apos;Mulai Kamera&apos; dan izinkan akses.</span>
+              </div>
+              <div className="rounded-lg bg-card p-2.5 border border-border shadow-2xs">
+                <span className="font-semibold text-primary block text-[11px] mb-0.5">3. Siaran AI Aktif</span>
+                <span className="text-muted-foreground text-[11px] leading-tight block">Deplexo AI memproses video otomatis secara real-time.</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => switchCameraSource("web")}
+              disabled={String(currentCameraSource).toLowerCase() === "web" || isSwitchingCamera}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all shadow-xs cursor-pointer min-h-[40px] ${
+                String(currentCameraSource).toLowerCase() === "web"
+                  ? "bg-emerald-600 text-white cursor-default"
+                  : "bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]"
+              }`}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span>
+                {String(currentCameraSource).toLowerCase() === "web"
+                  ? "✓ Mode Kamera Web HP Sedang Aktif"
+                  : isSwitchingCamera
+                  ? "Mengalihkan ke Mode Web..."
+                  : "Aktifkan Mode Kamera Web HP di Engine"}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Tab Content: IP Webcam (Phone / Wireless) */}
         {cameraModalTab === "ip" && (

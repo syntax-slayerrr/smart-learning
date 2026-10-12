@@ -150,6 +150,35 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        diurai = urllib.parse.urlparse(self.path)
+        jalur_url = diurai.path
+
+        # Endpoint terima frame kamera langsung dari browser web (HP / PWA)
+        if jalur_url in ("/push_frame", "/camera/push"):
+            try:
+                panjang_konten = int(self.headers.get("Content-Length", 0))
+                if panjang_konten > 0:
+                    data_mentah = self.rfile.read(panjang_konten)
+                    arr = np.frombuffer(data_mentah, dtype=np.uint8)
+                    frame_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                    if frame_bgr is not None and self.state and self.state.kamera:
+                        if hasattr(self.state.kamera, "terima_bingkai_eksternal"):
+                            self.state.kamera.terima_bingkai_eksternal(frame_bgr)
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(b'{"success":true}')
+                        return
+            except Exception:
+                pass
+            self.send_response(400)
+            self.send_header("Content-type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(b'{"success":false,"error":"Data frame tidak valid"}')
+            return
+
         # Ekstrak muatan JSON jika dikirim oleh klien
         self._muatan_json = {}
         try:

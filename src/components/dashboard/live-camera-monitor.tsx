@@ -112,7 +112,7 @@ export function LiveCameraMonitor({
   const [customIpUrl, setCustomIpUrl] = useState<string>("http://10.10.10.33:8080/video");
   const [isSwitchingCamera, setIsSwitchingCamera] = useState<boolean>(false);
   const [cameraSwitchNotice, setCameraSwitchNotice] = useState<string | null>(null);
-  const [cameraModalTab, setCameraModalTab] = useState<"webcam" | "ip" | "cloud">("webcam");
+  const [cameraModalTab, setCameraModalTab] = useState<"web_hp" | "webcam" | "ip" | "cloud">("web_hp");
   const [feedTimestamp, setFeedTimestamp] = useState<number>(Date.now());
 
   // WiFi Network Camera Scanner States

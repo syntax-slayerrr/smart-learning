@@ -63,6 +63,14 @@ class KameraUtasTerpisah:
                     pass
                 self.penangkap = None
 
+            if str(self.sumber).lower() in ("web", "push", "browser", "external"):
+                self.apakah_terhubung = True
+                self.is_connected = True
+                self.waktu_frame_terakhir = time.time()
+                self.last_frame_time = self.waktu_frame_terakhir
+                print(f"[+] Mode Push Web Streaming aktif: menunggu frame via /push_frame")
+                return
+
             try:
                 self.penangkap = cv2.VideoCapture(self.sumber)
                 self.cap = self.penangkap
@@ -98,8 +106,11 @@ class KameraUtasTerpisah:
 
     def _lingkaran_watchdog(self) -> None:
         """Pondasi 1: Watchdog Heartbeat — mendeteksi kamera macet/freeze & memicu soft reconnect."""
-        # Nonaktifkan force soft-reconnect pada stream jaringan jarak jauh (HTTP/RTSP) agar tidak memicu loop reconnect
-        if isinstance(self.sumber, str) and any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://")):
+        # Nonaktifkan force soft-reconnect pada stream jaringan jarak jauh atau mode push web
+        if isinstance(self.sumber, str) and (
+            any(self.sumber.startswith(p) for p in ("http://", "https://", "rtsp://"))
+            or self.sumber.lower() in ("web", "push", "browser", "external")
+        ):
             return
 
         while not self.apakah_berhenti:
@@ -113,11 +124,32 @@ class KameraUtasTerpisah:
                     self.is_connected = False
                     self.hubungkan()
 
+    def terima_bingkai_eksternal(self, frame_bgr: np.ndarray) -> None:
+        """Menerima frame eksternal yang di-push secara real-time oleh browser web (misal HP)."""
+        sekarang_ts = time.time()
+        with self.kunci_utas:
+            self.sumber = "web"
+            self.src = "web"
+            self.apakah_terhubung = True
+            self.is_connected = True
+            self.apakah_terambil = True
+            self.grabbed = True
+            self.bingkai = frame_bgr
+            self.frame = frame_bgr
+            self.waktu_frame_terakhir = sekarang_ts
+            self.last_frame_time = sekarang_ts
+
+    # Alias kompatibilitas
+    push_external_frame = terima_bingkai_eksternal
+
     def _perbarui_aliran(self) -> None:
         jeda_reconnect = 1.5
         waktu_reconnect_terakhir = time.time()
 
         while not self.apakah_berhenti:
+            if str(self.sumber).lower() in ("web", "push", "browser", "external"):
+                time.sleep(0.02)
+                continue
             if not self.apakah_terhubung or self.penangkap is None or not self.penangkap.isOpened():
                 sekarang = time.time()
                 if sekarang - waktu_reconnect_terakhir > jeda_reconnect:
