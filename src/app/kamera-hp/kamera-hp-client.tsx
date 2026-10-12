@@ -79,7 +79,7 @@ export function KameraHpClient() {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fpsCounterRef = useRef<number>(0);
-  const isPushingRef = useRef<boolean>(false);
+  const inFlightCountRef = useRef<number>(0);
   const consecutiveErrorsRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
@@ -250,26 +250,34 @@ export function KameraHpClient() {
 
       const cleanEdge = edgeUrl.trim().replace(/\/+$/, "");
 
-      // Loop pengiriman ~18 FPS (interval 55ms) dengan Auto-Reconnect & Battery Telemetry
-      timerRef.current = setInterval(async () => {
-        if (isPushingRef.current) return;
+      // Loop pengiriman ~18 FPS (interval 55ms) dengan Pipelining & Kompresi Cerdas
+      timerRef.current = setInterval(() => {
+        // Izinkan hingga 2 request in-flight paralel untuk menembus latensi RTT jaringan WAN/Cloud
+        if (inFlightCountRef.current >= 2) return;
         if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { alpha: false });
         if (!ctx) return;
 
-        canvas.width = 640;
-        canvas.height = 360;
-        ctx.drawImage(video, 0, 0, 640, 360);
+        // Inisialisasi dimensi sekali saja (480x270 untuk performa maksimal & bandwidth hemat)
+        if (canvas.width !== 480 || canvas.height !== 270) {
+          canvas.width = 480;
+          canvas.height = 270;
+        }
+        ctx.drawImage(video, 0, 0, 480, 270);
+
+        inFlightCountRef.current += 1;
 
         canvas.toBlob(
           async (blob) => {
-            if (!blob) return;
-            isPushingRef.current = true;
-            const startT = performance.now();
+            if (!blob) {
+              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+              return;
+            }
 
+            const startT = performance.now();
             const batQuery =
               batteryLevel !== null
                 ? `&battery=${batteryLevel}&charging=${isCharging ? 1 : 0}`
@@ -277,6 +285,9 @@ export function KameraHpClient() {
             const pushUrl = `${cleanEdge}/push_frame?class_id=${encodeURIComponent(
               selectedClassId
             )}&kelas=${encodeURIComponent(selectedClassName)}${batQuery}`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
 
             try {
               const res = await fetch(pushUrl, {
@@ -286,7 +297,10 @@ export function KameraHpClient() {
                 },
                 body: blob,
                 cache: "no-store",
+                keepalive: true,
+                signal: controller.signal,
               });
+              clearTimeout(timeoutId);
 
               if (res.ok) {
                 consecutiveErrorsRef.current = 0;
@@ -297,23 +311,24 @@ export function KameraHpClient() {
                 setErrorMessage(null);
               } else {
                 consecutiveErrorsRef.current += 1;
-                if (consecutiveErrorsRef.current >= 4) {
+                if (consecutiveErrorsRef.current >= 6) {
                   setStatus("reconnecting");
                   setErrorMessage(`Sinyal tidak stabil (Kode: ${res.status}). Menghubungkan ulang...`);
                 }
               }
             } catch {
+              clearTimeout(timeoutId);
               consecutiveErrorsRef.current += 1;
-              if (consecutiveErrorsRef.current >= 4) {
+              if (consecutiveErrorsRef.current >= 6) {
                 setStatus("reconnecting");
                 setErrorMessage("Koneksi Wi-Fi terputus. Mencoba menghubungkan kembali...");
               }
             } finally {
-              isPushingRef.current = false;
+              inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
             }
           },
           "image/jpeg",
-          0.6
+          0.45 // Ukuran super ramping (~7-9 KB per frame, melesat cepat ke Cloud Deplexo)
         );
       }, 55);
     } catch (err: any) {
