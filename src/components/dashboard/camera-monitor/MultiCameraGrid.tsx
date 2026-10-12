@@ -25,7 +25,7 @@ export function MultiCameraGrid({
     <div className="p-4 sm:p-5 bg-card">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {channels.map((cam, idx) => {
-          const isCamOnline = idx === 0 && streamOnline;
+          const isCamOnline = cam.isOnline ?? streamOnline;
           return (
             <div
               key={cam.id}
@@ -45,7 +45,7 @@ export function MultiCameraGrid({
                   }`}
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${isCamOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"}`} />
-                  {isCamOnline ? "LIVE 30 FPS" : "STANDBY"}
+                  {isCamOnline ? "LIVE STREAM" : "STANDBY"}
                 </span>
               </div>
 

@@ -350,15 +350,15 @@ export function LiveCameraMonitor({
     }
 
     if (classesList && classesList.length > 0) {
-      return classesList.map((cls) => ({
+      return classesList.map((cls, idx) => ({
         id: cls.id,
         name: cls.name,
         subject: "Monitoring Presensi & Aktivitas",
         teacher: "Pengampu Kelas",
-        streamUrl: `${edgeServerUrl}/video_feed`,
-        statusUrl: `${edgeServerUrl}/status`,
-        ipAddress: "Engine :5000",
-        port: 5000,
+        streamUrl: `${edgeServerUrl}/video_feed?class_id=${encodeURIComponent(cls.id)}&channel=${idx + 1}`,
+        statusUrl: `${edgeServerUrl}/status?class_id=${encodeURIComponent(cls.id)}`,
+        ipAddress: `Kamera Kelas #${idx + 1}`,
+        port: 5000 + idx,
         studentsCount: 0,
         sittingCount: 0,
         standingCount: 0,

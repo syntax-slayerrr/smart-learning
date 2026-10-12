@@ -47,6 +47,10 @@ class StatusServerStreaming:
         self._standby_cache: Optional[bytes] = None
         self._waktu_standby_terakhir: float = 0.0
 
+        # Penampung Multi-Kamera / Multi-Kelas
+        self.bingkai_per_kelas: Dict[str, bytes] = {}
+        self.waktu_frame_per_kelas: Dict[str, float] = {}
+
         self.rotasi: str = "auto"
         self.cermin_h: bool = False
         self.kunci_rotasi = threading.Lock()
@@ -62,7 +66,7 @@ class StatusServerStreaming:
         self.flip_h = self.cermin_h
         self.rotation_lock = self.kunci_rotasi
 
-    def _buat_bingkai_standby(self) -> bytes:
+    def _buat_bingkai_standby(self, label_kelas: str = "UTAMA") -> bytes:
         """Menghasilkan citra standby gelap dengan teks status ketika kamera belum terhubung."""
         w, h = 640, 360
         kanvas = np.zeros((h, w, 3), dtype=np.uint8)
@@ -72,13 +76,14 @@ class StatusServerStreaming:
         cv2.line(kanvas, (0, 0), (w, 0), (12, 88, 234), 4)
 
         waktu_str = datetime.now().strftime("%H:%M:%S")
-        cv2.putText(kanvas, "SYNTAX SLAYER AI - EDGE VISION", (36, 110),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.65, (245, 245, 245), 1, cv2.LINE_AA)
-        cv2.putText(kanvas, "[ STANDBY - MENUNGGU SUMBER KAMERA ]", (36, 150),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.52, (25, 165, 255), 1, cv2.LINE_AA)
-        cv2.putText(kanvas, "Sambungkan kamera HP / IP via menu 'Sumber Kamera' di web", (36, 200),
+        judul = f"SYNTAX SLAYER AI - {str(label_kelas).upper()}"
+        cv2.putText(kanvas, judul, (36, 110),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.62, (245, 245, 245), 1, cv2.LINE_AA)
+        cv2.putText(kanvas, "[ STANDBY - MENUNGGU PEMANCAR HP ]", (36, 150),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.50, (25, 165, 255), 1, cv2.LINE_AA)
+        cv2.putText(kanvas, "Buka /kamera-hp di HP lalu pilih kelas ini", (36, 200),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.42, (170, 170, 170), 1, cv2.LINE_AA)
-        cv2.putText(kanvas, f"Cloud Port 5000 Online  |  Time: {waktu_str}", (36, 310),
+        cv2.putText(kanvas, f"Port 5000 Online  |  Jam: {waktu_str}", (36, 310),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.38, (110, 110, 110), 1, cv2.LINE_AA)
 
         _, enc = cv2.imencode('.jpg', kanvas, [cv2.IMWRITE_JPEG_QUALITY, 50])
@@ -95,16 +100,30 @@ class StatusServerStreaming:
             self.bingkai_jpeg_terakhir = data_bytes_jpeg
             self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
 
+    def perbarui_bingkai_kelas(self, id_kelas: str, data_bytes_jpeg: bytes) -> None:
+        """Memperbarui frame untuk channel / kelas tertentu."""
+        with self.kunci_bingkai:
+            self.bingkai_per_kelas[id_kelas] = data_bytes_jpeg
+            self.waktu_frame_per_kelas[id_kelas] = time.time()
+            self.bingkai_jpeg_terakhir = data_bytes_jpeg
+            self.latest_frame_jpeg = data_bytes_jpeg
+
     def ambil_bingkai(self) -> Optional[bytes]:
         """Mengambil salinan frame terkini atau menghasilkan frame standby jika kamera belum terhubung."""
+        return self.ambil_bingkai_kelas("main")
+
+    def ambil_bingkai_kelas(self, id_kelas: str = "main") -> bytes:
+        """Mengambil salinan frame untuk channel / kelas tertentu."""
         with self.kunci_bingkai:
-            if self.bingkai_jpeg_terakhir is not None:
-                return self.bingkai_jpeg_terakhir
+            frame = self.bingkai_per_kelas.get(id_kelas)
             waktu_kini = time.time()
-            if self._standby_cache is None or (waktu_kini - self._waktu_standby_terakhir) > 1.0:
-                self._standby_cache = self._buat_bingkai_standby()
-                self._waktu_standby_terakhir = waktu_kini
-            return self._standby_cache
+            waktu_terakhir = self.waktu_frame_per_kelas.get(id_kelas, 0.0)
+
+            if frame is not None and (waktu_kini - waktu_terakhir) < 4.0:
+                return frame
+            if id_kelas in ("main", "default", "1") and self.bingkai_jpeg_terakhir is not None:
+                return self.bingkai_jpeg_terakhir
+            return self._buat_bingkai_standby(id_kelas)
 
     def atur_orientasi(self, rotasi: Optional[str] = None, cermin_h: Optional[bool] = None) -> Tuple[str, bool]:
         """Mengubah sudut rotasi atau pencerminan secara dinamis."""
@@ -156,9 +175,14 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
         # Endpoint terima frame kamera langsung dari browser web (HP / PWA)
         if jalur_url in ("/push_frame", "/camera/push"):
             try:
+                parameter = urllib.parse.parse_qs(diurai.query)
+                id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
                 panjang_konten = int(self.headers.get("Content-Length", 0))
                 if panjang_konten > 0:
                     data_mentah = self.rfile.read(panjang_konten)
+                    # Simpan ke cache per-kelas
+                    if self.state:
+                        self.state.perbarui_bingkai_kelas(id_kelas, data_mentah)
                     arr = np.frombuffer(data_mentah, dtype=np.uint8)
                     frame_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
                     if frame_bgr is not None and self.state and self.state.kamera:
@@ -168,7 +192,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
                         self.send_header("Content-type", "application/json")
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
-                        self.wfile.write(b'{"success":true}')
+                        self.wfile.write(json.dumps({"success": True, "class_id": id_kelas}).encode("utf-8"))
                         return
             except Exception:
                 pass
@@ -334,6 +358,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
 
         # 5. Endpoint Siaran Video MJPEG (Multipart Mixed Replace)
         if jalur_url in ("/video_feed", "/"):
+            id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
             self.send_response(200)
             self.send_header("Content-type", "multipart/x-mixed-replace; boundary=frame")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -343,7 +368,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
 
             terakhir_dikirim = None
             while not state.peristiwa_berhenti.is_set():
-                bingkai_bytes = state.ambil_bingkai()
+                bingkai_bytes = state.ambil_bingkai_kelas(id_kelas)
                 if bingkai_bytes is not None and bingkai_bytes is not terakhir_dikirim:
                     try:
                         self.wfile.write(b"--frame\r\n")

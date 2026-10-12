@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { KameraHpClient } from "./kamera-hp-client";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function KameraHpPage() {
-  return <KameraHpClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950 text-zinc-400 flex items-center justify-center text-xs">Memuat Pemancar Kamera...</div>}>
+      <KameraHpClient />
+    </Suspense>
+  );
 }
