@@ -554,60 +554,34 @@ interface QuizQuestionItem {
       });
   }, [quizQuestions, quizSubmitted, quizFilter, quizAnswers]);
 
-  // Loading State
+  // Loading State - Fullscreen Video Splash
   if (isLoading && !notebookData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[75vh] p-6 text-center animate-fade-in">
-        {/* Apple-grade Interactive Robot / Syntax Slayer Stage */}
-        <div className="relative mb-5 flex flex-col items-center justify-center">
-          {/* Subtle Ambient Studio Glow */}
-          <div className="absolute -top-6 w-72 h-72 rounded-full bg-gradient-to-b from-[#007AFF]/15 via-cyan-400/10 to-transparent blur-3xl pointer-events-none" />
-          
-          {/* Studio Video Pedestal */}
-          <div className="relative w-48 sm:w-56 aspect-[9/16] max-h-[380px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-cyan-500/20 bg-black/40 flex items-center justify-center">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover select-none pointer-events-none"
-            >
-              <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
-              <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
-            </video>
-          </div>
-        </div>
+      <div className="fixed inset-0 z-[100] bg-[#07090E] flex items-center justify-center overflow-hidden animate-fade-in select-none">
+        {/* Ambient Video Backdrop for Ultrawide & Desktop Displays */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 pointer-events-none"
+        >
+          <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
+          <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
+        </video>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md border border-neutral-200/60 dark:border-neutral-700/60 text-[#007AFF] text-[11px] font-semibold mb-2.5 shadow-xs">
-          <Bot className="h-3 w-3" />
-          Smart AI Teman Belajarmu
-        </div>
-
-        <h2 className="text-base sm:text-lg font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
-          Menyiapkan Lembar Belajarmu...
-        </h2>
-        
-        {/* Dynamic Micro-Learning Tips Rotation */}
-        <div className="h-10 mt-1 flex items-center justify-center max-w-sm px-4">
-          <p key={tipIndex} className="text-xs text-[#86868B] leading-relaxed animate-in fade-in duration-300">
-            {loadingTips[tipIndex]}
-          </p>
-        </div>
-
-        {/* Tactile Progress Indicator with Exact Percentage */}
-        <div className="w-52 sm:w-60 mt-4 space-y-1.5">
-          <div className="flex justify-between items-center text-[11px] font-medium text-[#86868B]">
-            <span>Memuat Modul Belajar</span>
-            <span className="font-mono font-bold text-[#007AFF] dark:text-cyan-400">
-              {Math.round(loadingProgress)}%
-            </span>
-          </div>
-          <div className="w-full h-1.5 bg-neutral-200/70 dark:bg-neutral-800 rounded-full overflow-hidden border border-neutral-300/40 dark:border-neutral-700/60">
-            <div
-              className="h-full bg-gradient-to-r from-[#007AFF] via-cyan-400 to-emerald-400 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${Math.min(100, Math.max(8, loadingProgress))}%` }}
-            />
-          </div>
+        {/* Crisp Fullscreen Video — fills phone edge-to-edge, fits cleanly on desktop */}
+        <div className="relative w-full h-full flex items-center justify-center">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover sm:object-contain pointer-events-none drop-shadow-2xl"
+          >
+            <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
+            <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
+          </video>
         </div>
       </div>
     );
