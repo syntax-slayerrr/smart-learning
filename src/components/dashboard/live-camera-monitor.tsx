@@ -868,6 +868,9 @@ export function LiveCameraMonitor({
         setCustomEdgeInput={setCustomEdgeInput}
         updateEdgeServerUrl={updateEdgeServerUrl}
         edgeServerUrl={edgeServerUrl}
+        streamOnline={streamOnline}
+        setStreamOnline={setStreamOnline}
+        checkStreamStatus={checkStreamStatus}
       />
     </div>
   );
