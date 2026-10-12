@@ -316,7 +316,7 @@ export function CameraSourceModal({
                   onChange={(e) => setCustomIpUrl(e.target.value)}
                   id="custom-ip-stream-url"
                   aria-label="URL Stream Manual"
-                  placeholder="http://192.168.1.15:8080/video"
+                  placeholder="https://kamera.sekolah.sch.id/video atau https://xxxx.loca.lt/video"
                   className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
                 <button
@@ -325,7 +325,7 @@ export function CameraSourceModal({
                     let url = customIpUrl.trim();
                     if (!url) return;
                     if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                      url = `http://${url}`;
+                      url = `https://${url}`;
                     }
                     if (!url.includes("/video") && !url.includes("/video_feed")) {
                       url = `${url.replace(/\/+$/, "")}/video`;
@@ -339,6 +339,9 @@ export function CameraSourceModal({
                   {isSwitchingCamera ? "Menyambung..." : "Sambungkan"}
                 </button>
               </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                * Gunakan awalan <span className="font-mono text-primary font-semibold">https://</span> agar tidak diblokir oleh browser saat diakses dari domain Vercel.
+              </p>
             </div>
 
             {/* Quick Presets */}
@@ -347,24 +350,24 @@ export function CameraSourceModal({
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setCustomIpUrl("http://192.168.1.15:8080/video")}
+                  onClick={() => setCustomIpUrl("https://192.168.1.15:8080/video")}
                   className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  IP Webcam (:8080)
+                  HTTPS IP Webcam (:8080)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCustomIpUrl("http://192.168.1.15:4747/video")}
+                  onClick={() => setCustomIpUrl("https://kamera-kelas.loca.lt/video")}
                   className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-mono hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  DroidCam (:4747)
+                  Tunnel Cloudflare / Localtunnel
                 </button>
                 <button
                   type="button"
                   onClick={() => switchCameraSource(0)}
                   className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  Webcam Laptop (0)
+                  Webcam Default (0)
                 </button>
               </div>
             </div>
