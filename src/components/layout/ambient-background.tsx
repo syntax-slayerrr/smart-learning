@@ -30,7 +30,7 @@ export function AmbientBackground({
         className={`absolute inset-0 transition-opacity duration-700 ease-out ${opacityMap[intensity]} contrast-[1.02] saturate-[1.05]`}
       >
         <Image
-          src="/assets/backgrounds/poto1.png"
+          src="/assets/backgrounds/academic-atmosphere.png"
           alt=""
           fill
           priority

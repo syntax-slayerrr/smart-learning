@@ -53,3 +53,4 @@ experiments/cv-poc/*.png
 experiments/cv-poc/*.jpg
 *.tsbuildinfo
 supabase/.temp/
+.agents/
