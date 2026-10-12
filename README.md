@@ -5,48 +5,40 @@
 Platform terintegrasi yang menghubungkan **Edge Computer Vision Intelligence** (Python, YOLO26n, MediaPipe Heavy 3D, ArcFace 512-d) dengan **Fullstack Web Platform** (Next.js 16, TypeScript, Supabase PostgreSQL, Tailwind CSS) untuk mendeteksi dinamika belajar di kelas, kehadiran siswa, intervensi dini siswa berisiko (*At-Risk Students*), dan pelaporan otomatis ke orang tua melalui WhatsApp.
 
 > 📖 **Dokumentasi & Panduan Utama Tim:**
-> * 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Panduan Kontribusi Tim, Standar UI/UX, dan Guardrail Penggunaan AI (Anti-Overengineering).
-> * 🏛️ **[MASTER_ARSITEKTUR_3_DEVELOPER.md](docs/MASTER_ARSITEKTUR_3_DEVELOPER.md)** — Blueprint Arsitektur Global, Matriks DSA, Kamus Istilah Presentasi & Defense Playbook Juri.
+> * 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Panduan Kontribusi Tim & Standar Kualitas Kode.
 > * 🎥 **[CV_ENGINE_GUIDE.md](docs/CV_ENGINE_GUIDE.md)** — Panduan Teknis Edge AI Vision Engine Python.
 
 ---
 
-## 👥 Pembagian Tugas & Tanggung Jawab Tim (3 Developers)
+## 👥 Pembagian Tanggung Jawab Modul (2 Developers)
 
-Seluruh arsitektur proyek dibagi menjadi **3 pilar spesialisasi independen** dengan batas modul yang jelas (*clean separation of concerns*) sehingga 3 developer dapat bekerja secara paralel tanpa konflik Git (*zero merge conflicts*):
+Seluruh arsitektur proyek dibagi menjadi **2 pilar spesialisasi** dengan batas modul yang jelas (*clean separation of concerns*):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                      SMART LEARNING ECOSYSTEM — ARSITEKTUR 3 DEVELOPER                      │
-├──────────────────────────────┬──────────────────────────────┬───────────────────────────────┤
-│         DEVELOPER 1          │         DEVELOPER 2          │          DEVELOPER 3          │
-│       AI & Vision Lead       │  Backend, Telemetry & Data   │  Frontend, Stream & UI/UX     │
-├──────────────────────────────┼──────────────────────────────┼───────────────────────────────┤
-│ 📂 experiments/cv-poc/       │ 📂 src/app/api/              │ 📂 src/components/dashboard/  │
-│    └── cv_engine/core/       │    ├── telemetry/ingest/     │    ├── live-camera-monitor    │
-│    • detector.py (YOLO26n)   │    ├── attendance/           │    ├── session-dynamics       │
-│    • pose.py (MediaPipe 3D)  │    └── notifications/        │    └── at-risk-students       │
-│    • face.py (ArcFace 512-d) │ 📂 src/services/             │ 📂 src/app/(dashboard)/       │
-│    • kinematics.py (Sudut)   │    ├── student-analytics.ts  │    ├── admin/                 │
-│    • tracker.py (5 Guards)   │    └── whatsapp.ts           │    ├── teacher/               │
-│ 📂 experiments/cv-poc/       │ 📂 src/lib/supabase/         │    ├── parent/                │
-│    • classroom_poc.py        │    └── schemas & migrations  │    └── student/               │
-│    • main.py                 │ 📂 cv_engine/telemetry/      │ 📂 cv_engine/streaming/       │
-│                              │    • schemas & dispatcher    │    └── camera.py & hud.py     │
-├──────────────────────────────┼──────────────────────────────┼───────────────────────────────┤
-│ Tanggung Jawab Utama:        │ Tanggung Jawab Utama:        │ Tanggung Jawab Utama:         │
-│ 1. Inferensi YOLO26n ONNX    │ 1. Endpoint Ingest Telemetri │ 1. Live Camera Monitor HUD    │
-│    CPU AVX2 (~45ms)          │    (/api/telemetry/ingest)   │    dengan siaran video 45 FPS │
-│ 2. MediaPipe Heavy 33-pt 3D  │ 2. Mesin Skoring Risiko      │ 2. Panel Analitik Interaktif  │
-│    estimasi sendi tubuh      │    Komposit Siswa (O(N) DSA) │    (Recharts & Lucide Icons)  │
-│ 3. ArcFace 512-d Biometrik   │ 3. Database Supabase & RLS   │ 3. Dashboard Multi-Role       │
-│    pengenalan wajah siswa    │    (PostgreSQL schema)       │    (Admin, Guru, Ortu, Siswa) │
-│ 4. 5 Enterprise Guardrails   │ 4. Gateway Notifikasi WA     │ 4. Desain Sistem Anti-Slop    │
-│    kinematika & energi       │    (Fonnte API otomatis)     │    (Warm Canvas & Zinc Theme) │
-│                              │                              │                               │
-│ Git Branch:                  │ Git Branch:                  │ Git Branch:                   │
-│ feature/dev1-vision-core     │ feature/dev2-backend-data    │ feature/dev3-frontend-stream  │
-└──────────────────────────────┴──────────────────────────────┴───────────────────────────────┘
+│                            SMART LEARNING ECOSYSTEM — ARSITEKTUR                            │
+├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
+│                 DEVELOPER 1                 │                  DEVELOPER 2                  │
+│       Edge AI & Computer Vision Lead        │         Fullstack Web & Cloud Platform        │
+├─────────────────────────────────────────────┼───────────────────────────────────────────────┤
+│ 📂 experiments/cv-poc/                      │ 📂 src/app/ (Next.js App Router)              │
+│    └── cv_engine/core/                      │    ├── (dashboard)/ (Admin, Guru, Ortu, Siswa)│
+│    • detector.py (YOLO26n Macro)            │    └── api/ (telemetry, attendance, etc.)     │
+│    • pose.py (MediaPipe Heavy 3D)           │ 📂 src/components/                            │
+│    • face.py (ArcFace 512-d Biometrics)     │    ├── dashboard/ (Live Monitor, Dynamic HUD) │
+│    • kinematics.py (Sudut & Gerak)          │    └── ui/ (Design System & Recharts)         │
+│    • tracker.py (5 Enterprise Guardrails)   │ 📂 src/services/ & src/lib/                   │
+│ 📂 experiments/cv-poc/cv_engine/streaming/  │    ├── student-analytics.ts (O(N) Scorer)     │
+│    ├── camera.py (Zero-Lag Buffer)          │    ├── whatsapp.ts (Gateway Notifikasi)       │
+│    └── mjpeg_server.py (HTTP MJPEG :5000)   │    └── supabase/ (Schema, RLS & Migrations)   │
+├─────────────────────────────────────────────┼───────────────────────────────────────────────┤
+│ Tanggung Jawab Utama:                       │ Tanggung Jawab Utama:                         │
+│ 1. Inferensi YOLO26n ONNX CPU (~45ms)       │ 1. Ingest Telemetri & In-Memory Ring Buffer   │
+│ 2. MediaPipe Heavy 33-pt 3D Landmark        │ 2. Skoring Risiko Komposit Siswa O(N)         │
+│ 3. ArcFace 512-d Pengenalan Wajah Siswa     │ 3. UI/UX Dashboard Multi-Role Real-Time       │
+│ 4. 5 Enterprise Guardrails & Kinematika     │ 4. Integrasi Supabase PostgreSQL & WhatsApp   │
+│ 5. Siaran Video MJPEG 45 FPS Edge Server    │ 5. Keamanan API, Rate Limiting & Auth RLS     │
+└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
 ```
 
 ---
@@ -55,7 +47,7 @@ Seluruh arsitektur proyek dibagi menjadi **3 pilar spesialisasi independen** den
 
 ```mermaid
 flowchart TD
-    subgraph EdgeDevice["1. Edge Box / Kamera Kelas (Dev 1 & Dev 3)"]
+    subgraph EdgeDevice["1. Edge Box / Kamera Kelas"]
         CAM[Kamera HP / RTSP / Webcam] --> TC[KameraUtasTerpisah: Buffer 1-Frame Zero Lag]
         TC --> YOLO[YOLO26n ONNX: Detektor Spasial Makro]
         TC --> MP[MediaPipe Heavy 3D: Kerangka Sendi Anatomi]
@@ -67,7 +59,7 @@ flowchart TD
         TRACK --> DISP[PengirimTelemetriAsinkron: Bounded FIFO Queue]
     end
 
-    subgraph BackendAPI["2. Next.js & Supabase Cloud (Dev 2)"]
+    subgraph BackendAPI["2. Next.js & Supabase Cloud"]
         DISP -->|HTTP POST JSON Tiap 2s| INGEST[/api/telemetry/ingest]
         INGEST --> DB[(Supabase PostgreSQL: classroom_telemetry)]
         INGEST --> INMEM[In-Memory Sliding Buffer: 50 Slices]
@@ -75,7 +67,7 @@ flowchart TD
         ANALYTICS --> WA[Gateway WhatsApp: Notifikasi Intervensi Ortu]
     end
 
-    subgraph ClientDashboards["3. Antarmuka Web Interaktif (Dev 3)"]
+    subgraph ClientDashboards["3. Antarmuka Web Interaktif"]
         HUD -->|MJPEG Feed 45 FPS| LIVE[Live Camera Monitor Component]
         INMEM -->|Polling / Realtime| LIVE
         ANALYTICS --> ADM[Dashboard Admin: Tren Seluruh Sekolah]
@@ -170,19 +162,9 @@ Engine lokal membuka HTTP server di `http://localhost:5000`:
 
 ---
 
-## 🤝 Standar Kolaborasi Git (3 Developers)
+## 🤝 Standar Kualitas & Verifikasi Kode
 
-1. **Developer 1 (AI & Vision Core):**
-   - Branch: `feature/dev1-vision-core`
-   - Direktori kerja: `experiments/cv-poc/cv_engine/core/`
-2. **Developer 2 (Backend, Telemetry & Data):**
-   - Branch: `feature/dev2-backend-data`
-   - Direktori kerja: `src/app/api/`, `src/services/`, `cv_engine/telemetry/`, `supabase/`
-3. **Developer 3 (Frontend, Stream & UI/UX):**
-   - Branch: `feature/dev3-frontend-stream`
-   - Direktori kerja: `src/components/`, `src/app/(dashboard)/`, `cv_engine/streaming/`, `cv_engine/server/`
-
-Sebelum melakukan merge ke `master`, seluruh anggota tim wajib menjalankan verifikasi kualitas:
+Sebelum melakukan merge atau push ke `master`, seluruh verifikasi kualitas wajib dijalankan:
 ```bash
 # 1. Verifikasi Type Checking TypeScript (Zero Errors)
 npx tsc --noEmit
