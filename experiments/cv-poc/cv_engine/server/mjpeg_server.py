@@ -18,6 +18,8 @@ import threading
 import time
 import urllib.parse
 from typing import Optional, Callable, Dict, Any, Tuple
+import cv2
+import numpy as np
 
 from cv_engine.telemetry.gallery import ManajerGaleriWajah
 
@@ -42,6 +44,9 @@ class StatusServerStreaming:
         self.peristiwa_berhenti = threading.Event()
         self.kamera: Any = None
 
+        self._standby_cache: Optional[bytes] = None
+        self._waktu_standby_terakhir: float = 0.0
+
         self.rotasi: str = "auto"
         self.cermin_h: bool = False
         self.kunci_rotasi = threading.Lock()
@@ -57,6 +62,28 @@ class StatusServerStreaming:
         self.flip_h = self.cermin_h
         self.rotation_lock = self.kunci_rotasi
 
+    def _buat_bingkai_standby(self) -> bytes:
+        """Menghasilkan citra standby gelap dengan teks status ketika kamera belum terhubung."""
+        w, h = 640, 360
+        kanvas = np.zeros((h, w, 3), dtype=np.uint8)
+        kanvas[:] = (24, 20, 18)  # Warna gelap zinc-950
+
+        # Garis aksen oranye Syntax Slayer di atas (BGR: 12, 88, 234)
+        cv2.line(kanvas, (0, 0), (w, 0), (12, 88, 234), 4)
+
+        waktu_str = datetime.now().strftime("%H:%M:%S")
+        cv2.putText(kanvas, "SYNTAX SLAYER AI - EDGE VISION", (36, 110),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.65, (245, 245, 245), 1, cv2.LINE_AA)
+        cv2.putText(kanvas, "[ STANDBY - MENUNGGU SUMBER KAMERA ]", (36, 150),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.52, (25, 165, 255), 1, cv2.LINE_AA)
+        cv2.putText(kanvas, "Sambungkan kamera HP / IP via menu 'Sumber Kamera' di web", (36, 200),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.42, (170, 170, 170), 1, cv2.LINE_AA)
+        cv2.putText(kanvas, f"Cloud Port 5000 Online  |  Time: {waktu_str}", (36, 310),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, (110, 110, 110), 1, cv2.LINE_AA)
+
+        _, enc = cv2.imencode('.jpg', kanvas, [cv2.IMWRITE_JPEG_QUALITY, 50])
+        return enc.tobytes()
+
     def tautkan_kamera(self, kamera: Any) -> None:
         """Menautkan instans KameraUtasTerpisah agar endpoint REST dapat mengontrol sumber secara dinamis."""
         self.kamera = kamera
@@ -69,9 +96,15 @@ class StatusServerStreaming:
             self.latest_frame_jpeg = self.bingkai_jpeg_terakhir
 
     def ambil_bingkai(self) -> Optional[bytes]:
-        """Mengambil salinan frame terkini."""
+        """Mengambil salinan frame terkini atau menghasilkan frame standby jika kamera belum terhubung."""
         with self.kunci_bingkai:
-            return self.bingkai_jpeg_terakhir
+            if self.bingkai_jpeg_terakhir is not None:
+                return self.bingkai_jpeg_terakhir
+            waktu_kini = time.time()
+            if self._standby_cache is None or (waktu_kini - self._waktu_standby_terakhir) > 1.0:
+                self._standby_cache = self._buat_bingkai_standby()
+                self._waktu_standby_terakhir = waktu_kini
+            return self._standby_cache
 
     def atur_orientasi(self, rotasi: Optional[str] = None, cermin_h: Optional[bool] = None) -> Tuple[str, bool]:
         """Mengubah sudut rotasi atau pencerminan secara dinamis."""
