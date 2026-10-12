@@ -14,11 +14,16 @@ export async function GET(req: NextRequest) {
     validateTunnelUrl(queryTunnel) ||
     validateTunnelUrl(headerTunnel) ||
     validateTunnelUrl(process.env.NEXT_PUBLIC_EDGE_SERVER) ||
-    "https://kid-earned-floors-blogging.trycloudflare.com";
+    "https://smart-learning.de.deplexo.com";
 
   try {
     if (target === "video_feed") {
-      const feedRes = await fetch(`${tunnelUrl}/video_feed`, {
+      const classId = searchParams.get("class_id") || searchParams.get("channel");
+      const feedUrl = classId
+        ? `${tunnelUrl}/video_feed?class_id=${encodeURIComponent(classId)}`
+        : `${tunnelUrl}/video_feed`;
+
+      const feedRes = await fetch(feedUrl, {
         cache: "no-store",
         headers: { Accept: "multipart/x-mixed-replace" },
       });
@@ -50,16 +55,20 @@ export async function GET(req: NextRequest) {
     if (target === "rotate") {
       const deg = searchParams.get("deg");
       const flip = searchParams.get("flip");
+      const classId = searchParams.get("class_id");
       const q = new URLSearchParams();
       if (deg) q.set("deg", deg);
       if (flip) q.set("flip", flip);
+      if (classId) q.set("class_id", classId);
       const rotateRes = await fetch(`${tunnelUrl}/rotate?${q.toString()}`, { cache: "no-store" });
       const data = await rotateRes.json();
       return NextResponse.json(data);
     }
 
     // Default: proxy /status
-    const statusRes = await fetch(`${tunnelUrl}/status`, {
+    const classId = searchParams.get("class_id");
+    const statusUrl = classId ? `${tunnelUrl}/status?class_id=${encodeURIComponent(classId)}` : `${tunnelUrl}/status`;
+    const statusRes = await fetch(statusUrl, {
       cache: "no-store",
       headers: { Accept: "application/json" },
     });

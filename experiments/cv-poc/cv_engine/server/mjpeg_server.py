@@ -124,7 +124,7 @@ class StatusServerStreaming:
 
             if frame is not None and (waktu_kini - waktu_terakhir) < 4.0:
                 return frame
-            if id_kelas in ("main", "default", "1") and self.bingkai_jpeg_terakhir is not None:
+            if self.bingkai_jpeg_terakhir is not None:
                 return self.bingkai_jpeg_terakhir
             return self._buat_bingkai_standby(id_kelas)
 
@@ -178,7 +178,14 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-edge-device-key")
+        self.end_headers()
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-edge-device-key")
         self.end_headers()
 
@@ -389,7 +396,23 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(jawaban).encode("utf-8"))
             return
 
-        # 5. Endpoint Siaran Video MJPEG (Multipart Mixed Replace)
+        # 5. Endpoint Snapshot Frame Tunggal (JPEG Standar / Anti Buffering Proxy)
+        if jalur_url in ("/snapshot", "/shot.jpg", "/snapshot.jpg"):
+            id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
+            bingkai_bytes = state.ambil_bingkai_kelas(id_kelas)
+            if bingkai_bytes is None:
+                bingkai_bytes = state._buat_bingkai_standby(id_kelas)
+            self.send_response(200)
+            self.send_header("Content-type", "image/jpeg")
+            self.send_header("Content-length", str(len(bingkai_bytes)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.end_headers()
+            self.wfile.write(bingkai_bytes)
+            return
+
+        # 6. Endpoint Siaran Video MJPEG (Multipart Mixed Replace)
         if jalur_url in ("/video_feed", "/"):
             id_kelas = parameter.get("class_id", [None])[0] or parameter.get("kelas", [None])[0] or parameter.get("channel", ["main"])[0]
             self.send_response(200)
@@ -397,6 +420,7 @@ class PengendaliStreamMJPEG(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
             self.send_header("Pragma", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
             self.end_headers()
 
             terakhir_dikirim = None

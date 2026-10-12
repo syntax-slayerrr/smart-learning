@@ -67,6 +67,65 @@ export function StreamViewport({
   toggleFlip,
   setAspectRatioMode,
 }: StreamViewportProps) {
+  const [useProxy, setUseProxy] = React.useState(false);
+  const [streamError, setStreamError] = React.useState(false);
+  const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Reset fallback saat saluran aktif berubah
+  React.useEffect(() => {
+    setUseProxy(false);
+    setStreamError(false);
+  }, [activeChannel?.id]);
+
+  const streamSrc = React.useMemo(() => {
+    const isCloud =
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:" &&
+      !window.location.hostname.includes("localhost") &&
+      window.location.hostname !== "127.0.0.1";
+
+    let targetBase = edgeServerUrl;
+    if (
+      isCloud &&
+      (!targetBase ||
+        targetBase.includes("localhost") ||
+        targetBase.includes("127.0.0.1") ||
+        targetBase.includes("trycloudflare.com"))
+    ) {
+      targetBase = "https://smart-learning.de.deplexo.com";
+    }
+
+    const params = new URLSearchParams();
+    if (activeChannel?.id) {
+      params.set("class_id", activeChannel.id);
+    }
+    params.set("t", String(feedTimestamp));
+
+    if (useProxy) {
+      return `/api/camera/stream?target=video_feed&${params.toString()}&tunnel=${encodeURIComponent(targetBase)}`;
+    }
+
+    return `${targetBase}/video_feed?${params.toString()}`;
+  }, [edgeServerUrl, activeChannel?.id, feedTimestamp, useProxy]);
+
+  const handleImageError = () => {
+    if (!useProxy) {
+      // Direct stream gagal (mungkin Cloudflare buffering atau mixed content), coba lewat Next.js proxy
+      setUseProxy(true);
+    } else {
+      setStreamError(true);
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = setTimeout(() => {
+        setUseProxy(false);
+        setStreamError(false);
+      }, 3000);
+    }
+  };
+
+  const handleImageLoad = () => {
+    setStreamError(false);
+  };
+
   const [isStartingEngine, setIsStartingEngine] = React.useState(false);
 
   const handleStartEngine = async () => {
@@ -167,18 +226,33 @@ export function StreamViewport({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={videoImgRef}
-                src={
-                  edgeServerUrl
-                    ? `${edgeServerUrl}/video_feed?t=${feedTimestamp}`
-                    : `/api/camera/stream?target=video_feed&t=${feedTimestamp}`
-                }
+                key={streamSrc}
+                src={streamSrc}
                 alt={`Live Stream ${activeChannel.name}`}
                 className="w-full h-full object-contain"
-                onError={() => {
-                  // Jangan langsung matikan stream jika hanya satu frame/network glitch;
-                  // biarkan polling checkStreamStatus yang mengontrol status online
-                }}
+                onError={handleImageError}
+                onLoad={handleImageLoad}
               />
+
+              {streamError && (
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4 z-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-orange-500 mb-2" />
+                  <p className="text-xs font-medium text-slate-200">Menghubungkan aliran video kamera HP...</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs text-center font-mono">
+                    {useProxy ? "Menggunakan jalur proksi backend" : "Menggunakan jalur cloud langsung"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseProxy(false);
+                      setStreamError(false);
+                    }}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-mono border border-white/20 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    Segarkan Aliran
+                  </button>
+                </div>
+              )}
 
               {/* Top HUD Overlay */}
               <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">

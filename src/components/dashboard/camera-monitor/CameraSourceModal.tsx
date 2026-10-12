@@ -554,7 +554,7 @@ export function CameraSourceModal({
                   onChange={(e) => setCustomEdgeInput(e.target.value)}
                   id="custom-edge-server-url"
                   aria-label="Alamat Edge Server Kamera"
-                  placeholder="https://xxxx.loca.lt atau http://localhost:5000"
+                  placeholder="https://smart-learning.de.deplexo.com atau http://localhost:5000"
                   className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
                 <button
@@ -580,10 +580,10 @@ export function CameraSourceModal({
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => updateEdgeServerUrl("https://kid-earned-floors-blogging.trycloudflare.com")}
-                className="text-xs text-blue-600 hover:text-blue-700 underline"
+                onClick={() => updateEdgeServerUrl("https://smart-learning.de.deplexo.com")}
+                className="text-xs text-orange-600 dark:text-orange-400 hover:underline font-medium"
               >
-                Gunakan URL Cloudflare Tunnel Aktif
+                Gunakan URL Cloud Edge Deplexo Aktif
               </button>
             </div>
           </div>

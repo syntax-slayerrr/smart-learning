@@ -21,8 +21,8 @@ const INITIAL_DEFAULT_CHANNELS: CameraChannel[] = [
     name: "Ruang Kelas Utama",
     subject: "Monitoring Presensi & Aktivitas",
     teacher: "Pengampu Kelas",
-    streamUrl: "http://localhost:5000/video_feed",
-    statusUrl: "http://localhost:5000/status",
+    streamUrl: "/api/camera/stream?target=video_feed",
+    statusUrl: "/api/camera/stream?target=status",
     ipAddress: "Engine Vision :5000",
     port: 5000,
     studentsCount: 0,
@@ -144,7 +144,7 @@ export function LiveCameraMonitor({
     (typeof window !== "undefined" &&
     (window.location.hostname.includes("localhost") || window.location.hostname === "127.0.0.1")
       ? "http://localhost:5000"
-      : "https://kid-earned-floors-blogging.trycloudflare.com");
+      : "https://smart-learning.de.deplexo.com");
 
   const [edgeServerUrl, setEdgeServerUrl] = useState<string>(defaultEdgeServer);
   const [customEdgeInput, setCustomEdgeInput] = useState<string>(defaultEdgeServer);
@@ -154,23 +154,31 @@ export function LiveCameraMonitor({
       const isLocal =
         window.location.hostname.includes("localhost") || window.location.hostname === "127.0.0.1";
       const saved = localStorage.getItem("SYNTAX_SLAYER_EDGE_SERVER");
-      if (
-        saved &&
-        (!isLocal || !saved.includes("trycloudflare.com")) &&
-        !saved.includes("volt-improving") &&
-        !saved.includes("bra-boxing")
-      ) {
+
+      const isInvalidSaved =
+        !saved ||
+        (!isLocal && (
+          saved.includes("localhost") ||
+          saved.includes("127.0.0.1") ||
+          saved.includes("trycloudflare.com") ||
+          saved.includes("loca.lt") ||
+          saved.includes("volt-improving") ||
+          saved.includes("bra-boxing") ||
+          saved.includes("kid-earned-floors-blogging")
+        )) ||
+        (isLocal && saved.includes("trycloudflare.com"));
+
+      if (!isInvalidSaved && saved) {
         setEdgeServerUrl(saved);
         setCustomEdgeInput(saved);
       } else if (isLocal) {
         setEdgeServerUrl("http://localhost:5000");
         setCustomEdgeInput("http://localhost:5000");
       } else {
-        setEdgeServerUrl(defaultEdgeServer);
-        setCustomEdgeInput(defaultEdgeServer);
-        if (saved) {
-          localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", defaultEdgeServer);
-        }
+        const cloudEdge = "https://smart-learning.de.deplexo.com";
+        setEdgeServerUrl(cloudEdge);
+        setCustomEdgeInput(cloudEdge);
+        localStorage.setItem("SYNTAX_SLAYER_EDGE_SERVER", cloudEdge);
       }
 
       // Pulihkan alamat kamera IP terakhir jika tersedia
