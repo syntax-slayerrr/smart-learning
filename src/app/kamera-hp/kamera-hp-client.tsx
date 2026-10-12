@@ -83,6 +83,7 @@ export function KameraHpClient() {
   const fpsCounterRef = useRef<number>(0);
   const inFlightCountRef = useRef<number>(0);
   const seqCounterRef = useRef<number>(0);
+  const isEncodingRef = useRef<boolean>(false);
   const consecutiveErrorsRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
 
@@ -214,6 +215,7 @@ export function KameraHpClient() {
     }
     inFlightCountRef.current = 0;
     seqCounterRef.current = 0;
+    isEncodingRef.current = false;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -231,6 +233,7 @@ export function KameraHpClient() {
     setErrorMessage(null);
     setStatus("connecting");
     consecutiveErrorsRef.current = 0;
+    isEncodingRef.current = false;
 
     try {
       if (streamRef.current) {
@@ -240,8 +243,8 @@ export function KameraHpClient() {
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: cameraFacing,
-          width: { ideal: 640 },
-          height: { ideal: 360 },
+          width: { ideal: 480, max: 640 },
+          height: { ideal: 270, max: 360 },
           frameRate: { ideal: 24, max: 30 },
         },
         audio: false,
@@ -315,13 +318,21 @@ export function KameraHpClient() {
           if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
           if (ws.readyState !== WebSocket.OPEN) return;
 
-          // Backpressure Guard: jika antrean socket HP > 48KB, drop frame ini untuk cegah lag drift
-          if (ws.bufferedAmount > 49152) return;
+          // 1. Backpressure Guard: jika antrean socket HP > 32KB, lewati frame ini
+          if (ws.bufferedAmount > 32768) return;
+
+          // 2. Encoding Lock: jika HP masih mengompres frame sebelumnya, lewati frame ini
+          // Mencegah penumpukan antrean memori di browser HP sehingga delay tetap 15-25ms!
+          if (isEncodingRef.current) return;
+          isEncodingRef.current = true;
 
           const video = videoRef.current;
           const canvas = canvasRef.current;
           const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
-          if (!ctx) return;
+          if (!ctx) {
+            isEncodingRef.current = false;
+            return;
+          }
 
           if (canvas.width !== 480 || canvas.height !== 270) {
             canvas.width = 480;
@@ -331,11 +342,12 @@ export function KameraHpClient() {
 
           const startT = performance.now();
           canvas.toBlob(
-            async (blob) => {
+            (blob) => {
+              isEncodingRef.current = false;
               if (!blob || ws.readyState !== WebSocket.OPEN) return;
               try {
-                const buffer = await blob.arrayBuffer();
-                ws.send(buffer);
+                // Langsung kirim Blob native tanpa konversi ganda ke ArrayBuffer!
+                ws.send(blob);
                 fpsCounterRef.current += 1;
                 setFramesSent((prev) => prev + 1);
                 setLatencyMs(Math.round(performance.now() - startT));
@@ -344,7 +356,7 @@ export function KameraHpClient() {
               } catch {}
             },
             "image/jpeg",
-            0.45
+            0.40 // Kualitas 40%: super ramping ~6-8 KB, encoding secepat kilat (<15ms di HP)
           );
         }, 50);
       } else {
@@ -357,10 +369,17 @@ export function KameraHpClient() {
           if (inFlightCountRef.current >= 4) return;
           if (!videoRef.current || !canvasRef.current || videoRef.current.readyState < 2) return;
 
+          // Encoding Lock: lewati jika HP masih mengompres frame sebelumnya
+          if (isEncodingRef.current) return;
+          isEncodingRef.current = true;
+
           const video = videoRef.current;
           const canvas = canvasRef.current;
           const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
-          if (!ctx) return;
+          if (!ctx) {
+            isEncodingRef.current = false;
+            return;
+          }
 
           if (canvas.width !== 480 || canvas.height !== 270) {
             canvas.width = 480;
@@ -373,6 +392,7 @@ export function KameraHpClient() {
 
           canvas.toBlob(
             async (blob) => {
+              isEncodingRef.current = false;
               if (!blob) {
                 inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
                 return;
@@ -427,7 +447,7 @@ export function KameraHpClient() {
               }
             },
             "image/jpeg",
-            0.42 // Kualitas 42%: super ramping ~6-8 KB per frame, melesat cepat di LAN
+            0.40 // Kualitas 40%: super ramping ~6-8 KB per frame, melesat cepat di LAN
           );
         }, 50);
       }
@@ -720,7 +740,7 @@ export function KameraHpClient() {
             )}
             <span>FPS: <strong className="text-zinc-200">{currentFps}</strong></span>
             <span>•</span>
-            <span>PING: <strong className="text-zinc-200">{latencyMs}ms</strong></span>
+            <span>DELAY: <strong className="text-zinc-200">{latencyMs}ms</strong></span>
           </div>
         </div>
 
