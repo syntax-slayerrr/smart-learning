@@ -20,23 +20,32 @@ def parse_args() -> EngineConfig:
     parser = argparse.ArgumentParser(
         description="AI Classroom Intelligence — Edge CV Telemetry Engine (Syntax Slayer)"
     )
-    parser.add_argument("--source", type=str, default="http://10.10.10.33:8080/video",
+    parser.add_argument("--source", type=str,
+                        default=os.getenv("CAMERA_SOURCE", "http://10.10.10.33:8080/video"),
                         help="Camera source: index (e.g. 0), RTSP URL, or HTTP IP Webcam URL")
-    parser.add_argument("--port", type=int, default=5000,
+    parser.add_argument("--port", type=int,
+                        default=int(os.getenv("PORT", "5000")),
                         help="Port for MJPEG live streamer and control API (default: 5000)")
-    parser.add_argument("--interval", type=int, default=2,
+    parser.add_argument("--interval", type=int,
+                        default=int(os.getenv("INTERVAL", "2")),
                         help="Telemetry dispatch interval in seconds (default: 2)")
-    parser.add_argument("--session-id", type=str, default="00000000-0000-0000-0000-000000000001",
+    parser.add_argument("--session-id", type=str,
+                        default=os.getenv("SESSION_ID", "00000000-0000-0000-0000-000000000001"),
                         help="Active classroom session UUID")
-    parser.add_argument("--api-url", type=str, default="http://127.0.0.1:3000/api/telemetry/ingest",
+    parser.add_argument("--api-url", type=str,
+                        default=os.getenv("API_URL", "http://127.0.0.1:3000/api/telemetry/ingest"),
                         help="Local Next.js ingest API endpoint")
-    parser.add_argument("--device-key", type=str, default="dev-edge-secret-key-2026",
+    parser.add_argument("--device-key", type=str,
+                        default=os.getenv("DEVICE_KEY", "dev-edge-secret-key-2026"),
                         help="Security secret key for x-edge-device-key header")
-    parser.add_argument("--rotate", type=str, default="auto", choices=["auto", "0", "90", "180", "270"],
+    parser.add_argument("--rotate", type=str,
+                        default=os.getenv("ROTATE", "auto"),
+                        choices=["auto", "0", "90", "180", "270"],
                         help="Camera rotation: auto, 0, 90, 180, 270")
     parser.add_argument("--flip-h", action="store_true",
                         help="Mirror frame horizontally")
     parser.add_argument("--headless", action="store_true",
+                        default=os.getenv("HEADLESS", "true").lower() in ("1", "true", "yes"),
                         help="Run in headless server mode (no desktop GUI popup)")
 
     args = parser.parse_args()
