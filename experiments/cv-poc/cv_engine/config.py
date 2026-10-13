@@ -103,7 +103,7 @@ MINIMAL_VOTING_IDENTITAS            = 2      # Akumulasi kecocokan ArcFace bertu
 
 # Guardrail 4: Filter Penghalus Koordinat & Reduksi Jitter (One Euro Filter + EMA Sub-pixel)
 FAKTOR_EMA_SMOOTHING                = 0.22   # Fallback bobot koordinat baru
-ONE_EURO_MIN_CUTOFF                 = 1.2    # Frekuensi cutoff minimum (Hz) untuk respons cepat tanpa lag
+ONE_EURO_MIN_CUTOFF                 = 0.6    # Frekuensi cutoff minimum (Hz) untuk stabilitas tinggi saat diam (bebas jitter)
 ONE_EURO_BETA                       = 0.08   # Koefisien responsivitas kecepatan tinggi agar tracking real-time mulus
 ONE_EURO_D_CUTOFF                   = 1.0    # Cutoff derivatif kecepatan
 
@@ -154,7 +154,7 @@ class KonfigurasiEngine:
     target_fps: int = 30
     yolo_conf_thresh: float = 0.50
     yolo_imgsz: int = 320
-    face_sim_thresh: float = 0.38
+    face_sim_thresh: float = 0.52
     face_interval_sec: float = 2.0
 
 # Alias kompatibilitas

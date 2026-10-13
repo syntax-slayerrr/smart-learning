@@ -54,9 +54,18 @@ class ManajerGaleriWajah:
         if os.path.exists(self.jalur_berkas):
             try:
                 with open(self.jalur_berkas, "r") as berkas:
-                    self.galeri = json.load(berkas)
+                    raw_galeri = json.load(berkas)
+                    norm_galeri = {}
+                    for k, v in raw_galeri.items():
+                        arr = np.asarray(v, dtype=np.float32)
+                        n = float(np.linalg.norm(arr))
+                        if n > 1e-6:
+                            norm_galeri[k] = (arr / n).tolist()
+                        else:
+                            norm_galeri[k] = v
+                    self.galeri = norm_galeri
                     self.gallery = self.galeri
-                print(f"[+] Face Recognition: Berhasil memuat {len(self.galeri)} profil siswa dari galeri!")
+                print(f"[+] Face Recognition: Berhasil memuat & menormalisasi {len(self.galeri)} profil siswa dari galeri!")
             except Exception as e:
                 print(f"[!] Peringatan: Gagal memuat berkas galeri wajah: {e}")
                 self.galeri = {}
@@ -139,14 +148,19 @@ class ManajerGaleriWajah:
     def daftarkan_wajah(self, nama_siswa: str, vektor_biometrik: Any) -> bool:
         """
         Mendaftarkan atau memperbarui vektor fitur biometrik siswa ke galeri.
+        Selalu menormalisasi vektor (L2 Norm = 1.0) sebelum disimpan.
         """
         with self.kunci_utas:
-            daftar_vektor = vektor_biometrik.tolist() if hasattr(vektor_biometrik, "tolist") else list(vektor_biometrik)
+            arr = np.asarray(vektor_biometrik, dtype=np.float32)
+            n = float(np.linalg.norm(arr))
+            if n > 1e-6:
+                arr = arr / n
+            daftar_vektor = arr.tolist()
             self.galeri[nama_siswa] = daftar_vektor
             self.gallery = self.galeri
             berhasil = self.simpan_basis_data()
             if berhasil:
-                print(f"[+] Berhasil mendaftarkan biometrik siswa: {nama_siswa} (Dimensi: {len(daftar_vektor)})")
+                print(f"[+] Berhasil mendaftarkan biometrik siswa (Normalisasi L2=1.0): {nama_siswa} (Dimensi: {len(daftar_vektor)})")
             return berhasil
 
     def picu_registrasi_wajah(self, nama_siswa: str) -> None:
@@ -166,9 +180,10 @@ class ManajerGaleriWajah:
             self.pending_name = None
             self.peristiwa_pemicu.clear()
 
-    def cari_kemiripan_wajah(self, vektor_kueri: np.ndarray, ambang_batas: float = 0.38) -> Tuple[Optional[str], float]:
+    def cari_kemiripan_wajah(self, vektor_kueri: np.ndarray, ambang_batas: float = 0.52) -> Tuple[Optional[str], float]:
         """
         Pencarian vektor biometrik terhadap seluruh siswa terdaftar menggunakan Cosine Similarity.
+        Ambang batas 0.52 memastikan hanya wajah terdaftar asli yang lolos (mencegah false positive).
         """
         nama_terbaik = None
         skor_terbaik = ambang_batas

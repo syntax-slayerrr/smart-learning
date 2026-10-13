@@ -121,22 +121,20 @@ def gambar_kotak_cerdas(
     # 1. Kotak Bounding Box (Gaya Surveillance Cam)
     cv2.rectangle(frame, (x, y), (x + lebar, y + tinggi), warna, 2)
 
-    # 2. Lencana Teks Label di Atas Kotak (e.g. attentive, distracted, talking, using_phone)
-    teks_utama = f"{label.lower()}"
-    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_utama, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+    # 2. Lencana Teks Label di Atas Kotak (Gabungkan Nama / ID Siswa & Status Aktivitas)
+    if sub_label:
+        teks_utama = f"{sub_label} • {label.lower()}"
+    else:
+        teks_utama = f"{label.lower()}"
+
+    font_scale = 0.38 if len(teks_utama) > 16 else 0.42
+    (lebar_teks, tinggi_teks), _ = cv2.getTextSize(teks_utama, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 1)
     posisi_y_teks = max(tinggi_teks + 4, y - 4)
 
-    # Background kotak teks solid
+    # Background kotak teks solid di atas kepala (terlihat jelas, tidak pernah terpotong)
     cv2.rectangle(frame, (x, posisi_y_teks - tinggi_teks - 4), (x + lebar_teks + 8, posisi_y_teks + 2), warna, -1)
     cv2.putText(frame, teks_utama, (x + 4, posisi_y_teks - 2),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 0), 1, cv2.LINE_AA)
-
-    # 3. Sub-label jika ada
-    if sub_label:
-        (lebar_sub, tinggi_sub), _ = cv2.getTextSize(sub_label, cv2.FONT_HERSHEY_SIMPLEX, 0.38, 1)
-        cv2.rectangle(frame, (x, y + tinggi + 2), (x + lebar_sub + 6, y + tinggi + tinggi_sub + 6), (20, 20, 20), -1)
-        cv2.putText(frame, sub_label, (x + 3, y + tinggi + tinggi_sub + 3),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.36, (220, 220, 220), 1, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), 1, cv2.LINE_AA)
 
 
 def gambar_banner_hud(

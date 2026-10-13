@@ -123,6 +123,7 @@ class MesinBiometrikArcFace:
         """
         Menghitung kesamaan kosinus (Cosine Similarity) antara 2 vektor biometrik.
         Rentang: -1.0 (sangat berbeda) hingga 1.0 (identik sempurna).
+        Wajib menghitung norm L2 di kedua sisi agar tahan terhadap vektor un-normalized.
         """
         if vektor_a is None or vektor_b is None:
             return 0.0
@@ -130,7 +131,11 @@ class MesinBiometrikArcFace:
         v2 = np.asarray(vektor_b, dtype=np.float32)
         if v1.shape != v2.shape:
             return 0.0
-        return float(np.dot(v1, v2))
+        norm_v1 = float(np.linalg.norm(v1))
+        norm_v2 = float(np.linalg.norm(v2))
+        if norm_v1 < 1e-6 or norm_v2 < 1e-6:
+            return 0.0
+        return float(np.dot(v1, v2) / (norm_v1 * norm_v2))
 
     # Alias kompatibilitas bahasa Inggris
     is_available = apakah_siap

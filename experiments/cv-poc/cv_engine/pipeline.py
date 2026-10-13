@@ -295,6 +295,13 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                                 s["student_name"] = f"Siswa #{s['id']}"
                                 s["is_recognized"] = False
                                 s["seat_latched"] = False
+                                s["identity_votes"] = {}
+                        for t_id, t_data in pelacak_subjek.tracks.items():
+                            if t_id != subjek_terdekat["id"] and t_data.get("student_name") == nama_cocok:
+                                t_data["student_name"] = f"Siswa #{t_id}"
+                                t_data["is_recognized"] = False
+                                t_data["seat_latched"] = False
+                                t_data["identity_votes"] = {}
 
                         # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
                         subjek_terdekat.setdefault("identity_votes", {})
@@ -324,11 +331,10 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 postur = subjek["posture"]
                 aktivitas = subjek["activity"]
                 keyakinan = subjek["conf"]
-                sub_label = subjek.get("sub_label", "")
                 kotak_tangan = subjek.get("hand_box")
                 landmarks = subjek.get("landmarks", [])
-                nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
                 terkenal = subjek.get("is_recognized", False)
+                nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
 
                 # Kalibrasi Warna Indikator Sesuai Surveillance Kelas (Hijau: Aktif, Merah: Distracted/Sleep)
                 if subjek["is_sleep"]:
@@ -348,7 +354,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     tag_aktivitas = "attentive"
 
                 label_tampilan = tag_aktivitas
-                sub_label_tampilan = nama_siswa if terkenal else f"Student #{id_subjek}"
+                sub_label_tampilan = nama_siswa if terkenal else f"#P{id_subjek}"
 
                 # 1. Gambar Kerangka Anatomi Neon Bercahaya (MediaPipe Heavy 3D)
                 if landmarks:
@@ -371,11 +377,12 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     kotak_tangan=kotak_tangan
                 )
 
+                nama_telemetri = nama_siswa if terkenal else f"Siswa #{id_subjek}"
                 rekaman_telemetri.append({
                     "id": f"P-{id_subjek}",
                     "anonymous_id": f"P{id_subjek}",
-                    "label": f"{nama_siswa} ({tag_aktivitas})",
-                    "student_name": nama_siswa,
+                    "label": f"{nama_telemetri} ({tag_aktivitas})",
+                    "student_name": nama_telemetri,
                     "is_recognized": terkenal,
                     "posture": postur,
                     "activity": aktivitas,

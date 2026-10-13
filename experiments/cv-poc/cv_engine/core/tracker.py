@@ -560,8 +560,35 @@ class PelacakSubjekKelas:
 
                 track_lama["box"] = (int(round(halus_x)), int(round(halus_y)), int(round(halus_w)), int(round(halus_h)))
                 track_lama["smooth_box"] = (halus_x, halus_y, halus_w, halus_h)
-                track_lama["center"] = (halus_x + halus_w / 2.0, halus_y + halus_h / 2.0)
-                track_lama["landmarks"] = landmarks
+                # Temporal smoothing pada keypoints kerangka tubuh (Anti-Jitter)
+                if landmarks and len(landmarks) > 0:
+                    lm_sebelumnya = track_lama.get("landmarks")
+                    if lm_sebelumnya and len(lm_sebelumnya) == len(landmarks):
+                        alpha_lm = 0.40
+                        landmarks_halus = []
+                        for l_baru, l_lama in zip(landmarks, lm_sebelumnya):
+                            bx = getattr(l_baru, "x", None)
+                            lx = getattr(l_lama, "x", None)
+                            if bx is not None and lx is not None:
+                                class LandmarkHalus:
+                                    __slots__ = ("x", "y", "z", "visibility")
+                                    def __init__(self, x, y, z, v):
+                                        self.x = x
+                                        self.y = y
+                                        self.z = z
+                                        self.visibility = v
+                                nx = alpha_lm * bx + (1.0 - alpha_lm) * lx
+                                ny = alpha_lm * getattr(l_baru, "y", 0.0) + (1.0 - alpha_lm) * getattr(l_lama, "y", 0.0)
+                                nz = getattr(l_baru, "z", 0.0)
+                                nv = getattr(l_baru, "visibility", 0.5)
+                                landmarks_halus.append(LandmarkHalus(nx, ny, nz, nv))
+                            else:
+                                landmarks_halus.append(l_baru)
+                        track_lama["landmarks"] = landmarks_halus
+                    else:
+                        track_lama["landmarks"] = landmarks
+                elif "landmarks" not in track_lama:
+                    track_lama["landmarks"] = []
                 track_lama["posture"] = postur
                 track_lama["activity"] = aktivitas
                 track_lama["action_text"] = teks_aksi
