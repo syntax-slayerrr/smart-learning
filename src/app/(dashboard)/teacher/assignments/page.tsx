@@ -371,7 +371,7 @@ export default function TeacherAssignmentsPage() {
         }
       />
 
-      {/* 2. Semantic Metric Cards (Apple Ceramic - Clean, No AI-Slop Glow) */}
+      {/* 2. Semantic Metric Cards (Clean, No Exaggerated Glow) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Lolos AI Defense */}
         <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between">

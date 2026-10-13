@@ -4,9 +4,8 @@ import { useEffect, useState, useRef } from "react";
 
 /**
  * PwaLaunchSplash
- * Motion graphics launch screen untuk PWA Standalone / Home Screen.
- * Menampilkan animasi dekonstruksi & rekonstruksi logo Syntax Slayer
- * dengan transisi fluid Apple-grade saat aplikasi dibuka dari home screen.
+ * Launch screen untuk PWA Standalone / Home Screen.
+ * Animasi logo Syntax Slayer saat aplikasi dibuka dari home screen.
  */
 export function PwaLaunchSplash() {
   const [isVisible, setIsVisible] = useState(false);
@@ -80,7 +79,7 @@ export function PwaLaunchSplash() {
         </video>
       </div>
 
-      {/* Subtle Skip Indicator (Apple Minimalist) */}
+      {/* Subtle Skip Indicator */}
       <div className="absolute bottom-8 z-20 text-[11px] font-mono tracking-widest text-slate-500/70 uppercase flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-pulse" />
         Ketuk untuk lewati
