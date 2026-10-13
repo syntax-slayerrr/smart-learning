@@ -87,6 +87,16 @@ export default function LoginPage() {
         {/* Clean Divider */}
         <div className="w-full border-t border-slate-300/40 my-3" />
 
+        {/* Link Panduan Pengguna & Bantuan */}
+        <div className="flex items-center justify-center">
+          <a
+            href="/panduan"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-white text-xs font-semibold text-slate-700 hover:text-blue-600 shadow-2xs transition-all"
+          >
+            <span>📖 Panduan Pengguna & Fitur</span>
+          </a>
+        </div>
+
         {/* Motivational Quote & Signature */}
         <div className="text-center space-y-1 pb-10 sm:pb-4">
           <p className="text-xs italic text-slate-600 font-medium">

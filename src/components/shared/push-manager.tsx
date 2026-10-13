@@ -119,52 +119,53 @@ export function PushManager() {
 
   if (!showModal || !isDashboardRoute) return null;
 
+  const roleText = isTeacher
+    ? { title: "Notifikasi Pengingat Kelas", desc: "Aktifkan notifikasi untuk peringatan jadwal mengajar & presensi otomatis." }
+    : pathname?.startsWith("/parent")
+    ? { title: "Notifikasi Presensi Anak", desc: "Dapatkan info langsung saat anak hadir atau terlambat di sekolah." }
+    : pathname?.startsWith("/admin")
+    ? { title: "Notifikasi Sistem Sekolah", desc: "Terima peringatan anomali presensi & sistem secara langsung." }
+    : { title: "Notifikasi Jadwal & Tugas", desc: "Jangan lewatkan jadwal pelajaran, tugas baru, dan pengumuman kelas." };
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="card-3d-ceramic w-full max-w-md rounded-3xl overflow-hidden flex flex-col relative shadow-[0_25px_50px_-12px_rgba(15,23,42,0.25)] border-t border-white/80 animate-in zoom-in-95 duration-300">
-        <div className="bg-gradient-to-b from-blue-50/80 to-transparent p-6 flex justify-center border-b border-slate-100">
-          <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-blue-500 rounded-3xl flex items-center justify-center relative shadow-[0_8px_20px_-4px_rgba(37,99,235,0.4)] border-t border-white/40">
-            <Bell className="w-9 h-9 text-white animate-pulse" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
+            <Bell className="h-5 w-5" />
+          </div>
+          <div className="space-y-1 min-w-0">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+              {roleText.title}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {roleText.desc}
+            </p>
           </div>
         </div>
-        
-        <div className="p-6 text-center space-y-4">
-          <div className="space-y-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-xs font-semibold text-blue-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-              Sistem Presensi Aktif
-            </span>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight pt-1">
-              {isTeacher ? "Peringatan Sistem: Wajib Akses ⏱" : "Peringatan Sistem: Wajib Akses"}
-            </h2>
+
+        {isDenied ? (
+          <div className="bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 p-3 rounded-xl border border-amber-200/80 dark:border-amber-900/40 text-xs">
+            Izin notifikasi diblokir browser. Buka pengaturan browser (ikon gembok URL) dan aktifkan notifikasi.
           </div>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
-            {isTeacher 
-              ? "Sekolah mewajibkan seluruh Guru untuk mengaktifkan Notifikasi agar tidak terlewat peringatan jadwal dan tugas kelas otomatis."
-              : "Demi kelancaran informasi dan pengawasan presensi, fitur Notifikasi wajib diaktifkan untuk sinkronisasi real-time."}
-          </p>
-          
-          {isDenied ? (
-            <div className="bg-amber-50 text-amber-800 p-3.5 rounded-2xl border border-amber-200/80 text-xs font-medium text-left space-y-1">
-              <p className="font-semibold">Akses Notifikasi Terkunci</p>
-              <p className="text-amber-700">Mohon buka pengaturan browser Anda (ikon gembok di URL bar), pilih Izinkan Notifikasi, lalu refresh halaman.</p>
-            </div>
-          ) : (
+        ) : (
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={() => setShowModal(false)}
+              className="flex-1 py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            >
+              Nanti Saja
+            </button>
             <button
               onClick={handleSubscribe}
               disabled={isSubscribing}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-2xl transition-all shadow-[0_4px_14px_rgba(37,99,235,0.35)] active:scale-98 disabled:opacity-70 flex items-center justify-center gap-2 border-t border-white/20"
+              className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl transition-all shadow-xs disabled:opacity-60 flex items-center justify-center gap-1.5"
             >
-              {isSubscribing ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-              ) : (
-                <Bell className="w-4 h-4" />
-              )}
-              <span className="text-sm">{isSubscribing ? "Menghubungkan..." : "Izinkan Notifikasi Sistem"}</span>
+              {isSubscribing && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              <span>{isSubscribing ? "Mengaktifkan..." : "Aktifkan"}</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
