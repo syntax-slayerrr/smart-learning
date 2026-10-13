@@ -110,10 +110,16 @@ export async function GET(request: NextRequest) {
     // 5. Ambil student concept mastery
     let masteryMap: Record<string, any> = {};
     if (nodeIds.length > 0) {
-      const { data: masteryRecords } = await admin
+      let masteryQuery = admin
         .from("student_concept_mastery")
         .select("*")
         .in("concept_id", nodeIds);
+
+      if (validStudentId) {
+        masteryQuery = masteryQuery.eq("student_id", validStudentId);
+      }
+
+      const { data: masteryRecords } = await masteryQuery;
 
       if (masteryRecords) {
         masteryRecords.forEach((m: any) => {
@@ -405,11 +411,18 @@ export async function GET(request: NextRequest) {
           };
         });
 
+      // Hitung rerata nilai tugas yang sudah dinilai untuk subject ini
+      const gradedAssignments = subAssignments.filter((a: any) => typeof a.score === "number");
+      const subAverageScore = gradedAssignments.length > 0
+        ? Math.round(gradedAssignments.reduce((acc: number, curr: any) => acc + curr.score, 0) / gradedAssignments.length)
+        : undefined;
+
       return {
         id: sub.id,
         name: sub.name,
         code: sub.code,
         materialsCount: subMaterials.length,
+        averageScore: subAverageScore,
         materials: subMaterials.map((m: any, idx: number) => ({
           id: m.id,
           title: m.title,
@@ -419,14 +432,7 @@ export async function GET(request: NextRequest) {
           status: idx === 0 ? "in_progress" : idx === 1 ? "completed" : "locked",
           topicsCount: idx === 0 ? (formattedChapters.length || 3) : 2,
         })),
-        assignments: subAssignments.length > 0 ? subAssignments : [
-          {
-            id: `task-${sub.id}-1`,
-            title: `Tugas Implementasi & Laporan ${sub.name}`,
-            deadline: "Minggu ini",
-            status: "pending",
-          }
-        ]
+        assignments: subAssignments,
       };
     });
 

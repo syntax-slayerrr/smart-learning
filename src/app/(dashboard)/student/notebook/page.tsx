@@ -107,6 +107,7 @@ interface SubjectItem {
   materialsCount: number;
   materials: MaterialItem[];
   assignments: AssignmentItem[];
+  averageScore?: number;
 }
 
 function StudentNotebookContent() {
@@ -706,12 +707,7 @@ interface QuizQuestionItem {
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E73] shrink-0 mr-1 hidden sm:inline">
               Mata Pelajaran:
             </span>
-            {(notebookData?.subjects || [
-              { id: "tkj-1", name: "Jaringan Komputer & Subnetting", code: "TKJ" },
-              { id: "rpl-1", name: "Pemrograman Web (RPL)", code: "RPL" },
-              { id: "mat-1", name: "Matematika", code: "MAT" },
-              { id: "bin-1", name: "Bahasa Indonesia", code: "BIN" },
-            ]).map((sub: any) => {
+            {(notebookData?.subjects || []).map((sub: any) => {
               const isActive = (activeSubject?.id || selectedSubjectId) === sub.id;
               return (
                 <button
@@ -749,10 +745,10 @@ interface QuizQuestionItem {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50/80 px-2.5 py-0.5 rounded-full border border-blue-200/60 inline-block">
-                  {activeSubject?.code || "TKJ"} • Kurikulum Terpadu
+                  {activeSubject?.code ? `${activeSubject.code} • ` : ""}Kurikulum Terpadu
                 </span>
                 <h2 className="text-base sm:text-xl font-bold text-[#1D1D1F] mt-1.5 tracking-tight truncate">
-                  {activeSubject?.name || "Jaringan Komputer & Subnetting"}
+                  {activeSubject?.name || "Modul Mata Pelajaran"}
                 </h2>
                 <p className="text-xs text-[#6E6E73] mt-0.5 leading-relaxed">
                   Pelajari modul resmi, uji pemahaman melalui kuis adaptif, dan eksplorasi peta konsep interaktif.
@@ -763,19 +759,23 @@ interface QuizQuestionItem {
               <div className="flex items-center gap-2 shrink-0">
                 <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
                   <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
-                    {activeSubject?.materials?.length || 2}
+                    {activeSubject?.materials?.length ?? (activeSubject?.materialsCount || 0)}
                   </p>
                   <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Modul</p>
                 </div>
                 <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
                   <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
-                    92%
+                    {activeSubject?.averageScore !== undefined
+                      ? `${activeSubject.averageScore}%`
+                      : examReadiness?.averageScore
+                      ? `${examReadiness.averageScore}%`
+                      : "0%"}
                   </p>
                   <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Rerata</p>
                 </div>
                 <div className="px-3 py-2 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-center min-w-[65px] shadow-2xs">
                   <p className="text-sm sm:text-base font-extrabold text-[#1D1D1F] leading-none">
-                    1
+                    {activeSubject?.assignments?.length || 0}
                   </p>
                   <p className="text-[10px] font-medium text-[#6E6E73] mt-1">Tugas</p>
                 </div>
