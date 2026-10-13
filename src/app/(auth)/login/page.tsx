@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { LoginForm } from "./login-form";
-import { User, GraduationCap } from "lucide-react";
+import { User, GraduationCap, HelpCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -89,12 +90,13 @@ export default function LoginPage() {
 
         {/* Link Panduan Pengguna & Bantuan */}
         <div className="flex items-center justify-center">
-          <a
+          <Link
             href="/panduan"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-white text-xs font-semibold text-slate-700 hover:text-blue-600 shadow-2xs transition-all"
           >
-            <span>📖 Panduan Pengguna & Fitur</span>
-          </a>
+            <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+            <span>Panduan Pengguna</span>
+          </Link>
         </div>
 
         {/* Motivational Quote & Signature */}

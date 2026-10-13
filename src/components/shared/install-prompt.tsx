@@ -49,8 +49,14 @@ export function InstallPrompt() {
     : { role: "Siswa", desc: "Buka materi, tugas, dan QR offline" };
 
   return (
-    <aside aria-label="Instalasi Aplikasi PWA" className="fixed bottom-20 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 animate-slide-up">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 shadow-lg">
+    <aside
+      aria-label="Instalasi Aplikasi PWA"
+      className="fixed bottom-[96px] sm:bottom-6 left-3.5 right-3.5 sm:left-auto sm:right-6 sm:max-w-sm z-50 animate-slide-up"
+      style={{
+        marginBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
             <Smartphone className="h-4 w-4" />

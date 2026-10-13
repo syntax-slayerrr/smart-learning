@@ -36,9 +36,10 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Define public routes and static assets
-  const publicRoutes = ["/login", "/debug-auth", "/kamera-hp", "/api/setup-admin", "/api/health", "/sw.js", "/manifest.json", "/favicon.ico", "/icon.png", "/apple-icon.png"];
+  const publicRoutes = ["/login", "/panduan", "/debug-auth", "/kamera-hp", "/api/setup-admin", "/api/health", "/sw.js", "/manifest.json", "/favicon.ico", "/icon.png", "/apple-icon.png"];
   const isPublicRoute = 
     publicRoutes.some((route) => pathname === route) || 
+    pathname.startsWith("/panduan") ||
     pathname.startsWith("/api/cron") || 
     pathname.startsWith("/api/telemetry") || 
     pathname.startsWith("/api/attendance") || 
