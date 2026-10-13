@@ -36,7 +36,15 @@ export function PwaLaunchSplash() {
     setIsFadingOut(true);
     setTimeout(() => {
       setIsVisible(false);
-    }, 550);
+    }, 700);
+  };
+
+  const handleTimeUpdate = () => {
+    const el = videoRef.current;
+    if (!el || !el.duration) return;
+    if (el.duration - el.currentTime <= 1.2 && !isFadingOut) {
+      setIsFadingOut(true);
+    }
   };
 
   if (!isVisible) return null;
@@ -44,7 +52,7 @@ export function PwaLaunchSplash() {
   return (
     <div
       onClick={handleFinish}
-      className={`fixed inset-0 z-[99999] bg-[#07090E] flex items-center justify-center overflow-hidden select-none cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`fixed inset-0 z-[99999] bg-[#07090E] flex items-center justify-center overflow-hidden select-none cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isFadingOut ? "opacity-0 scale-105 pointer-events-none" : "opacity-100 scale-100"
       }`}
       style={{ willChange: "transform, opacity" }}
@@ -71,6 +79,7 @@ export function PwaLaunchSplash() {
           autoPlay
           muted
           playsInline
+          onTimeUpdate={handleTimeUpdate}
           onEnded={handleFinish}
           className="w-full h-full object-contain filter drop-shadow-[0_0_40px_rgba(56,189,248,0.25)]"
         >
