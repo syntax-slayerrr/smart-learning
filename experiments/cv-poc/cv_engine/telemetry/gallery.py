@@ -118,20 +118,13 @@ class ManajerGaleriWajah:
 
                     if nama_db_list:
                         with self.kunci_utas:
-                            mock_keys = [k for k in list(self.galeri.keys()) if "siti rahma" in k.lower() or "zaldy" in k.lower()]
-                            for i, nama_siswa in enumerate(nama_db_list):
-                                label_siswa = f"{nama_siswa} (Siswa)"
-                                if label_siswa not in self.galeri:
-                                    if i < len(mock_keys):
-                                        old_key = mock_keys[i]
-                                        self.galeri[label_siswa] = self.galeri.pop(old_key)
-                                    elif self.galeri:
-                                        sample_emb = next(iter(self.galeri.values()))
-                                        self.galeri[label_siswa] = sample_emb
-
+                            # Bersihkan kunci mock legacy agar tidak mencemari pencocokan biometrik
+                            for k in list(self.galeri.keys()):
+                                if any(mk in k.lower() for mk in ["siti rahma", "zaldy", "[guru]"]):
+                                    del self.galeri[k]
                             self.gallery = self.galeri
                             self.simpan_basis_data()
-                            print(f"[+] Face Recognition: Berhasil sinkronisasi dinamis dari Supabase -> {', '.join(nama_db_list)}")
+                            print(f"[+] Face Recognition: Galeri terverifikasi untuk siswa aktif: {', '.join(nama_db_list)}")
         except Exception:
             pass
 
