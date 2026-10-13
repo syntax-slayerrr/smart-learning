@@ -38,13 +38,12 @@ export function FaceIdStatusBadge({
           {isEnrolled ? (
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span>Biometrik: Aktif</span>
-              <span className="text-[10px] opacity-70 font-mono">({qualityScore}%)</span>
+              <span>Biometrik Aktif</span>
             </>
           ) : (
             <>
               <ScanFace className="h-3 w-3 stroke-[2] opacity-80" />
-              <span>Biometrik: Belum Terdaftar</span>
+              <span>Daftar Biometrik</span>
             </>
           )}
         </button>
