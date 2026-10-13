@@ -23,10 +23,7 @@ export function PwaLaunchSplash() {
       const hasSeen = sessionStorage.getItem("syntax_slayer_pwa_launched");
       const forceSplash = new URLSearchParams(window.location.search).has("splash");
 
-      // Tampilkan animasi jika standalone atau di mobile viewport saat first visit
-      const isMobileScreen = window.innerWidth <= 768;
-
-      if ((isStandalone || isMobileScreen || forceSplash) && !hasSeen) {
+      if ((isStandalone || forceSplash) && !hasSeen) {
         setIsVisible(true);
         sessionStorage.setItem("syntax_slayer_pwa_launched", "true");
       }
