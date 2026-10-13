@@ -1,7 +1,6 @@
 """
-AI Classroom Intelligence — Subsistem Telemetri & Cloud (Developer 2)
+AI Classroom Intelligence — Subsistem Telemetri & Cloud 
 =====================================================================
-Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
 """
 

@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Pengirim Telemetri Asinkronus (Producer-Consumer)
 =============================================================================
-Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengimplementasikan pola Producer-Consumer menggunakan antrean

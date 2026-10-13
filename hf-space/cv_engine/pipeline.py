@@ -63,7 +63,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     print(f"[*] Konfigurasi: Sumber={konfigurasi.source}, Port={konfigurasi.port}, Interval={konfigurasi.interval}s, Rotasi={konfigurasi.rotate}")
 
     # ==========================================================================
-    # 1. Inisialisasi Subsistem Core AI & Vision (Developer 1)
+    # 1. Inisialisasi Subsistem Core AI & Vision 
     # ==========================================================================
     detektor_yolo = DetektorYOLO26()
     detektor_pose = DetektorPoseMediaPipe()
@@ -71,7 +71,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     pelacak_subjek = PelacakSubjekKelas()
 
     # ==========================================================================
-    # 2. Inisialisasi Subsistem Telemetri & Galeri Wajah (Developer 2)
+    # 2. Inisialisasi Subsistem Telemetri & Galeri Wajah 
     # ==========================================================================
     manajer_galeri = ManajerGaleriWajah()
     pengirim_telemetri = PengirimTelemetriAsinkron(

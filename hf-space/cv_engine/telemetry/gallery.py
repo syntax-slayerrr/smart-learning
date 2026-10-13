@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Manajemen Galeri Wajah & Biometrik Siswa
 ====================================================================
-Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengelola persistensi basis data vektor biometrik wajah siswa

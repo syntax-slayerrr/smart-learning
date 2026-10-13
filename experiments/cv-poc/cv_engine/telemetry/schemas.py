@@ -1,7 +1,6 @@
 """
-AI Classroom Intelligence — Kontrak Data Telemetri & Skema (Developer 2)
+AI Classroom Intelligence — Kontrak Data Telemetri & Skema 
 ========================================================================
-Developer 2: Telemetry, Contracts & Cloud Integration Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mendefinisikan struktur data strongly-typed untuk payload JSON

@@ -1,7 +1,7 @@
 // ============================================
 // WhatsApp Gateway Service — SYNTAX SLAYER
 // Arsitektur Level Enterprise untuk Pengiriman Notifikasi & Rekap
-// Tim Developer 2: Backend, Database & Telemetry Gateway
+// Gateway Notifikasi WhatsApp & Analitik Siswa
 // ============================================
 
 // --- Definisi Tipe & Kontrak Data (Bahasa Indonesia & Kompatibilitas) ---

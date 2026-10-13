@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Mesin Biometrik ArcFace 512-Dimensi & Detektor Wajah
 ================================================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengelola pengenalan identitas siswa menggunakan ekstraksi fitur

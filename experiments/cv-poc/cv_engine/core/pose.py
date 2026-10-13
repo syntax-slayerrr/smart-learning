@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Detektor Pose Anatomi 3D MediaPipe
 ===============================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengelola deteksi 33 titik sendi anatomi tubuh manusia (BlazePose 3D)

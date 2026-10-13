@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Detektor Spasial Makro YOLO26n
 ===========================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini membungkus model Ultralytics YOLO26n ONNX.

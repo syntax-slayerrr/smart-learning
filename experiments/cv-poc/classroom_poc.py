@@ -7,9 +7,7 @@ Architecture: Modular Multi-Developer Pipeline v4.1.0
 
 Backward-compatible CLI facade.
 Delegates to the modular `cv_engine` package:
-  - Developer 1: Core AI Vision (YOLO26n + MediaPipe Heavy + ArcFace 512-d + 5 Guardrails)
-  - Developer 2: Telemetry, Contracts & Cloud Dispatcher (Local Next.js + Cloud Vercel)
-  - Developer 3: Ingestion, Streaming Server & Cyber-HUD UI (MJPEG 45 FPS + REST Controls)
+  -   -   - Developer 3: Ingestion, Streaming Server & Cyber-HUD UI (MJPEG 45 FPS + REST Controls)
 """
 
 import argparse

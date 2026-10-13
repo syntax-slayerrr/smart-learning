@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Kinematika, Geometri Spasial & Filter Pose
 ======================================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengimplementasikan algoritma geometri analitis dan penyaringan spasial:

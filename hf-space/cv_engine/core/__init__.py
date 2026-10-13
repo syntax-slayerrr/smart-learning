@@ -1,7 +1,6 @@
 """
-AI Classroom Intelligence — Subsistem Vision & AI Core (Developer 1)
+AI Classroom Intelligence — Subsistem Vision & AI Core 
 ====================================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 """
 

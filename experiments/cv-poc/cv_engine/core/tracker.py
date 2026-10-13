@@ -1,7 +1,6 @@
 """
 AI Classroom Intelligence — Pelacak Subjek Hibrida & 5 Enterprise Guardrails
 =============================================================================
-Developer 1: AI / Computer Vision Core Lead
 Syntax Slayer — Smart Learning Platform
 
 Modul ini mengimplementasikan Pelacak Multi-Subjek Spasio-Temporal yang

@@ -1,45 +1,11 @@
 # 🎓 SMART LEARNING — AI CLASSROOM INTELLIGENCE & CAMPUS ECOSYSTEM
 ### Platform Analitik Pembelajaran & Pemantauan Pedagogis Berbasis AI
-**Tim Pengembang: SYNTAX SLAYER • Versi Enterprise 4.1.0**
+**Versi Enterprise 4.1.0**
 
 Platform terintegrasi yang menghubungkan **Edge Computer Vision Intelligence** (Python, YOLO26n, MediaPipe Heavy 3D, ArcFace 512-d) dengan **Fullstack Web Platform** (Next.js 16, TypeScript, Supabase PostgreSQL, Tailwind CSS) untuk mendeteksi dinamika belajar di kelas, kehadiran siswa, intervensi dini siswa berisiko (*At-Risk Students*), dan pelaporan otomatis ke orang tua melalui WhatsApp.
 
-> 📖 **Dokumentasi & Panduan Utama Tim:**
-> * 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** — Panduan Kontribusi Tim & Standar Kualitas Kode.
+> 📖 **Dokumentasi & Panduan Utama:**
 > * 🎥 **[CV_ENGINE_GUIDE.md](docs/CV_ENGINE_GUIDE.md)** — Panduan Teknis Edge AI Vision Engine Python.
-
----
-
-## 👥 Pembagian Tanggung Jawab Modul (2 Developers)
-
-Seluruh arsitektur proyek dibagi menjadi **2 pilar spesialisasi** dengan batas modul yang jelas (*clean separation of concerns*):
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                            SMART LEARNING ECOSYSTEM — ARSITEKTUR                            │
-├─────────────────────────────────────────────┬───────────────────────────────────────────────┤
-│                 DEVELOPER 1                 │                  DEVELOPER 2                  │
-│       Edge AI & Computer Vision Lead        │         Fullstack Web & Cloud Platform        │
-├─────────────────────────────────────────────┼───────────────────────────────────────────────┤
-│ 📂 experiments/cv-poc/                      │ 📂 src/app/ (Next.js App Router)              │
-│    └── cv_engine/core/                      │    ├── (dashboard)/ (Admin, Guru, Ortu, Siswa)│
-│    • detector.py (YOLO26n Macro)            │    └── api/ (telemetry, attendance, etc.)     │
-│    • pose.py (MediaPipe Heavy 3D)           │ 📂 src/components/                            │
-│    • face.py (ArcFace 512-d Biometrics)     │    ├── dashboard/ (Live Monitor, Dynamic HUD) │
-│    • kinematics.py (Sudut & Gerak)          │    └── ui/ (Design System & Recharts)         │
-│    • tracker.py (5 Enterprise Guardrails)   │ 📂 src/services/ & src/lib/                   │
-│ 📂 experiments/cv-poc/cv_engine/streaming/  │    ├── student-analytics.ts (O(N) Scorer)     │
-│    ├── camera.py (Zero-Lag Buffer)          │    ├── whatsapp.ts (Gateway Notifikasi)       │
-│    └── mjpeg_server.py (HTTP MJPEG :5000)   │    └── supabase/ (Schema, RLS & Migrations)   │
-├─────────────────────────────────────────────┼───────────────────────────────────────────────┤
-│ Tanggung Jawab Utama:                       │ Tanggung Jawab Utama:                         │
-│ 1. Inferensi YOLO26n ONNX CPU (~45ms)       │ 1. Ingest Telemetri & In-Memory Ring Buffer   │
-│ 2. MediaPipe Heavy 33-pt 3D Landmark        │ 2. Skoring Risiko Komposit Siswa O(N)         │
-│ 3. ArcFace 512-d Pengenalan Wajah Siswa     │ 3. UI/UX Dashboard Multi-Role Real-Time       │
-│ 4. 5 Enterprise Guardrails & Kinematika     │ 4. Integrasi Supabase PostgreSQL & WhatsApp   │
-│ 5. Siaran Video MJPEG 45 FPS Edge Server    │ 5. Keamanan API, Rate Limiting & Auth RLS     │
-└─────────────────────────────────────────────┴───────────────────────────────────────────────┘
-```
 
 ---
 
