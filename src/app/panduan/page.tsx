@@ -134,17 +134,17 @@ const ROLES_DATA: Record<
     badgeBg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40",
     guides: [
       {
-        title: "Membuka Sesi Presensi & Menampilkan QR Dinamis",
+        title: "Menampilkan QR Sesi Kelas (Otomatis & Manual)",
         badge: "Manajemen Kelas",
         icon: QrCode,
-        overview: "Buka sesi kelas baru saat jam pelajaran dimulai agar siswa dapat presensi mandiri.",
+        overview: "Sesi presensi otomatis aktif sesuai jadwal pelajaran sekolah. Guru cukup menampilkan QR dinamis ke layar atau membuka sesi tambahan.",
         steps: [
-          "Buka menu 'Presensi' atau 'Jadwal Mengajar' di dashboard guru.",
-          "Pilih rombel dan jam pelajaran yang sedang berlangsung, lalu klik tombol 'Mulai Sesi Presensi'.",
-          "Klik 'Tampilkan QR Sesi' untuk membuka kode QR layar penuh (proyeksikan ke layar atau tunjukkan ke siswa).",
-          "Kode QR berotasi otomatis setiap beberapa detik untuk memastikan presensi hanya dari siswa yang hadir fisik.",
+          "Sistem otomatis mengaktifkan sesi kelas saat jam pelajaran di tabel jadwal dimulai.",
+          "Buka menu 'Presensi' lalu klik 'Tampilkan QR Sesi' untuk memproyeksikan kode QR dinamis ke layar/proyektor kelas.",
+          "Kode QR berotasi otomatis berkala mencegah kecurangan titip absen.",
+          "Jika ada kelas pengganti di luar jadwal, guru dapat menekan tombol 'Buka Sesi Tambahan'.",
         ],
-        tips: "Setelah jam pelajaran selesai, klik 'Tutup Sesi' agar rekapitulasi kehadiran terkunci dan tersimpan ke buku nilai.",
+        tips: "Sesi otomatis tertutup saat jam pelajaran berakhir. Guru dapat menutup lebih awal jika seluruh siswa sudah terdata.",
       },
       {
         title: "Mengunggah Bahan Ajar & Membuat Penugasan",
