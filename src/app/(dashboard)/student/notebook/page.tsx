@@ -596,7 +596,7 @@ interface QuizQuestionItem {
   if (showIntroSplash) {
     return (
       <div
-        className={`fixed inset-0 z-[100] bg-[#07090E] flex items-center justify-center overflow-hidden select-none transition-opacity duration-500 ${
+        className={`fixed inset-0 z-[100] bg-[#EBF3FC] flex items-center justify-center overflow-hidden select-none transition-opacity duration-500 ${
           isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >
@@ -606,13 +606,13 @@ interface QuizQuestionItem {
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
         >
-          <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
-          <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
+          <source src="/assets/notebook-loading.webm" type="video/webm" />
+          <source src="/assets/notebook-loading.mp4" type="video/mp4" />
         </video>
 
-        {/* Crisp Fullscreen Video — Video diputar penuh sampai onEnded (tanpa loop) */}
+        {/* Crisp Fullscreen Video — Video robot notebook diputar sampai selesai */}
         <div className="relative w-full h-full flex items-center justify-center">
           <video
             autoPlay
@@ -621,14 +621,14 @@ interface QuizQuestionItem {
             onEnded={handleIntroComplete}
             className="w-full h-full object-cover sm:object-contain drop-shadow-2xl"
           >
-            <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
-            <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
+            <source src="/assets/notebook-loading.webm" type="video/webm" />
+            <source src="/assets/notebook-loading.mp4" type="video/mp4" />
           </video>
 
           {/* Tombol Lewati untuk kenyamanan user */}
           <button
             onClick={handleIntroComplete}
-            className="absolute top-5 right-5 z-20 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white/80 hover:text-white text-xs font-medium transition-all border border-white/10 cursor-pointer pointer-events-auto shadow-lg"
+            className="absolute top-5 right-5 z-20 px-3.5 py-1.5 rounded-full bg-slate-900/20 hover:bg-slate-900/30 active:scale-95 backdrop-blur-md text-slate-800 hover:text-slate-900 text-xs font-medium transition-all border border-slate-900/10 cursor-pointer pointer-events-auto shadow-sm"
           >
             Lewati →
           </button>
@@ -1402,8 +1402,8 @@ interface QuizQuestionItem {
                   playsInline
                   className="h-full w-full object-cover scale-125"
                 >
-                  <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
-                  <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
+                  <source src="/assets/notebook-loading.webm" type="video/webm" />
+                  <source src="/assets/notebook-loading.mp4" type="video/mp4" />
                 </video>
               </div>
               <div className="flex flex-col">

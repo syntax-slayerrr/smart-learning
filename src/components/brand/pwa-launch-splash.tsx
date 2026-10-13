@@ -72,8 +72,8 @@ export function PwaLaunchSplash() {
         <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
       </video>
 
-      {/* Main 60 FPS Motion Graphics */}
-      <div className="relative z-10 w-full h-full max-w-lg max-h-[85vh] flex items-center justify-center p-4">
+      {/* Main Motion Graphics — Fullscreen immersive */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center">
         <video
           ref={videoRef}
           autoPlay
@@ -81,7 +81,7 @@ export function PwaLaunchSplash() {
           playsInline
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleFinish}
-          className="w-full h-full object-contain filter drop-shadow-[0_0_40px_rgba(56,189,248,0.25)]"
+          className="w-full h-full object-cover filter drop-shadow-[0_0_40px_rgba(56,189,248,0.25)]"
         >
           <source src="/assets/syntax-slayer-loading.webm" type="video/webm" />
           <source src="/assets/syntax-slayer-loading.mp4" type="video/mp4" />
