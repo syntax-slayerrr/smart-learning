@@ -22,6 +22,8 @@ from cv_engine.config import (
     KECEPATAN_TANGAN_MENULIS,
     KECEPATAN_TANGAN_DIAM_TIDUR,
     DURASI_TAHAN_TIDUR_DETIK,
+    DURASI_HISTESIS_TIDUR_DETIK,
+    TOLERANSI_RESET_TIMER_TIDUR_DETIK,
     FAKTOR_EMA_SMOOTHING,
     ONE_EURO_MIN_CUTOFF,
     ONE_EURO_BETA,
@@ -125,6 +127,7 @@ class PelacakSubjekKelas:
         self.tracks: Dict[int, Dict[str, Any]] = {}
         self.id_berikutnya: int = 1
         self.pencatat_waktu_tidur: Dict[int, float] = {}
+        self.penahan_histesis_tidur: Dict[int, float] = {}
         self.pencatat_mulai_angkat_tangan: Dict[int, float] = {}
         self.penahan_histesis_tangan: Dict[int, float] = {}
         self.riwayat_posisi_pergelangan: Dict[int, deque] = {}
@@ -322,14 +325,23 @@ class PelacakSubjekKelas:
                         jarak_ke_kursi = math.hypot(pusat_subjek_x - kcx, pusat_subjek_y - kcy)
                         iou_kursi = hitung_iou(kotak_kandidat, data_kursi["box"])
                         if jarak_ke_kursi < SEAT_ANCHOR_MAX_RADIUS_PX or iou_kursi >= 0.20:
+                            nama_kursi = data_kursi.get("student_name", f"Siswa #{id_kursi}")
+                            # Jamin keunikan identitas: jangan pulihkan nama jika nama tersebut sedang aktif dipakai di track lain!
+                            nama_sedang_dipakai = any(
+                                t_d.get("student_name") == nama_kursi and t_d.get("is_recognized", False)
+                                for t_id, t_d in self.tracks.items() if t_id != id_kursi
+                            )
+                            nama_resmi = f"Siswa #{id_kursi}" if nama_sedang_dipakai else nama_kursi
+                            rec_resmi = False if nama_sedang_dipakai else data_kursi.get("is_recognized", False)
+
                             id_terbaik = id_kursi
                             self.tracks[id_kursi] = {
                                 "id": id_kursi,
-                                "student_name": data_kursi.get("student_name", f"Siswa #{id_kursi}"),
-                                "is_recognized": data_kursi.get("is_recognized", False),
-                                "seat_latched": True,
+                                "student_name": nama_resmi,
+                                "is_recognized": rec_resmi,
+                                "seat_latched": True if rec_resmi else False,
                                 "seat_id": data_kursi.get("seat_id", f"SEAT_{id_kursi}"),
-                                "identity_votes": data_kursi.get("identity_votes", {}),
+                                "identity_votes": data_kursi.get("identity_votes", {}) if rec_resmi else {},
                                 "box": (px, py, pw, ph),
                                 "smooth_box": (float(px), float(py), float(pw), float(ph)),
                                 "center": (pusat_subjek_x, pusat_subjek_y),
@@ -337,7 +349,7 @@ class PelacakSubjekKelas:
                                 "posture": "sitting",
                                 "activity": "attentive",
                                 "action_text": "Fokus Belajar",
-                                "sub_label": "Kursi Terkunci",
+                                "sub_label": "Kursi Terkunci" if rec_resmi else f"Siswa #{id_kursi}",
                                 "attention_score": 95,
                                 "conf": round(skor_keyakinan, 2),
                                 "last_seen": waktu_sekarang,
@@ -420,54 +432,49 @@ class PelacakSubjekKelas:
 
                 # Siswa tekun menulis di meja jika tangan bergerak aktif dan posisi di bawah bahu
                 is_sedang_menulis = (
-                    (pergelangan_kiri.y > bahu_kiri.y + 0.04 or pergelangan_kanan.y > bahu_kanan.y + 0.04) and
-                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 0.8) and
+                    (pergelangan_kiri.y > bahu_kiri.y + 0.02 or pergelangan_kanan.y > bahu_kanan.y + 0.02) and
+                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 0.7) and
                     (hidung.y > pusat_bahu_y - 0.16)
                 )
 
                 if is_sedang_menulis:
                     self.penahan_waktu_menulis[id_pemeriksaan] = waktu_sekarang
 
-                # Latch aktivitas menulis selama 1.8 detik untuk menjembatani jeda alami tarikan pena
+                # Latch aktivitas menulis selama 1.5 detik
                 aktivitas_menulis_aktif = (
                     id_pemeriksaan in self.penahan_waktu_menulis and
-                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.8
+                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.5
                 )
 
-                # Gerbang deteksi tidur murni: Kepala jatuh DAN tangan statis
-                is_kepala_menunduk = (hidung.y >= pusat_bahu_y - 0.02) or (kemiringan_kepala > 55.0 and pusat_subjek_y > tinggi_frame * 0.45)
-                is_tidur = False
-
-                if aktivitas_menulis_aktif:
-                    self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
-                    is_tidur = False
-                elif is_kepala_menunduk and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR):
-                    if id_pemeriksaan not in self.pencatat_waktu_tidur:
-                        self.pencatat_waktu_tidur[id_pemeriksaan] = waktu_sekarang
-                    elif waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] > DURASI_TAHAN_TIDUR_DETIK:
-                        is_tidur = True
-                else:
-                    self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
-
-                # Guardrail 1: Kinematika Sudut Siku & Gerbang Jarak Wajah
+                # Guardrail 1: Kinematika Angkat Tangan Sensitif & Responsif (< 0.2s)
                 sudut_siku_kiri = hitung_sudut_tiga_titik(bahu_kiri, siku_kiri, pergelangan_kiri)
                 sudut_siku_kanan = hitung_sudut_tiga_titik(bahu_kanan, siku_kanan, pergelangan_kanan)
                 jarak_ke_hidung_kiri = math.hypot(pergelangan_kiri.x - hidung.x, pergelangan_kiri.y - hidung.y)
                 jarak_ke_hidung_kanan = math.hypot(pergelangan_kanan.x - hidung.x, pergelangan_kanan.y - hidung.y)
 
+                # Syarat tangan naik:
+                # 1. Pergelangan lebih tinggi dari siku (lengan mengarah ke atas)
+                # 2. Pergelangan berada di atas bahu atau setinggi hidung/kepala
+                # 3. Sudut siku minimal 50° (fleksibel: lengan menekuk alami 60-95° maupun lurus 120-180°)
+                # 4. Bukan garuk hidung (jika di atas hidung selalu valid)
+                tangan_kiri_naik = (pergelangan_kiri.y < siku_kiri.y) and (pergelangan_kiri.y < bahu_kiri.y - 0.02 or pergelangan_kiri.y < hidung.y + 0.04)
+                bukan_garuk_kiri = (pergelangan_kiri.y < hidung.y - 0.02) or (jarak_ke_hidung_kiri > AMBANG_JARAK_WAJAH_TANGAN)
                 tangan_kiri_terangkat = (
-                    (pergelangan_kiri.y < bahu_kiri.y - 0.04) and
+                    tangan_kiri_naik and
+                    bukan_garuk_kiri and
                     (sudut_siku_kiri >= AMBANG_SUDUT_SIKU_DERAJAT) and
-                    (jarak_ke_hidung_kiri > AMBANG_JARAK_WAJAH_TANGAN) and
-                    (getattr(pergelangan_kiri, 'visibility', 0.5) > 0.30)
+                    (getattr(pergelangan_kiri, 'visibility', 0.5) > 0.20)
                 )
+
+                tangan_kanan_naik = (pergelangan_kanan.y < siku_kanan.y) and (pergelangan_kanan.y < bahu_kanan.y - 0.02 or pergelangan_kanan.y < hidung.y + 0.04)
+                bukan_garuk_kanan = (pergelangan_kanan.y < hidung.y - 0.02) or (jarak_ke_hidung_kanan > AMBANG_JARAK_WAJAH_TANGAN)
                 tangan_kanan_terangkat = (
-                    (pergelangan_kanan.y < bahu_kanan.y - 0.04) and
+                    tangan_kanan_naik and
+                    bukan_garuk_kanan and
                     (sudut_siku_kanan >= AMBANG_SUDUT_SIKU_DERAJAT) and
-                    (jarak_ke_hidung_kanan > AMBANG_JARAK_WAJAH_TANGAN) and
-                    (getattr(pergelangan_kanan, 'visibility', 0.5) > 0.30)
+                    (getattr(pergelangan_kanan, 'visibility', 0.5) > 0.20)
                 )
-                is_angkat_tangan_mentah = (tangan_kiri_terangkat or tangan_kanan_terangkat) and (not is_tidur)
+                is_angkat_tangan_mentah = (tangan_kiri_terangkat or tangan_kanan_terangkat)
 
                 kotak_tangan = None
                 if is_angkat_tangan_mentah:
@@ -475,9 +482,12 @@ class PelacakSubjekKelas:
                     tangan_px = int(pergelangan_aktif.x * lebar_frame)
                     tangan_py = int(pergelangan_aktif.y * tinggi_frame)
                     kotak_tangan = (max(0, tangan_px - 28), max(0, tangan_py - 28), 56, 56)
+                    # Batalkan latch menulis seketika saat tangan diangkat
+                    self.penahan_waktu_menulis.pop(id_pemeriksaan, None)
+                    aktivitas_menulis_aktif = False
 
-                # Jendela Tahan Durasi (Hold Gate >= 0.7s) & Histesis Transisi
-                if is_angkat_tangan_mentah and not is_tidur:
+                # Jendela Tahan Durasi Angkat Tangan (0.15s instan) & Histesis Transisi (1.2s)
+                if is_angkat_tangan_mentah:
                     if id_pemeriksaan not in self.pencatat_mulai_angkat_tangan:
                         self.pencatat_mulai_angkat_tangan[id_pemeriksaan] = waktu_sekarang
                     if waktu_sekarang - self.pencatat_mulai_angkat_tangan[id_pemeriksaan] >= DURASI_TAHAN_ANGKAT_TANGAN_DETIK:
@@ -489,11 +499,78 @@ class PelacakSubjekKelas:
                             waktu_sekarang - self.penahan_histesis_tangan[id_pemeriksaan] < DURASI_HISTESIS_ANGKAT_TANGAN_DETIK
                         )
                 else:
-                    self.pencatat_mulai_angkat_tangan.pop(id_pemeriksaan, None)
+                    # Toleransi grace 0.35s sebelum reset agar tidak putus jika terlewat 1 frame
+                    if id_pemeriksaan in self.pencatat_mulai_angkat_tangan:
+                        if waktu_sekarang - self.pencatat_mulai_angkat_tangan[id_pemeriksaan] > 0.35:
+                            self.pencatat_mulai_angkat_tangan.pop(id_pemeriksaan, None)
                     is_angkat_tangan = (
-                        (not is_tidur) and
                         (id_pemeriksaan in self.penahan_histesis_tangan) and
                         (waktu_sekarang - self.penahan_histesis_tangan[id_pemeriksaan] < DURASI_HISTESIS_ANGKAT_TANGAN_DETIK)
+                    )
+
+                # Guardrail 2: Deteksi Tidur & Rebahan di Meja Sangat Sensitif (Solusi Kasus 2: Telungkup di Meja)
+                jarak_vertikal_hidung_bahu = pusat_bahu_y - hidung.y
+                kemiringan_kepala_asli = 0.0
+                if len(landmarks) >= 9:
+                    telinga_kiri = landmarks[7]
+                    telinga_kanan = landmarks[8]
+                    if getattr(telinga_kiri, 'visibility', 0.0) > 0.20 and getattr(telinga_kanan, 'visibility', 0.0) > 0.20:
+                        dy_telinga = telinga_kanan.y - telinga_kiri.y
+                        dx_telinga = telinga_kanan.x - telinga_kiri.x
+                        kemiringan_kepala_asli = math.degrees(math.atan2(abs(dy_telinga), max(1e-5, abs(dx_telinga))))
+
+                # Parameter Geometri Kasus 2 (Wajah terbenam / oklusi total saat tidur di atas meja):
+                visibilitas_hidung = getattr(hidung, 'visibility', 0.5)
+                kotak_atas_y = py / float(max(1, tinggi_frame))
+                jarak_bahu_ke_puncak = pusat_bahu_y - kotak_atas_y  # Saat tegak > 0.12, saat rebahan di meja < 0.09
+                rasio_aspek_tubuh = ph / float(max(1, pw))
+
+                # Kondisi A: Kepala menunduk rendah mendekati meja atau miring rebahan di lengan
+                kepala_turun_standar = (
+                    (jarak_vertikal_hidung_bahu < 0.08) or
+                    (hidung.y >= pusat_bahu_y - 0.03) or
+                    (kemiringan_kepala_asli > 28.0 and jarak_vertikal_hidung_bahu < 0.14)
+                )
+
+                # Kondisi B (Kasus 2): Telungkup total di meja (wajah tertutup lipatan tangan / menenggelamkan kepala)
+                telungkup_meja = (
+                    postur == "sitting" and (
+                        # Wajah terbenam (landmark wajah hilang & tidak ada tonjolan kepala di atas bahu)
+                        (visibilitas_hidung < 0.35 and jarak_bahu_ke_puncak < 0.09) or
+                        # Hidung sejajar atau berada di bawah garis pundak
+                        (hidung.y >= min(bahu_kiri.y, bahu_kanan.y) - 0.02) or
+                        # Siluet tubuh memendek/jongkok membulat menempel bidang meja
+                        (visibilitas_hidung < 0.40 and rasio_aspek_tubuh < 1.15)
+                    )
+                )
+
+                is_postur_tidur_mentah = (kepala_turun_standar or telungkup_meja) and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR * 2.2)
+
+                is_tidur = False
+                if is_angkat_tangan or postur == "standing" or (aktivitas_menulis_aktif and kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 1.5):
+                    # Batalkan status tidur seketika jika siswa berdiri, angkat tangan, atau mengetik/menulis aktif
+                    self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
+                    self.penahan_histesis_tidur.pop(id_pemeriksaan, None)
+                    is_tidur = False
+                elif is_postur_tidur_mentah:
+                    if id_pemeriksaan not in self.pencatat_waktu_tidur:
+                        self.pencatat_waktu_tidur[id_pemeriksaan] = waktu_sekarang
+                    if waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] >= DURASI_TAHAN_TIDUR_DETIK:
+                        is_tidur = True
+                        self.penahan_histesis_tidur[id_pemeriksaan] = waktu_sekarang
+                    else:
+                        is_tidur = (
+                            id_pemeriksaan in self.penahan_histesis_tidur and
+                            waktu_sekarang - self.penahan_histesis_tidur[id_pemeriksaan] < DURASI_HISTESIS_TIDUR_DETIK
+                        )
+                else:
+                    # Toleransi grace period (1.0s) sebelum reset timer agar tidak putus akibat oklusi sementara
+                    if id_pemeriksaan in self.pencatat_waktu_tidur:
+                        if waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] > TOLERANSI_RESET_TIMER_TIDUR_DETIK:
+                            self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
+                    is_tidur = (
+                        id_pemeriksaan in self.penahan_histesis_tidur and
+                        waktu_sekarang - self.penahan_histesis_tidur[id_pemeriksaan] < DURASI_HISTESIS_TIDUR_DETIK
                     )
 
                 if is_tidur:
@@ -709,6 +786,7 @@ class PelacakSubjekKelas:
                     self.lost_tracks[id_t] = data_t
                     del self.tracks[id_t]
                     self.pencatat_waktu_tidur.pop(id_t, None)
+                    self.penahan_histesis_tidur.pop(id_t, None)
                     self.pencatat_mulai_angkat_tangan.pop(id_t, None)
                     self.penahan_histesis_tangan.pop(id_t, None)
                     self.riwayat_posisi_pergelangan.pop(id_t, None)
@@ -769,11 +847,26 @@ class PelacakSubjekKelas:
         for id_buang in id_dihapus:
             self.tracks.pop(id_buang, None)
             self.pencatat_waktu_tidur.pop(id_buang, None)
+            self.penahan_histesis_tidur.pop(id_buang, None)
             self.pencatat_mulai_angkat_tangan.pop(id_buang, None)
             self.penahan_histesis_tangan.pop(id_buang, None)
             self.riwayat_posisi_pergelangan.pop(id_buang, None)
             self.riwayat_postur.pop(id_buang, None)
             self.penahan_waktu_menulis.pop(id_buang, None)
+
+        # Enforce Global Uniqueness (Pigeonhole Principle):
+        # 1 Nama Siswa hanya boleh terikat pada MAKSIMAL 1 Track di seluruh kelas!
+        nama_terklaim = set()
+        for t in sorted(self.tracks.values(), key=lambda x: (x.get("is_recognized", False), x.get("hits", 0)), reverse=True):
+            nama_t = t.get("student_name")
+            if t.get("is_recognized", False) and nama_t and not nama_t.startswith("Siswa #"):
+                if nama_t in nama_terklaim:
+                    t["student_name"] = f"Siswa #{t['id']}"
+                    t["is_recognized"] = False
+                    t["seat_latched"] = False
+                    t["identity_votes"] = {}
+                else:
+                    nama_terklaim.add(nama_t)
 
         # HANYA kembalikan track yang telah TERKONFIRMASI ke Pipeline, HUD, dan Telemetri
         # Menjamin 0% Ghost Box muncul di layar pengguna!

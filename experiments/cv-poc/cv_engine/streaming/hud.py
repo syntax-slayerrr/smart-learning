@@ -123,7 +123,7 @@ def gambar_kotak_cerdas(
 
     # 2. Lencana Teks Label di Atas Kotak (Gabungkan Nama / ID Siswa & Status Aktivitas)
     if sub_label:
-        teks_utama = f"{sub_label} • {label.lower()}"
+        teks_utama = f"{sub_label} | {label.lower()}"
     else:
         teks_utama = f"{label.lower()}"
 

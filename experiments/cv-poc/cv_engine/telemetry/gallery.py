@@ -57,12 +57,22 @@ class ManajerGaleriWajah:
                     raw_galeri = json.load(berkas)
                     norm_galeri = {}
                     for k, v in raw_galeri.items():
-                        arr = np.asarray(v, dtype=np.float32)
-                        n = float(np.linalg.norm(arr))
-                        if n > 1e-6:
-                            norm_galeri[k] = (arr / n).tolist()
+                        clean_k = k.replace(" (Siswa)", "").strip()
+                        # Dukung multi-sudut (list of vectors) atau vektor tunggal
+                        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], (list, tuple)):
+                            sub_list = []
+                            for sub_v in v:
+                                arr = np.asarray(sub_v, dtype=np.float32)
+                                n = float(np.linalg.norm(arr))
+                                sub_list.append((arr / n).tolist() if n > 1e-6 else sub_v)
+                            norm_galeri[clean_k] = sub_list
                         else:
-                            norm_galeri[k] = v
+                            arr = np.asarray(v, dtype=np.float32)
+                            n = float(np.linalg.norm(arr))
+                            if n > 1e-6:
+                                norm_galeri[clean_k] = (arr / n).tolist()
+                            else:
+                                norm_galeri[clean_k] = v
                     self.galeri = norm_galeri
                     self.gallery = self.galeri
                 print(f"[+] Face Recognition: Berhasil memuat & menormalisasi {len(self.galeri)} profil siswa dari galeri!")
@@ -114,7 +124,7 @@ class ManajerGaleriWajah:
                     for s in data:
                         nama = (s.get("profiles") or {}).get("full_name")
                         if nama:
-                            nama_db_list.append(nama)
+                            nama_db_list.append(nama.replace(" (Siswa)", "").strip())
 
                     if nama_db_list:
                         with self.kunci_utas:
@@ -141,25 +151,45 @@ class ManajerGaleriWajah:
     def daftarkan_wajah(self, nama_siswa: str, vektor_biometrik: Any) -> bool:
         """
         Mendaftarkan atau memperbarui vektor fitur biometrik siswa ke galeri.
+        Mendukung vektor tunggal maupun multi-sudut (frontal, serong kiri, serong kanan).
         Selalu menormalisasi vektor (L2 Norm = 1.0) sebelum disimpan.
         """
+        clean_name = nama_siswa.replace(" (Siswa)", "").strip()
         with self.kunci_utas:
-            arr = np.asarray(vektor_biometrik, dtype=np.float32)
-            n = float(np.linalg.norm(arr))
-            if n > 1e-6:
-                arr = arr / n
-            daftar_vektor = arr.tolist()
-            self.galeri[nama_siswa] = daftar_vektor
+            # Dukung input multi-vektor / multi-sudut
+            if isinstance(vektor_biometrik, list) and len(vektor_biometrik) > 0 and isinstance(vektor_biometrik[0], (list, tuple, np.ndarray)):
+                normalized_templates = []
+                for v in vektor_biometrik:
+                    arr = np.asarray(v, dtype=np.float32)
+                    n = float(np.linalg.norm(arr))
+                    if n > 1e-6:
+                        arr = arr / n
+                    normalized_templates.append(arr.tolist())
+                self.galeri[clean_name] = normalized_templates
+                dim_info = f"{len(normalized_templates)} template multi-sudut (Dim: {len(normalized_templates[0])})"
+            else:
+                arr = np.asarray(vektor_biometrik, dtype=np.float32)
+                n = float(np.linalg.norm(arr))
+                if n > 1e-6:
+                    arr = arr / n
+                daftar_vektor = arr.tolist()
+                self.galeri[clean_name] = daftar_vektor
+                dim_info = f"1 template (Dim: {len(daftar_vektor)})"
+
+            # Hapus duplikat key legacy dengan suffix "(Siswa)" jika ada
+            if f"{clean_name} (Siswa)" in self.galeri:
+                del self.galeri[f"{clean_name} (Siswa)"]
+
             self.gallery = self.galeri
             berhasil = self.simpan_basis_data()
             if berhasil:
-                print(f"[+] Berhasil mendaftarkan biometrik siswa (Normalisasi L2=1.0): {nama_siswa} (Dimensi: {len(daftar_vektor)})")
+                print(f"[+] Berhasil mendaftarkan biometrik siswa: {clean_name} ({dim_info})")
             return berhasil
 
     def picu_registrasi_wajah(self, nama_siswa: str) -> None:
         """Memicu sistem agar pada frame berikutnya wajah yang tampak didaftarkan."""
         with self.kunci_utas:
-            self.nama_tertunda = nama_siswa
+            self.nama_tertunda = nama_siswa.replace(" (Siswa)", "").strip()
             self.pending_name = self.nama_tertunda
             self.peristiwa_pemicu.set()
 
@@ -173,21 +203,32 @@ class ManajerGaleriWajah:
             self.pending_name = None
             self.peristiwa_pemicu.clear()
 
-    def cari_kemiripan_wajah(self, vektor_kueri: np.ndarray, ambang_batas: float = 0.52) -> Tuple[Optional[str], float]:
+    def cari_kemiripan_wajah(self, vektor_kueri: np.ndarray, ambang_batas: float = 0.380) -> Tuple[Optional[str], float]:
         """
         Pencarian vektor biometrik terhadap seluruh siswa terdaftar menggunakan Cosine Similarity.
-        Ambang batas 0.52 memastikan hanya wajah terdaftar asli yang lolos (mencegah false positive).
+        Mendukung multi-template (mengambil kesamaan tertinggi dari multi-sudut).
+        Ambang batas 0.380 memberikan deteksi super cepat (< 3 detik) tanpa false-positive antar siswa.
         """
         nama_terbaik = None
         skor_terbaik = ambang_batas
 
         with self.kunci_utas:
-            for nama_siswa, vektor_profil in self.galeri.items():
-                if len(vektor_profil) == len(vektor_kueri):
-                    kemiripan = MesinBiometrikArcFace.hitung_kemiripan_kosinus(vektor_kueri, vektor_profil)
-                    if kemiripan > skor_terbaik:
-                        skor_terbaik = kemiripan
-                        nama_terbaik = nama_siswa
+            for nama_siswa, profil in self.galeri.items():
+                if isinstance(profil, list) and len(profil) > 0 and isinstance(profil[0], (list, tuple, np.ndarray)):
+                    # Multi-sudut template (misal 3 sudut dari scan mandiri siswa)
+                    for v_sudut in profil:
+                        if len(v_sudut) == len(vektor_kueri):
+                            kemiripan = MesinBiometrikArcFace.hitung_kemiripan_kosinus(vektor_kueri, v_sudut)
+                            if kemiripan > skor_terbaik:
+                                skor_terbaik = kemiripan
+                                nama_terbaik = nama_siswa
+                else:
+                    # Single-template
+                    if len(profil) == len(vektor_kueri):
+                        kemiripan = MesinBiometrikArcFace.hitung_kemiripan_kosinus(vektor_kueri, profil)
+                        if kemiripan > skor_terbaik:
+                            skor_terbaik = kemiripan
+                            nama_terbaik = nama_siswa
 
         return nama_terbaik, skor_terbaik
 

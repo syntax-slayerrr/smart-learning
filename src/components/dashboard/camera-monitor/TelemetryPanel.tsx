@@ -115,6 +115,7 @@ export function TelemetryPanel({
   const [showSummaryModal, setShowSummaryModal] = React.useState<boolean>(false);
   const [chimeEnabled, setChimeEnabled] = React.useState<boolean>(true);
   const [awardedMap, setAwardedMap] = React.useState<Record<string, boolean>>({});
+  const [enrollingId, setEnrollingId] = React.useState<string | null>(null);
 
   const handleAwardStudent = async (st: DetectedSubject, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -346,10 +347,17 @@ export function TelemetryPanel({
                   const isSelected = selectedSubject?.id === st.id;
 
                   return (
-                    <button
+                    <div
                       key={st.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedSubject(isSelected ? null : st)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedSubject(isSelected ? null : st);
+                        }
+                      }}
                       className={`w-full rounded-lg border px-2.5 py-1.5 text-left transition-all duration-150 active:scale-[0.98] cursor-pointer flex flex-col gap-1 ${
                         isAlert
                           ? "border-destructive/40 bg-destructive/5"
@@ -394,25 +402,51 @@ export function TelemetryPanel({
 
                       {/* Detail Tambahan & Aksi Cepat Saat Dipilih */}
                       {(isSelected || isAlert) && (
-                        <div className="pt-1.5 mt-0.5 border-t border-border/50 flex items-center justify-between gap-2 text-[10px]">
-                          <span className="truncate text-muted-foreground">
-                            Aktivitas: <span className="font-semibold text-foreground">{st.action_text || st.label}</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => handleAwardStudent(st, e)}
-                            disabled={awardedMap[st.student_id || st.id]}
-                            className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-medium transition-all active:scale-95 flex items-center gap-1 ${
-                              awardedMap[st.student_id || st.id]
-                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20"
-                                : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 cursor-pointer"
-                            }`}
-                          >
-                            <span>{awardedMap[st.student_id || st.id] ? "✓ Poin Diberikan" : "⭐ +10 Poin"}</span>
-                          </button>
+                        <div className="pt-1.5 mt-0.5 border-t border-border/50 flex flex-col gap-1.5 text-[10px]">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-muted-foreground">
+                              Aktivitas: <span className="font-semibold text-foreground">{st.action_text || st.label}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleAwardStudent(st, e)}
+                              disabled={awardedMap[st.student_id || st.id]}
+                              className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-medium transition-all active:scale-95 flex items-center gap-1 ${
+                                awardedMap[st.student_id || st.id]
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20"
+                                  : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 cursor-pointer"
+                              }`}
+                            >
+                              <span>{awardedMap[st.student_id || st.id] ? "✓ Poin Diberikan" : "⭐ +10 Poin"}</span>
+                            </button>
+                          </div>
+
+                          {!st.is_recognized && isSelected && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setEnrollingId(st.id);
+                                try {
+                                  const res = await fetch("http://localhost:5000/register_face?name=Haikal%20(Siswa)");
+                                  if (res.ok) {
+                                    alert("Wajah siswa di kamera berhasil dipindai dan disimpan sebagai Haikal!");
+                                  }
+                                } catch {
+                                  alert("Gagal memanggil engine lokal di http://localhost:5000.");
+                                } finally {
+                                  setTimeout(() => setEnrollingId(null), 1200);
+                                }
+                              }}
+                              disabled={enrollingId === st.id}
+                              className="w-full flex items-center justify-center gap-1.5 py-1 px-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white font-semibold text-[10px] shadow-2xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                            >
+                              <span>{enrollingId === st.id ? "Memindai Wajah..." : "📸 Daftarkan Wajah Ini sebagai Haikal"}</span>
+                            </button>
+                          )}
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>

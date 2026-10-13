@@ -92,6 +92,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
     server_http = jalankan_server_mjpeg(konfigurasi.port, status_server)
     kamera_aliran = KameraUtasTerpisah(sumber=konfigurasi.source, fps_target=konfigurasi.target_fps).mulai()
     status_server.tautkan_kamera(kamera_aliran)
+    status_server.tautkan_saluran_wajah(saluran_wajah)
 
     # ==========================================================================
     # 4. Utas Pekerja Inferensi Asinkronus (Decoupled Multi-Threaded Inference)
@@ -188,7 +189,7 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                     for (kotak_landmark_5, vektor_fitur) in hasil_wajah:
                         # Pendaftaran profil wajah baru jika dipicu secara interaktif dari Web UI
                         if manajer_galeri.peristiwa_pemicu.is_set():
-                            nama_siswa = manajer_galeri.ambil_nama_tertunda() or "Zaldy (Siswa)"
+                            nama_siswa = (manajer_galeri.ambil_nama_tertunda() or "Haikal").replace(" (Siswa)", "").strip()
                             manajer_galeri.daftarkan_wajah(nama_siswa, vektor_fitur)
                             manajer_galeri.bersihkan_pemicu()
 
@@ -199,16 +200,21 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                         )
 
                         if nama_cocok:
+                            print(f"[+] Biometrik Cocok: {nama_cocok} (Skor: {skor_cocok:.3f} >= {konfigurasi.face_sim_thresh})")
                             daftar_cocok.append({
                                 "box": kotak_landmark_5,
                                 "name": nama_cocok,
                                 "score": skor_cocok
                             })
+                        else:
+                            _, skor_tertinggi = manajer_galeri.cari_kemiripan_wajah(vektor_fitur, ambang_batas=-1.0)
+                            if skor_tertinggi > 0.05:
+                                print(f"[-] Biometrik Belum Terdaftar / Belum Cocok (Skor: {skor_tertinggi:.3f} < {konfigurasi.face_sim_thresh})")
 
                     with kunci_biometrik_bersama:
                         hasil_biometrik_terkini = daftar_cocok
                     waktu_scan_terakhir = waktu_saat_ini
-            except Exception:
+            except Exception as e:
                 pass
 
     utas_biometrik = threading.Thread(target=lingkaran_kerja_inferensi_biometrik, daemon=True)
@@ -272,16 +278,34 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 hasil_biometrik_terkini.clear()
 
             # Terapkan hasil pencocokan biometrik ke subjek yang relevan tanpa lag
+            # Urutkan pencocokan biometrik berdasarkan skor tertinggi (Best match first)
+            antrean_wajah_selesai.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+            nama_terpakai = set()
+
             for item_wajah in antrean_wajah_selesai:
                 kotak_landmark_5 = item_wajah["box"]
                 nama_cocok = item_wajah["name"]
+
+                # Cegah nama yang sama menempel ke lebih dari satu siswa di frame yang sama
+                if nama_cocok in nama_terpakai:
+                    continue
+
                 if len(subjek_aktif) > 0:
                     wajah_pusat_x = kotak_landmark_5[0] + kotak_landmark_5[2] / 2.0
                     wajah_pusat_y = kotak_landmark_5[1] + kotak_landmark_5[3] / 2.0
 
                     subjek_terdekat = None
-                    jarak_terdekat = 280.0
+                    jarak_terdekat = 450.0
                     for data_siswa in subjek_aktif:
+                        # Jangan timpa subjek yang sudah teridentifikasi sebagai siswa lain
+                        if data_siswa.get("is_recognized") and data_siswa.get("student_name") != nama_cocok:
+                            continue
+
+                        bx, by, bw, bh = data_siswa["box"]
+                        # Prioritas 1: Jika pusat wajah berada di dalam bounding box siswa
+                        if (bx - 25 <= wajah_pusat_x <= bx + bw + 25) and (by - 25 <= wajah_pusat_y <= by + bh + 45):
+                            subjek_terdekat = data_siswa
+                            break
                         tcx, tcy = data_siswa["center"]
                         jarak_wajah = math.hypot(wajah_pusat_x - tcx, wajah_pusat_y - tcy)
                         if jarak_wajah < jarak_terdekat:
@@ -289,6 +313,8 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                             subjek_terdekat = data_siswa
 
                     if subjek_terdekat is not None:
+                        nama_terpakai.add(nama_cocok)
+
                         # Jamin keunikan identitas: cabut nama ini jika pernah melekat di track lain
                         for s in subjek_aktif:
                             if s is not subjek_terdekat and s.get("student_name") == nama_cocok:
@@ -302,6 +328,10 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                                 t_data["is_recognized"] = False
                                 t_data["seat_latched"] = False
                                 t_data["identity_votes"] = {}
+                        for k_id, k_data in pelacak_subjek.jangkar_kursi.items():
+                            if k_id != subjek_terdekat["id"] and k_data.get("student_name") == nama_cocok:
+                                k_data["student_name"] = f"Siswa #{k_id}"
+                                k_data["is_recognized"] = False
 
                         # Guardrail 3: Buffer Voting Identitas & Penguncian Kursi (Seat Latching)
                         subjek_terdekat.setdefault("identity_votes", {})
@@ -310,6 +340,18 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                             subjek_terdekat["student_name"] = nama_cocok
                             subjek_terdekat["is_recognized"] = True
                             subjek_terdekat["seat_latched"] = True
+
+            # Jaminan Mutlak Keunikan Identitas di Frame Aktif (Zero Duplicate Names)
+            nama_terverifikasi = set()
+            for s in subjek_aktif:
+                nm = s.get("student_name")
+                if s.get("is_recognized") and nm and not nm.startswith("Siswa #"):
+                    if nm in nama_terverifikasi:
+                        s["student_name"] = f"Siswa #{s['id']}"
+                        s["is_recognized"] = False
+                        s["seat_latched"] = False
+                    else:
+                        nama_terverifikasi.add(nm)
 
             # Agregasi Ringkasan Statistik Kelas
             statistik_kelas = {
@@ -336,25 +378,28 @@ def jalankan_saluran_pipa_cv(konfigurasi: KonfigurasiEngine) -> None:
                 terkenal = subjek.get("is_recognized", False)
                 nama_siswa = subjek.get("student_name", f"Siswa #{id_subjek}")
 
-                # Kalibrasi Warna Indikator Sesuai Surveillance Kelas (Hijau: Aktif, Merah: Distracted/Sleep)
+                # Format nama bersih tanpa label kurung "(Siswa)" untuk HUD
+                nama_bersih = nama_siswa.split(" (")[0].strip()
+
+                # Kalibrasi Warna Indikator Sesuai Surveillance Kelas (Hijau: Aktif, Merah: Tidur, Kuning: Bertanya)
                 if subjek["is_sleep"]:
                     warna_indikator = (0, 0, 255)  # Merah BGR
-                    tag_aktivitas = "distracted"
+                    tag_aktivitas = "tidur"
                 elif subjek["is_hand_raised"]:
                     warna_indikator = (0, 200, 255)  # Kuning Amber BGR
-                    tag_aktivitas = "asking_question"
+                    tag_aktivitas = "bertanya"
                 elif aktivitas == "writing":
                     warna_indikator = (0, 255, 0)  # Hijau BGR
-                    tag_aktivitas = "writing"
+                    tag_aktivitas = "mencatat"
                 elif postur == "standing":
                     warna_indikator = (255, 200, 0)  # Biru/Cyan
-                    tag_aktivitas = "standing"
+                    tag_aktivitas = "berdiri"
                 else:
                     warna_indikator = (0, 255, 0)  # Hijau BGR
-                    tag_aktivitas = "attentive"
+                    tag_aktivitas = "fokus"
 
                 label_tampilan = tag_aktivitas
-                sub_label_tampilan = nama_siswa if terkenal else f"#P{id_subjek}"
+                sub_label_tampilan = f"#{id_subjek} {nama_bersih}" if terkenal else f"#P{id_subjek}"
 
                 # 1. Gambar Kerangka Anatomi Neon Bercahaya (MediaPipe Heavy 3D)
                 if landmarks:

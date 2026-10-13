@@ -88,18 +88,20 @@ POSE_CONNECTIONS = KONEKSI_SENDI_ANATOMI
 # 4. AMBANG BATAS 5 ENTERPRISE GUARDRAILS (Data Structure & Algorithm Bounds)
 # ==============================================================================
 # Guardrail 1: Kinematika Sudut Siku & Gerbang Jarak Wajah
-AMBANG_SUDUT_SIKU_DERAJAT           = 105.0  # Sudut minimum siku (derajat) agar valid sebagai angkat tangan
-AMBANG_JARAK_WAJAH_TANGAN           = 0.07   # Jarak minimum pergelangan ke hidung (menghindari garuk kepala)
-DURASI_TAHAN_ANGKAT_TANGAN_DETIK    = 0.7    # Jendela geser waktu minimum agar gestur tidak fluktuatif
-DURASI_HISTESIS_ANGKAT_TANGAN_DETIK = 0.7    # Relaksasi transisi halus saat tangan mulai diturunkan
+AMBANG_SUDUT_SIKU_DERAJAT           = 50.0   # Sudut minimum siku (derajat) - fleksibel untuk lengan tertekuk alami (60-95°) maupun lurus (120-180°)
+AMBANG_JARAK_WAJAH_TANGAN           = 0.04   # Jarak minimum pergelangan ke hidung jika sejajar wajah
+DURASI_TAHAN_ANGKAT_TANGAN_DETIK    = 0.15   # Responsif instan (0.15s / ~4 frame) saat tangan mulai diangkat
+DURASI_HISTESIS_ANGKAT_TANGAN_DETIK = 1.2    # Relaksasi transisi halus (1.2s) agar gestur stabil bebas flicker
 
 # Guardrail 2: Verifikator Energi Kinetik Gerakan Tangan
 KECEPATAN_TANGAN_MENULIS            = 0.015  # Ambang batas kecepatan tangan menulis di meja
-KECEPATAN_TANGAN_DIAM_TIDUR         = 0.010  # Ambang batas kecepatan tangan diam (statis)
-DURASI_TAHAN_TIDUR_DETIK            = 3.5    # Waktu akumulasi menunduk + diam sebelum divonis tidur
+KECEPATAN_TANGAN_DIAM_TIDUR         = 0.015  # Ambang batas kecepatan tangan diam (statis)
+DURASI_TAHAN_TIDUR_DETIK            = 1.5    # Waktu akumulasi menunduk + diam (1.5 detik) sebelum divonis tidur
+DURASI_HISTESIS_TIDUR_DETIK         = 2.0    # Latch retensi status tidur (2.0s) agar tidak flicker saat kepala tertutup total
+TOLERANSI_RESET_TIMER_TIDUR_DETIK   = 1.0    # Jeda toleransi hilang frame (1.0s) sebelum membatalkan timer tidur
 
 # Guardrail 3: Buffer Voting Identitas Spasial
-MINIMAL_VOTING_IDENTITAS            = 2      # Akumulasi kecocokan ArcFace berturut-turut untuk mengunci identitas
+MINIMAL_VOTING_IDENTITAS            = 1      # Akumulasi kecocokan biometrik untuk mengunci identitas secara instan
 
 # Guardrail 4: Filter Penghalus Koordinat & Reduksi Jitter (One Euro Filter + EMA Sub-pixel)
 FAKTOR_EMA_SMOOTHING                = 0.22   # Fallback bobot koordinat baru
@@ -154,8 +156,8 @@ class KonfigurasiEngine:
     target_fps: int = 30
     yolo_conf_thresh: float = 0.50
     yolo_imgsz: int = 320
-    face_sim_thresh: float = 0.52
-    face_interval_sec: float = 2.0
+    face_sim_thresh: float = 0.380
+    face_interval_sec: float = 0.25
 
 # Alias kompatibilitas
 EngineConfig = KonfigurasiEngine
