@@ -69,7 +69,12 @@ export function StreamViewport({
 }: StreamViewportProps) {
   const [useProxy, setUseProxy] = React.useState(false);
   const [streamError, setStreamError] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
   const retryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Reset fallback saat saluran aktif berubah
   React.useEffect(() => {
@@ -359,8 +364,11 @@ export function StreamViewport({
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Perhatian: <span className="tabular-nums font-mono">{counts.sleep}</span>
           </span>
         </div>
-        <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
-          Sinkron: {lastSyncTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        <span
+          suppressHydrationWarning
+          className="text-[11px] text-muted-foreground font-mono tabular-nums"
+        >
+          Sinkron: {mounted ? lastSyncTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}
         </span>
       </div>
     </div>
