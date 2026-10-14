@@ -55,19 +55,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const isDemoSession = sessionId === "00000000-0000-0000-0000-000000000001";
+    let targetSessionId = sessionId;
 
     if (isDemoSession) {
-      return NextResponse.json({
-        success: true,
-        approved_count: records.length,
-        message: `Berhasil menyetujui presensi ${records.length} siswa (Demo Mode).`,
-      });
+      const { data: activeSession } = await adminClient
+        .from("attendance_sessions")
+        .select("id")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeSession) {
+        targetSessionId = activeSession.id;
+      } else {
+        return NextResponse.json({
+          success: true,
+          approved_count: records.length,
+          message: `Berhasil menyetujui presensi ${records.length} siswa (Demo Mode - Tidak ada sesi aktif).`,
+        });
+      }
     }
 
     // Prepare rows for upsert into attendance_records
     const nowIso = new Date().toISOString();
     const rowsToInsert = records.map((rec) => ({
-      session_id: sessionId,
+      session_id: targetSessionId,
       student_id: rec.student_id,
       status: rec.status || "present",
       scanned_at: nowIso,

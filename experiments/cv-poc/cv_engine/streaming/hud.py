@@ -46,11 +46,8 @@ def terapkan_orientasi(frame: np.ndarray, rotasi: str = "auto", cermin_horizonta
     elif rotasi == "270":
         keluaran = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
     elif rotasi == "auto":
-        # Otomatis tegakkan jika HP dalam orientasi lanskap namun terbalik
-        if frame.shape[1] > frame.shape[0]:
-            keluaran = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        else:
-            keluaran = frame
+        # Pertahankan orientasi alami sensor kamera (tidak memutar paksa lanskap menjadi portrait)
+        keluaran = frame
     else:
         keluaran = frame
 

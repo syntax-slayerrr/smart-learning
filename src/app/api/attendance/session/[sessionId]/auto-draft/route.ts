@@ -25,9 +25,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const isDemoSession = sessionId === "00000000-0000-0000-0000-000000000001";
 
-    // 1. Fetch Session Info
+    // 1. Fetch Session Info & Target Class
     let session = null;
     let classId = null;
+    let effectiveSessionId = sessionId;
 
     if (!isDemoSession) {
       const { data: sessionData } = await adminClient
@@ -39,6 +40,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (sessionData) {
         session = sessionData;
         classId = sessionData.class_id;
+      }
+    } else {
+      // In demo mode, automatically bind to the currently active attendance session
+      const { data: activeSession } = await adminClient
+        .from("attendance_sessions")
+        .select("id, class_id, status, teacher_id, session_date")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeSession) {
+        session = activeSession;
+        classId = activeSession.class_id;
+        effectiveSessionId = activeSession.id;
+      } else {
+        // Fallback: ambil kelas pertama jika belum ada sesi aktif
+        const { data: fallbackClass } = await adminClient
+          .from("classes")
+          .select("id")
+          .limit(1)
+          .maybeSingle();
+        if (fallbackClass) {
+          classId = fallbackClass.id;
+        }
       }
     }
 
@@ -60,21 +86,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 3. Fetch already recorded attendance
+    // 3. Fetch already recorded attendance (baik dari sessionId maupun effectiveSessionId)
     let recordedStudentIds = new Set<string>();
-    if (!isDemoSession) {
-      const { data: existingRecords } = await adminClient
-        .from("attendance_records")
-        .select("student_id")
-        .eq("session_id", sessionId);
+    const sessionIdsToCheck = Array.from(new Set([sessionId, effectiveSessionId]));
+    const { data: existingRecords } = await adminClient
+      .from("attendance_records")
+      .select("student_id")
+      .in("session_id", sessionIdsToCheck);
 
-      if (existingRecords) {
-        existingRecords.forEach((r: { student_id: string }) => recordedStudentIds.add(r.student_id));
-      }
+    if (existingRecords) {
+      existingRecords.forEach((r: { student_id: string }) => recordedStudentIds.add(r.student_id));
     }
 
-    // 4. Read memory draft from Edge CV Engine
-    const draftMap = (globalThis as any).__ATTENDANCE_DRAFT__?.[sessionId] || {};
+    // 4. Read memory draft from Edge CV Engine (gabungkan draft dari sessionId, demo id, dan active session id)
+    const rawDemoDraft = (globalThis as any).__ATTENDANCE_DRAFT__?.["00000000-0000-0000-0000-000000000001"] || {};
+    const rawSessDraft = (globalThis as any).__ATTENDANCE_DRAFT__?.[sessionId] || {};
+    const rawEffDraft = effectiveSessionId ? (globalThis as any).__ATTENDANCE_DRAFT__?.[effectiveSessionId] || {} : {};
+    const draftMap = { ...rawDemoDraft, ...rawEffDraft, ...rawSessDraft };
 
     // 5. Match detected students against class roster
     const verifiedList: any[] = [];
@@ -103,11 +131,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Hanya verifikasi jika benar-benar terdeteksi oleh AI Kamera dan memenuhi syarat
-      const isQualified = match?.attendance_qualified || Boolean(match && (match.confidence >= 0.35 || match.dwell_seconds >= 5));
+      // Verifikasi HANYA jika benar-benar aktif terdeteksi oleh AI Kamera dalam 35 detik terakhir
+      const lastSeenMs = match?.last_seen ? Date.now() - new Date(match.last_seen).getTime() : Infinity;
+      const isRecentlyActive = lastSeenMs <= 35000;
+
+      const isQualified = Boolean(
+        match &&
+        isRecentlyActive &&
+        (match.attendance_qualified || match.confidence >= 0.35 || match.dwell_seconds >= 5)
+      );
       const dwellSeconds = match?.dwell_seconds || 0;
       const confidence = match?.confidence || 0.0;
-      const seatId = match?.seat_id || "SEAT_A1";
+      const seatId = match?.seat_id || "SEAT_1";
 
       if (match && isQualified) {
         verifiedList.push({
@@ -119,7 +154,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           seat_id: seatId,
           already_recorded: isAlreadyRecorded,
           status_recommendation: "present",
-          qualification_reason: `Duduk stabil ${dwellSeconds}s di ${seatId} (Konsensus ${(confidence * 100).toFixed(1)}%)`,
+          qualification_reason: isAlreadyRecorded
+            ? `Tercatat otomatis di database presensi (${seatId})`
+            : `Duduk stabil ${dwellSeconds}s di ${seatId} (Konsensus ${(confidence * 100).toFixed(1)}%)`,
         });
       } else {
         pendingList.push({
@@ -129,7 +166,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           dwell_seconds: dwellSeconds,
           already_recorded: isAlreadyRecorded,
           status_recommendation: isAlreadyRecorded ? "recorded" : "unverified",
-          reason: isAlreadyRecorded ? "Sudah diabsen sebelumnya" : "Belum mencapai batas duduk stabil 45s",
+          reason: isAlreadyRecorded ? "Sudah diabsen manual (tidak di kamera)" : "Belum terdeteksi di kamera kelas",
         });
       }
     }

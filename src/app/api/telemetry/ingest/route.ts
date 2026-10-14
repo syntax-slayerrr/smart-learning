@@ -178,40 +178,88 @@ export async function POST(request: NextRequest) {
         globalThis.__ATTENDANCE_DRAFT__![session_id] = {};
       }
       const draftMap = globalThis.__ATTENDANCE_DRAFT__![session_id];
+
+      // Auto-lookup active session in DB if running on demo session id
+      let effectiveSessionId: string | null = (!isDemoSession && session) ? session_id : null;
+      if (!effectiveSessionId) {
+        try {
+          const { data: activeSession } = await adminClient
+            .from("attendance_sessions")
+            .select("id, class_id")
+            .eq("status", "active")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (activeSession) {
+            effectiveSessionId = activeSession.id;
+          }
+        } catch (sessLookupErr) {
+          console.warn("[Active Session Lookup Notice]:", sessLookupErr);
+        }
+      }
+
       for (const rawTrack of anonymized_tracks) {
         const track = rawTrack as Record<string, any>;
         const studentName = track.student_name as string;
-        const studentId = track.student_id as string | undefined;
-        const nis = track.nis as string | undefined;
+        let studentId = track.student_id as string | undefined;
+        let nis = track.nis as string | undefined;
         const isRec = Boolean(track.is_recognized);
-        const isQual = Boolean(track.attendance_qualified);
         const dwell = Number(track.dwell_seconds || 0);
 
         if (isRec && studentName && !studentName.startsWith("Siswa #")) {
+          // Auto-Resolver: Cari student_id & nis dari database jika kamera hanya mengirim nama string
+          if (!studentId) {
+            try {
+              const { data: foundStudent } = await adminClient
+                .from("students")
+                .select("id, nis, profiles!inner(full_name)")
+                .ilike("profiles.full_name", `%${studentName}%`)
+                .limit(1)
+                .maybeSingle();
+
+              if (foundStudent) {
+                studentId = foundStudent.id;
+                nis = foundStudent.nis;
+              }
+            } catch (resolveErr) {
+              console.warn("[Student Name-to-UUID Resolver Notice]:", resolveErr);
+            }
+          }
+
           const draftKey = studentId || studentName;
           const prev = draftMap[draftKey] || draftMap[studentName];
           const bestDwell = Math.max(dwell, prev?.dwell_seconds || 0, 15);
-          draftMap[draftKey] = {
+          const draftItem = {
             student_id: studentId || prev?.student_id,
             nis: nis || prev?.nis,
             student_name: studentName,
-            seat_id: track.seat_id || prev?.seat_id || "SEAT_UNKNOWN",
+            seat_id: track.seat_id || prev?.seat_id || "SEAT_1",
             confidence: track.confidence || prev?.confidence || 0.98,
             dwell_seconds: bestDwell,
             attendance_qualified: true, // Instan terverifikasi AI!
             last_seen: new Date().toISOString(),
           };
+          draftMap[draftKey] = draftItem;
 
-          // Instant Auto-Attendance ke Database Supabase jika sesi resmi terdaftar
-          if (!isDemoSession && session && studentId) {
+          // Mirror ke effectiveSessionId agar auto-draft view langsung membacanya
+          if (effectiveSessionId && effectiveSessionId !== session_id) {
+            if (!globalThis.__ATTENDANCE_DRAFT__![effectiveSessionId]) {
+              globalThis.__ATTENDANCE_DRAFT__![effectiveSessionId] = {};
+            }
+            globalThis.__ATTENDANCE_DRAFT__![effectiveSessionId][draftKey] = draftItem;
+          }
+
+          // Instant Auto-Attendance ke Database Supabase jika sesi resmi terdaftar dan student_id terpecahkan!
+          if (effectiveSessionId && studentId) {
             try {
               await adminClient.from("attendance_records").upsert(
                 {
-                  session_id,
+                  session_id: effectiveSessionId,
                   student_id: studentId,
                   status: "present",
                   scanned_at: new Date().toISOString(),
-                  notes: `Auto-Verified AI Vision (Kursi: ${track.seat_id || "Terlatched"}, Akurasi: ${Math.round(Number(track.confidence || 0.98) * 100)}%)`,
+                  notes: `Auto-Verified AI Vision (Kursi: ${track.seat_id || "SEAT_1"}, Akurasi: ${Math.round(Number(track.confidence || 0.98) * 100)}%)`,
                 },
                 { onConflict: "session_id,student_id" }
               );

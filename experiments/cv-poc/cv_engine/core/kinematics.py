@@ -44,6 +44,30 @@ def hitung_sudut_tiga_titik(titik_bahu: Any, titik_siku: Any, titik_pergelangan:
     return float(math.degrees(sudut_radian))
 
 
+def hitung_jarak_telinga_ke_lengan(landmarks: List[Any]) -> float:
+    """
+    Menghitung jarak Euclidean ternormalisasi terdekat antara telinga dan lengan (siku/pergelangan).
+    Pembeda biomekanis mutlak antara:
+    - Membaca dekat meja (otot leher menahan kepala melayang di udara, jarak > 0.18)
+    - Tertidur di meja (kepala bersandar menempel fisik di atas lengan/meja, jarak < 0.15)
+    """
+    if not landmarks or len(landmarks) < 17:
+        return 1.0
+    l_ear = landmarks[7]
+    r_ear = landmarks[8]
+    l_elbow = landmarks[13]
+    r_elbow = landmarks[14]
+    l_wrist = landmarks[15]
+    r_wrist = landmarks[16]
+
+    return float(min(
+        math.hypot(l_ear.x - l_wrist.x, l_ear.y - l_wrist.y),
+        math.hypot(l_ear.x - l_elbow.x, l_ear.y - l_elbow.y),
+        math.hypot(r_ear.x - r_wrist.x, r_ear.y - r_wrist.y),
+        math.hypot(r_ear.x - r_elbow.x, r_ear.y - r_elbow.y)
+    ))
+
+
 def saring_pose_tumpang_tindih(
     daftar_pose_landmark: List[Any],
     dimensi_frame: Tuple[int, int, ...],

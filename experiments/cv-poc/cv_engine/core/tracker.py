@@ -41,6 +41,7 @@ from cv_engine.config import (
 )
 from cv_engine.core.kinematics import (
     hitung_sudut_tiga_titik,
+    hitung_jarak_telinga_ke_lengan,
     saring_pose_tumpang_tindih,
     saring_kandidat_spasial
 )
@@ -127,6 +128,7 @@ class PelacakSubjekKelas:
         self.tracks: Dict[int, Dict[str, Any]] = {}
         self.id_berikutnya: int = 1
         self.pencatat_waktu_tidur: Dict[int, float] = {}
+        self.pencatat_terakhir_posisi_tidur: Dict[int, float] = {}
         self.penahan_histesis_tidur: Dict[int, float] = {}
         self.pencatat_mulai_angkat_tangan: Dict[int, float] = {}
         self.penahan_histesis_tangan: Dict[int, float] = {}
@@ -417,7 +419,7 @@ class PelacakSubjekKelas:
 
             # 6. Kinematika Angkat Tangan & Deteksi Tidur (Guardrail 1 & 2)
             if memiliki_pose:
-                # Guardrail 2: Hand Motion Energy Verifier (Sliding Window Deque)
+                # Guardrail 2: Hand Motion Energy Verifier (Net Displacement + Deadband Filter)
                 if id_pemeriksaan not in self.riwayat_posisi_pergelangan:
                     self.riwayat_posisi_pergelangan[id_pemeriksaan] = deque(maxlen=8)
                 self.riwayat_posisi_pergelangan[id_pemeriksaan].append((waktu_sekarang, pergelangan_kiri.x, pergelangan_kiri.y, pergelangan_kanan.x, pergelangan_kanan.y))
@@ -426,24 +428,85 @@ class PelacakSubjekKelas:
                 antrean_gerak = self.riwayat_posisi_pergelangan[id_pemeriksaan]
                 if len(antrean_gerak) >= 4:
                     durasi_waktu = max(1e-4, antrean_gerak[-1][0] - antrean_gerak[0][0])
-                    panjang_lintasan_kiri = sum(math.hypot(antrean_gerak[k][1] - antrean_gerak[k-1][1], antrean_gerak[k][2] - antrean_gerak[k-1][2]) for k in range(1, len(antrean_gerak)))
-                    panjang_lintasan_kanan = sum(math.hypot(antrean_gerak[k][3] - antrean_gerak[k-1][3], antrean_gerak[k][4] - antrean_gerak[k-1][4]) for k in range(1, len(antrean_gerak)))
-                    kecepatan_tangan = (panjang_lintasan_kiri + panjang_lintasan_kanan) / (2.0 * durasi_waktu)
+                    # Gunakan perpindahan bersih (net displacement) untuk mengabaikan tremor/jitter sensor webcam
+                    disp_kiri = math.hypot(antrean_gerak[-1][1] - antrean_gerak[0][1], antrean_gerak[-1][2] - antrean_gerak[0][2])
+                    disp_kanan = math.hypot(antrean_gerak[-1][3] - antrean_gerak[0][3], antrean_gerak[-1][4] - antrean_gerak[0][4])
+                    # Deadband 0.015 (~10px) untuk meniadakan false motion saat tangan diam di atas meja
+                    disp_bersih = (max(0.0, disp_kiri - 0.015) + max(0.0, disp_kanan - 0.015)) / 2.0
+                    kecepatan_tangan = disp_bersih / durasi_waktu
 
-                # Siswa tekun menulis di meja jika tangan bergerak aktif dan posisi di bawah bahu
+                jarak_vertikal_hidung_bahu = pusat_bahu_y - hidung.y
+                visibilitas_hidung = getattr(hidung, 'visibility', 0.5)
+                jarak_telinga_lengan = hitung_jarak_telinga_ke_lengan(landmarks)
+                is_kontak_kepala_lengan = (jarak_telinga_lengan < 0.17)
+
+                kemiringan_kepala_asli = 0.0
+                vis_telinga_kiri = getattr(landmarks[7], 'visibility', 0.0) if len(landmarks) >= 9 else 0.0
+                vis_telinga_kanan = getattr(landmarks[8], 'visibility', 0.0) if len(landmarks) >= 9 else 0.0
+                if len(landmarks) >= 9 and (vis_telinga_kiri > 0.15 or vis_telinga_kanan > 0.15):
+                    telinga_kiri = landmarks[7]
+                    telinga_kanan = landmarks[8]
+                    if vis_telinga_kiri > 0.15 and vis_telinga_kanan > 0.15:
+                        dy_telinga = telinga_kanan.y - telinga_kiri.y
+                        dx_telinga = telinga_kanan.x - telinga_kiri.x
+                        kemiringan_kepala_asli = math.degrees(math.atan2(abs(dy_telinga), max(1e-5, abs(dx_telinga))))
+                        pusat_telinga_y = (telinga_kiri.y + telinga_kanan.y) / 2.0
+                    elif vis_telinga_kiri > 0.15:
+                        pusat_telinga_y = telinga_kiri.y
+                    else:
+                        pusat_telinga_y = telinga_kanan.y
+                else:
+                    pusat_telinga_y = hidung.y
+
+                kotak_atas_y = py / float(max(1, tinggi_frame))
+                jarak_bahu_ke_puncak = pusat_bahu_y - kotak_atas_y
+                rasio_aspek_tubuh = ph / float(max(1, pw))
+
+                # Pembeda Biomekanis: Ketinggian Telinga terhadap Garis Bahu & Siluet Pipih
+                # Saat tegak/membaca: leher menopang kepala sehingga telinga berada tinggi di atas pundak (jarak > 0.06).
+                # Saat rebahan tidur di meja: telinga amblas sejajar garis bahu (jarak < 0.045) atau tubuh memipih pipih (< 0.70).
+                elevasi_leher_tegak = (pusat_bahu_y - pusat_telinga_y >= 0.06)
+                telinga_amblas_ke_bahu = (pusat_bahu_y - pusat_telinga_y < 0.045)
+                badan_pipih_rebah = (rasio_aspek_tubuh < 0.70 and hidung.y >= min(bahu_kiri.y, bahu_kanan.y) - 0.03)
+
+                # Kepala dianggap rebah di meja HANYA jika:
+                # 1. Menempel secara fisik di atas lengan/siku (is_kontak_kepala_lengan), ATAU
+                # 2. Telinga amblas ke garis bahu / leher tidak lagi menopang, ATAU
+                # 3. Siluet tubuh memipih horizontal di atas meja, ATAU
+                # 4. Wajah terbenam total di meja (visibilitas_hidung < 0.40 dan jarak_bahu_ke_puncak < 0.09), ATAU
+                # 5. Kepala miring rebahan menempel meja (kemiringan > 25° dan jarak_telinga_lengan < 0.22)
+                is_kepala_rebah_meja = (
+                    is_kontak_kepala_lengan or
+                    telinga_amblas_ke_bahu or
+                    badan_pipih_rebah or
+                    (visibilitas_hidung < 0.40 and jarak_bahu_ke_puncak < 0.09) or
+                    (kemiringan_kepala_asli > 25.0 and jarak_telinga_lengan < 0.22)
+                )
+
+                # Siswa tekun menulis di meja HANYA jika otot leher masih menopang (elevasi tegak),
+                # pandangan menunduk menatap meja/buku (bukan menatap lurus ke depan/layar),
+                # dan pergelangan tangan aktif bergerak di atas meja.
+                is_menatap_meja = (arah_tatapan == "Menatap Laptop/Meja" or hidung.y > pusat_bahu_y - 0.08)
                 is_sedang_menulis = (
-                    (pergelangan_kiri.y > bahu_kiri.y + 0.02 or pergelangan_kanan.y > bahu_kanan.y + 0.02) and
-                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 0.7) and
-                    (hidung.y > pusat_bahu_y - 0.16)
+                    not is_kepala_rebah_meja and
+                    elevasi_leher_tegak and
+                    is_menatap_meja and
+                    (pergelangan_kiri.y > bahu_kiri.y - 0.04 or pergelangan_kanan.y > bahu_kanan.y - 0.04) and
+                    (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS)
                 )
 
                 if is_sedang_menulis:
                     self.penahan_waktu_menulis[id_pemeriksaan] = waktu_sekarang
+                elif is_kepala_rebah_meja or not is_menatap_meja:
+                    # Batalkan latch menulis seketika saat kepala rebah di meja atau saat pandangan kembali menatap lurus ke depan
+                    self.penahan_waktu_menulis.pop(id_pemeriksaan, None)
 
-                # Latch aktivitas menulis selama 1.5 detik
+                # Latch aktivitas menulis selama 1.2 detik HANYA jika tatapan masih mengarah ke meja
                 aktivitas_menulis_aktif = (
+                    not is_kepala_rebah_meja and
+                    is_menatap_meja and
                     id_pemeriksaan in self.penahan_waktu_menulis and
-                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.5
+                    waktu_sekarang - self.penahan_waktu_menulis[id_pemeriksaan] < 1.2
                 )
 
                 # Guardrail 1: Kinematika Angkat Tangan Sensitif & Responsif (< 0.2s)
@@ -509,7 +572,6 @@ class PelacakSubjekKelas:
                     )
 
                 # Guardrail 2: Deteksi Tidur & Rebahan di Meja Sangat Sensitif (Solusi Kasus 2: Telungkup di Meja)
-                jarak_vertikal_hidung_bahu = pusat_bahu_y - hidung.y
                 kemiringan_kepala_asli = 0.0
                 if len(landmarks) >= 9:
                     telinga_kiri = landmarks[7]
@@ -519,42 +581,62 @@ class PelacakSubjekKelas:
                         dx_telinga = telinga_kanan.x - telinga_kiri.x
                         kemiringan_kepala_asli = math.degrees(math.atan2(abs(dy_telinga), max(1e-5, abs(dx_telinga))))
 
-                # Parameter Geometri Kasus 2 (Wajah terbenam / oklusi total saat tidur di atas meja):
+                # Parameter Geometri Kasus 2 & Kontak Fisik Kepala-Lengan:
                 visibilitas_hidung = getattr(hidung, 'visibility', 0.5)
                 kotak_atas_y = py / float(max(1, tinggi_frame))
                 jarak_bahu_ke_puncak = pusat_bahu_y - kotak_atas_y  # Saat tegak > 0.12, saat rebahan di meja < 0.09
                 rasio_aspek_tubuh = ph / float(max(1, pw))
+                # Siswa dianggap membaca dekat meja jika kepala menunduk TETAPI leher masih menopang tegak
+                is_membaca_dekat_meja = (
+                    not is_kepala_rebah_meja and
+                    elevasi_leher_tegak and
+                    is_menatap_meja and
+                    not is_kontak_kepala_lengan and
+                    visibilitas_hidung >= 0.40 and
+                    kemiringan_kepala_asli < 25.0
+                )
 
-                # Kondisi A: Kepala menunduk rendah mendekati meja atau miring rebahan di lengan
+                # Kondisi A: Kepala menunduk sangat rendah menempel meja atau telinga menempel di lengan
                 kepala_turun_standar = (
-                    (jarak_vertikal_hidung_bahu < 0.08) or
-                    (hidung.y >= pusat_bahu_y - 0.03) or
-                    (kemiringan_kepala_asli > 28.0 and jarak_vertikal_hidung_bahu < 0.14)
+                    is_kontak_kepala_lengan or
+                    telinga_amblas_ke_bahu or
+                    badan_pipih_rebah or
+                    (kemiringan_kepala_asli > 25.0 and is_kontak_kepala_lengan)
                 )
 
                 # Kondisi B (Kasus 2): Telungkup total di meja (wajah tertutup lipatan tangan / menenggelamkan kepala)
                 telungkup_meja = (
                     postur == "sitting" and (
                         # Wajah terbenam (landmark wajah hilang & tidak ada tonjolan kepala di atas bahu)
-                        (visibilitas_hidung < 0.35 and jarak_bahu_ke_puncak < 0.09) or
-                        # Hidung sejajar atau berada di bawah garis pundak
-                        (hidung.y >= min(bahu_kiri.y, bahu_kanan.y) - 0.02) or
-                        # Siluet tubuh memendek/jongkok membulat menempel bidang meja
-                        (visibilitas_hidung < 0.40 and rasio_aspek_tubuh < 1.15)
+                        (visibilitas_hidung < 0.40 and jarak_bahu_ke_puncak < 0.09) or
+                        # Telinga amblas ke pundak (leher tidak lagi menopang)
+                        telinga_amblas_ke_bahu or
+                        # Siluet tubuh memendek pipih menempel bidang meja
+                        badan_pipih_rebah
                     )
                 )
 
-                is_postur_tidur_mentah = (kepala_turun_standar or telungkup_meja) and (kecepatan_tangan < KECEPATAN_TANGAN_DIAM_TIDUR * 2.2)
+                is_postur_tidur_mentah = (
+                    not is_membaca_dekat_meja and
+                    (kepala_turun_standar or telungkup_meja) and
+                    (is_kontak_kepala_lengan or telinga_amblas_ke_bahu or badan_pipih_rebah or kecepatan_tangan < KECEPATAN_TANGAN_MENULIS * 1.5)
+                )
 
                 is_tidur = False
-                if is_angkat_tangan or postur == "standing" or (aktivitas_menulis_aktif and kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 1.5):
-                    # Batalkan status tidur seketika jika siswa berdiri, angkat tangan, atau mengetik/menulis aktif
+                if is_angkat_tangan or postur == "standing" or (kecepatan_tangan > KECEPATAN_TANGAN_MENULIS * 2.5 and not is_kepala_rebah_meja and not is_kontak_kepala_lengan):
+                    # Batalkan status tidur jika siswa berdiri, angkat tangan, atau gerakan tangan nyata saat kepala tegak
                     self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
+                    self.pencatat_terakhir_posisi_tidur.pop(id_pemeriksaan, None)
                     self.penahan_histesis_tidur.pop(id_pemeriksaan, None)
                     is_tidur = False
                 elif is_postur_tidur_mentah:
+                    # Ketika kepala rebah di meja, batalkan status menulis seketika
+                    self.penahan_waktu_menulis.pop(id_pemeriksaan, None)
+                    aktivitas_menulis_aktif = False
+
                     if id_pemeriksaan not in self.pencatat_waktu_tidur:
                         self.pencatat_waktu_tidur[id_pemeriksaan] = waktu_sekarang
+                    self.pencatat_terakhir_posisi_tidur[id_pemeriksaan] = waktu_sekarang
                     if waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] >= DURASI_TAHAN_TIDUR_DETIK:
                         is_tidur = True
                         self.penahan_histesis_tidur[id_pemeriksaan] = waktu_sekarang
@@ -565,9 +647,12 @@ class PelacakSubjekKelas:
                         )
                 else:
                     # Toleransi grace period (1.0s) sebelum reset timer agar tidak putus akibat oklusi sementara
-                    if id_pemeriksaan in self.pencatat_waktu_tidur:
-                        if waktu_sekarang - self.pencatat_waktu_tidur[id_pemeriksaan] > TOLERANSI_RESET_TIMER_TIDUR_DETIK:
+                    if id_pemeriksaan in self.pencatat_terakhir_posisi_tidur:
+                        if waktu_sekarang - self.pencatat_terakhir_posisi_tidur[id_pemeriksaan] > TOLERANSI_RESET_TIMER_TIDUR_DETIK:
                             self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
+                            self.pencatat_terakhir_posisi_tidur.pop(id_pemeriksaan, None)
+                    elif id_pemeriksaan in self.pencatat_waktu_tidur:
+                        self.pencatat_waktu_tidur.pop(id_pemeriksaan, None)
                     is_tidur = (
                         id_pemeriksaan in self.penahan_histesis_tidur and
                         waktu_sekarang - self.penahan_histesis_tidur[id_pemeriksaan] < DURASI_HISTESIS_TIDUR_DETIK
@@ -592,6 +677,10 @@ class PelacakSubjekKelas:
                     aktivitas = "writing"
                     teks_aksi = "Fokus Menulis / Meja"
                     skor_atensi = 94
+                elif is_membaca_dekat_meja:
+                    aktivitas = "attentive"
+                    teks_aksi = "Fokus Membaca / Meja"
+                    skor_atensi = 92
                 elif postur == "standing":
                     aktivitas = "attentive"
                     teks_aksi = "Berdiri di Depan"
@@ -786,6 +875,7 @@ class PelacakSubjekKelas:
                     self.lost_tracks[id_t] = data_t
                     del self.tracks[id_t]
                     self.pencatat_waktu_tidur.pop(id_t, None)
+                    self.pencatat_terakhir_posisi_tidur.pop(id_t, None)
                     self.penahan_histesis_tidur.pop(id_t, None)
                     self.pencatat_mulai_angkat_tangan.pop(id_t, None)
                     self.penahan_histesis_tangan.pop(id_t, None)
@@ -847,6 +937,7 @@ class PelacakSubjekKelas:
         for id_buang in id_dihapus:
             self.tracks.pop(id_buang, None)
             self.pencatat_waktu_tidur.pop(id_buang, None)
+            self.pencatat_terakhir_posisi_tidur.pop(id_buang, None)
             self.penahan_histesis_tidur.pop(id_buang, None)
             self.pencatat_mulai_angkat_tangan.pop(id_buang, None)
             self.penahan_histesis_tangan.pop(id_buang, None)
