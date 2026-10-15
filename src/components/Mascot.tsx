@@ -130,8 +130,8 @@ const CSS = `
 .mm-wave{transform-origin:132px 150px;animation:mm-w .8s ease-in-out infinite alternate}
 .mm-fx{transform-box:fill-box;transform-origin:center;animation:mm-x 1.6s ease-in-out infinite}
 .mm-still,.mm-still *{animation:none!important}
-.mm-say{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:10px;width:max-content;max-width:min(260px,80vw);padding:7px 13px;border-radius:14px;background:#fff;color:#1e3a6e;border:1.5px solid #cfe0f7;font:600 13px/1.35 system-ui,sans-serif;text-align:center;box-shadow:0 6px 18px rgba(74,134,224,.18)}
-.mm-say:after{content:"";position:absolute;left:50%;top:100%;width:10px;height:10px;margin:-6px 0 0 -5px;background:#fff;border:solid #cfe0f7;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.mm-say{position:absolute;right:105%;top:50%;transform:translateY(-50%);margin-right:8px;white-space:nowrap;padding:4px 9px;border-radius:10px;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;font:700 11px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 4px 12px rgba(37,99,235,0.12);z-index:20}
+.mm-say:after{content:"";position:absolute;left:100%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#fff;border:solid #bfdbfe;border-width:1px 1px 0 0;transform:rotate(45deg)}
 @keyframes mm-f{50%{transform:translateY(-4px)}}
 @keyframes mm-p{from{transform:scale(.93) translateY(5px);opacity:.5}}
 @keyframes mm-b{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}

@@ -45,9 +45,9 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Mascot: Floating di pojok kanan atas tanpa terpotong bubble */}
+            {/* Mascot: Floating di pojok kanan atas dengan bubble chat samping */}
             <div className="absolute right-0 bottom-0 pointer-events-none sm:pointer-events-auto">
-              <Mascot mood="semangat" size={60} follow={true} />
+              <Mascot mood="semangat" size={60} say="Semangat Belajar!" follow={true} />
             </div>
           </div>
         </div>
