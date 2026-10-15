@@ -15,31 +15,31 @@ Platform terintegrasi yang menghubungkan **Edge Computer Vision Intelligence** (
 ```mermaid
 flowchart TD
     subgraph EdgeDevice["1. Edge Box / Kamera Kelas"]
-        CAM[Kamera HP / RTSP / Webcam] --> TC[KameraUtasTerpisah: Buffer 1-Frame Zero Lag]
-        TC --> YOLO[YOLO26n ONNX: Detektor Spasial Makro]
-        TC --> MP[MediaPipe Heavy 3D: Kerangka Sendi Anatomi]
-        TC --> FACE[ArcFace 512-d: Pengenal Biometrik Wajah]
-        YOLO --> TRACK[PelacakSubjekKelas: 5 Enterprise Guardrails]
+        CAM["Kamera HP / RTSP / Webcam"] --> TC["KameraUtasTerpisah: Buffer 1-Frame Zero Lag"]
+        TC --> YOLO["YOLO26n ONNX: Detektor Spasial Makro"]
+        TC --> MP["MediaPipe Heavy 3D: Kerangka Sendi Anatomi"]
+        TC --> FACE["ArcFace 512-d: Pengenal Biometrik Wajah"]
+        YOLO --> TRACK["PelacakSubjekKelas: 5 Enterprise Guardrails"]
         MP --> TRACK
         FACE --> TRACK
-        TRACK --> HUD[Renderer Cyber-HUD & MJPEG Server :5000]
-        TRACK --> DISP[PengirimTelemetriAsinkron: Bounded FIFO Queue]
+        TRACK --> HUD["Renderer Cyber-HUD & MJPEG Server :5000"]
+        TRACK --> DISP["PengirimTelemetriAsinkron: Bounded FIFO Queue"]
     end
 
     subgraph BackendAPI["2. Next.js & Supabase Cloud"]
-        DISP -->|HTTP POST JSON Tiap 2s| INGEST[/api/telemetry/ingest]
-        INGEST --> DB[(Supabase PostgreSQL: classroom_telemetry)]
-        INGEST --> INMEM[In-Memory Sliding Buffer: 50 Slices]
-        DB --> ANALYTICS[Layanan Analitik Siswa: Skoring Komposit O(N)]
-        ANALYTICS --> WA[Gateway WhatsApp: Notifikasi Intervensi Ortu]
+        DISP -->|HTTP POST JSON Tiap 2s| INGEST["/api/telemetry/ingest"]
+        INGEST --> DB[("Supabase PostgreSQL: classroom_telemetry")]
+        INGEST --> INMEM["In-Memory Sliding Buffer: 50 Slices"]
+        DB --> ANALYTICS["Layanan Analitik Siswa: Skoring Komposit O(N)"]
+        ANALYTICS --> WA["Gateway WhatsApp: Notifikasi Intervensi Ortu"]
     end
 
     subgraph ClientDashboards["3. Antarmuka Web Interaktif"]
-        HUD -->|MJPEG Feed 45 FPS| LIVE[Live Camera Monitor Component]
+        HUD -->|MJPEG Feed 45 FPS| LIVE["Live Camera Monitor Component"]
         INMEM -->|Polling / Realtime| LIVE
-        ANALYTICS --> ADM[Dashboard Admin: Tren Seluruh Sekolah]
-        ANALYTICS --> TCH[Dashboard Guru: Rekap Sesi & Siswa Berisiko]
-        ANALYTICS --> PRN[Portal Orang Tua: Pemantauan Keterlibatan Anak]
+        ANALYTICS --> ADM["Dashboard Admin: Tren Seluruh Sekolah"]
+        ANALYTICS --> TCH["Dashboard Guru: Rekap Sesi & Siswa Berisiko"]
+        ANALYTICS --> PRN["Portal Orang Tua: Pemantauan Keterlibatan Anak"]
     end
 ```
 
