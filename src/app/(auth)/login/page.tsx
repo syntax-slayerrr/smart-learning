@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LoginForm } from "./login-form";
 import { User, GraduationCap, HelpCircle } from "lucide-react";
+import { Mascot } from "@/components/Mascot";
 
 export const dynamic = "force-dynamic";
 
@@ -46,11 +47,14 @@ export default function LoginPage() {
 
             {/* Right Side Vertical Accent Slogan */}
             <div className="hidden xs:flex items-center pl-3 border-l border-slate-300/80 text-[8.5px] font-bold tracking-wider text-slate-500 uppercase leading-snug select-none shrink-0">
-              <div>
-                <p>Belajar</p>
-                <p className="text-blue-600 font-extrabold">Lebih Cerdas</p>
-                <p>Bersama</p>
-                <p className="text-slate-800 font-black">Syntax Slayer</p>
+              <div className="flex items-center gap-2">
+                <Mascot mood="semangat" size={54} say="Semangat Belajar!" follow={true} />
+                <div>
+                  <p>Belajar</p>
+                  <p className="text-blue-600 font-extrabold">Lebih Cerdas</p>
+                  <p>Bersama</p>
+                  <p className="text-slate-800 font-black">Syntax Slayer</p>
+                </div>
               </div>
             </div>
           </div>
