@@ -30,9 +30,9 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Header Info & Right Slogan Stack */}
-          <div className="flex items-center justify-between gap-3 pt-0.5">
-            <div className="space-y-1.5 text-left flex-1">
+          {/* Header Info & Mascot */}
+          <div className="relative pt-0.5">
+            <div className="space-y-1.5 text-left pr-20 sm:pr-24">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-blue-50/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs">
                 <GraduationCap className="h-3.5 w-3.5 text-blue-600" />
                 <span>Sistem Akademik Terpadu</span>
@@ -45,9 +45,9 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Mascot: Tampil selalu di mobile dan desktop */}
-            <div className="flex items-center shrink-0">
-              <Mascot mood="semangat" size={64} say="Semangat Belajar!" follow={true} />
+            {/* Mascot: Floating di pojok kanan atas tanpa terpotong bubble */}
+            <div className="absolute right-0 bottom-0 pointer-events-none sm:pointer-events-auto">
+              <Mascot mood="semangat" size={60} follow={true} />
             </div>
           </div>
         </div>
