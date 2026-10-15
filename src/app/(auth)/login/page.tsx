@@ -31,8 +31,8 @@ export default function LoginPage() {
           </div>
 
           {/* Header Info & Right Slogan Stack */}
-          <div className="flex items-end justify-between gap-3 pt-0.5">
-            <div className="space-y-1.5 text-left">
+          <div className="flex items-center justify-between gap-3 pt-0.5">
+            <div className="space-y-1.5 text-left flex-1">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-blue-50/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs">
                 <GraduationCap className="h-3.5 w-3.5 text-blue-600" />
                 <span>Sistem Akademik Terpadu</span>
@@ -45,17 +45,9 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Right Side Vertical Accent Slogan */}
-            <div className="hidden xs:flex items-center pl-3 border-l border-slate-300/80 text-[8.5px] font-bold tracking-wider text-slate-500 uppercase leading-snug select-none shrink-0">
-              <div className="flex items-center gap-2">
-                <Mascot mood="semangat" size={54} say="Semangat Belajar!" follow={true} />
-                <div>
-                  <p>Belajar</p>
-                  <p className="text-blue-600 font-extrabold">Lebih Cerdas</p>
-                  <p>Bersama</p>
-                  <p className="text-slate-800 font-black">Syntax Slayer</p>
-                </div>
-              </div>
+            {/* Mascot: Tampil selalu di mobile dan desktop */}
+            <div className="flex items-center shrink-0">
+              <Mascot mood="semangat" size={64} say="Semangat Belajar!" follow={true} />
             </div>
           </div>
         </div>
