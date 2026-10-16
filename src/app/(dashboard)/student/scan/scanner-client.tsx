@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircle, XCircle, Camera, Loader2, KeyboardIcon, MapPin } from "lucide-react";
 import { getAttendanceStatusLabel } from "@/lib/utils";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
+import { useMascot } from "@/components/mascot/mascot-context";
 
 type ScanState = "idle" | "scanning" | "loading" | "success" | "error" | "manual" | "verification";
 
@@ -15,6 +16,7 @@ interface ScanResult {
 }
 
 export function ScannerClient() {
+  const { triggerReaction } = useMascot();
   const searchParams = useSearchParams();
   const tokenFromUrl = searchParams.get("token");
   const classIdFromUrl = searchParams.get("class_id");
@@ -76,6 +78,7 @@ export function ScannerClient() {
   const submitScan = async (params: { token?: string; classId?: string }) => {
     setState("loading");
     setError("");
+    triggerReaction("fokus", "Memverifikasi data presensi...", 4000);
 
     // Step 1: Get GPS location first
     let latitude: number | null = null;
@@ -106,19 +109,23 @@ export function ScannerClient() {
         if (data.success) {
           setState("success");
           setResult(data.data);
+          triggerReaction("senang", "Hore! Presensi berhasil tercatat!", 5000);
         } else {
           setState("error");
           // Use the specific error from server
           setError(data.error || "Gagal memvalidasi QR");
+          triggerReaction("kaget", data.error || "Presensi gagal diverifikasi!", 5000);
         }
       } else {
         // Server returned non-JSON (probably HTML error page like 504 or crash)
         setState("error");
         setError(`Sistem mengalami kendala teknis (Status: ${res.status}). Silakan hubungi petugas jika terus berlanjut.`);
+        triggerReaction("bingung", "Sistem sedang mengalami kendala teknis.", 5000);
       }
     } catch (err) {
       setState("error");
       setError("Gagal terhubung ke server. Pastikan paket data Anda aktif dan sinyal kuat.");
+      triggerReaction("sedih", "Jaringan terputus, coba lagi ya!", 5000);
     }
   };
 

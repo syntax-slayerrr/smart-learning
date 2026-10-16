@@ -130,8 +130,12 @@ const CSS = `
 .mm-wave{transform-origin:132px 150px;animation:mm-w .8s ease-in-out infinite alternate}
 .mm-fx{transform-box:fill-box;transform-origin:center;animation:mm-x 1.6s ease-in-out infinite}
 .mm-still,.mm-still *{animation:none!important}
-.mm-say{position:absolute;right:105%;top:50%;transform:translateY(-50%);margin-right:8px;white-space:nowrap;padding:4px 9px;border-radius:10px;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;font:700 11px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 4px 12px rgba(37,99,235,0.12);z-index:20}
+.mm-say{position:absolute;right:105%;top:50%;transform:translateY(-50%);margin-right:8px;white-space:nowrap;padding:4px 9px;border-radius:10px;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;font:700 11px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 4px 12px rgba(37,99,235,0.12);z-index:20;pointer-events:auto}
 .mm-say:after{content:"";position:absolute;left:100%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#fff;border:solid #bfdbfe;border-width:1px 1px 0 0;transform:rotate(45deg)}
+.mm-interactive{cursor:pointer;transition:transform .2s cubic-bezier(0.16,1,0.3,1),filter .2s ease;user-select:none;-webkit-tap-highlight-color:transparent}
+.mm-interactive:hover{transform:scale(1.08);filter:drop-shadow(0 6px 16px rgba(59,130,246,0.25))}
+.mm-interactive:active{transform:scale(0.92)}
+.mm-badge{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;background:rgba(30,58,110,0.9);color:#fff;padding:1px 6px;border-radius:999px;white-space:nowrap;letter-spacing:0.3px;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,0.2);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.2)}
 @keyframes mm-f{50%{transform:translateY(-4px)}}
 @keyframes mm-p{from{transform:scale(.93) translateY(5px);opacity:.5}}
 @keyframes mm-b{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
@@ -148,6 +152,16 @@ const Arm = ({ sx, sy, hx, hy, cls = "" }: { sx: number; sy: number; hx: number;
   </g>
 );
 
+export const SAY: Record<string, string> = {
+  senang: "Hore, kamu datang!", wink: "Rahasia kita ya.", sedih: "Yah, kok gagal ya?",
+  marah: "Hmph! Jangan diulang lagi.", kaget: "Hah?! Serius?!", bingung: "Hmm, maksudnya gimana ya?",
+  tertawa: "Wkwkwk, lucu banget!", fokus: "Sebentar, aku lagi fokus.", lelah: "Istirahat dulu, yuk.",
+  cinta: "Makasih, aku sayang kamu!", termotivasi: "Kamu pasti bisa!", capek: "Zzz… baterai habis.",
+  penasaran: "Coba kuperiksa dulu…", salam: "Halo, apa kabar?", semangat: "Ayo gaskeun!",
+};
+
+export const MOOD_KEYS = Object.keys(MOODS) as Array<keyof typeof MOODS>;
+
 export interface MascotProps {
   mood?: keyof typeof MOODS | string;
   size?: number;
@@ -156,6 +170,9 @@ export interface MascotProps {
   follow?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  interactive?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>, currentMood: string) => void;
+  showBadge?: boolean;
 }
 
 export function Mascot({
@@ -166,13 +183,40 @@ export function Mascot({
   follow = false,
   className = "",
   style,
+  interactive = false,
+  onClick,
+  showBadge = false,
 }: MascotProps) {
   const id = useId().replace(/:/g, "");
   const svg = useRef<SVGSVGElement | null>(null);
   const [look, setLook] = useState({ x: 0, y: 0 });
-  const d = D[mood] || D.senang;
+  const [activeMood, setActiveMood] = useState<string>(mood);
+  const [activeSay, setActiveSay] = useState<string | undefined>(say);
+
+  useEffect(() => {
+    setActiveMood(mood);
+  }, [mood]);
+
+  useEffect(() => {
+    setActiveSay(say);
+  }, [say]);
+
+  const d = D[activeMood] || D.senang;
   const [lx, ly, rx, ry] = d.p || [52, 184, 148, 184];
-  const u = (s) => `url(#${id}${s})`;
+  const u = (s: string) => `url(#${id}${s})`;
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (onClick) {
+      onClick(e, activeMood);
+    }
+    if (interactive) {
+      const idx = MOOD_KEYS.indexOf(activeMood as keyof typeof MOODS);
+      const nextIdx = (idx + 1) % MOOD_KEYS.length;
+      const nextMood = MOOD_KEYS[nextIdx];
+      setActiveMood(nextMood);
+      setActiveSay(SAY[nextMood] || "Semangat!");
+    }
+  };
 
   useEffect(() => {
     if (!follow) { setLook({ x: 0, y: 0 }); return; }
@@ -195,12 +239,20 @@ export function Mascot({
   );
 
   return (
-    <div className={`mm ${className}`} style={{ position: "relative", display: "inline-block", width: size, ...style }}>
+    <div
+      className={`mm ${interactive ? "mm-interactive" : ""} ${className}`}
+      onClick={handleClick}
+      role={interactive || onClick ? "button" : undefined}
+      tabIndex={interactive || onClick ? 0 : undefined}
+      title={interactive ? `Maskot: ${MOODS[activeMood] || activeMood} (Klik untuk ganti 15 karakter)` : undefined}
+      style={{ position: "relative", display: "inline-block", width: size, ...style }}
+    >
       <style>{CSS}</style>
-      {say && <div className="mm-say" role="status">{say}</div>}
+      {activeSay && <div className="mm-say" role="status">{activeSay}</div>}
+      {showBadge && <div className="mm-badge">{MOODS[activeMood] || activeMood}</div>}
       <svg
         ref={svg} viewBox="0 0 200 220" width={size} height={size * 1.1} role="img"
-        aria-label={`Maskot robot: ${MOODS[mood] || mood}`} className={animate ? "" : "mm-still"}
+        aria-label={`Maskot robot: ${MOODS[activeMood] || activeMood}`} className={animate ? "" : "mm-still"}
         style={{ display: "block", overflow: "visible" }}
       >
         <defs>
@@ -221,7 +273,7 @@ export function Mascot({
 
         <ellipse cx="100" cy="209" rx={d.low ? 62 : 44} ry="6.5" fill="#5b7db3" opacity=".2" />
 
-        <g key={mood} className="mm-pop">
+        <g key={activeMood} className="mm-pop">
           <g className={d.low ? "" : "mm-float"}>
             {/* badan */}
             {!d.low && (
@@ -273,14 +325,6 @@ export function Mascot({
 }
 
 /* ───────── Demo: klik ekspresi untuk melihatnya ───────── */
-const SAY = {
-  senang: "Hore, kamu datang!", wink: "Rahasia kita ya.", sedih: "Yah, kok gagal ya?",
-  marah: "Hmph! Jangan diulang lagi.", kaget: "Hah?! Serius?!", bingung: "Hmm, maksudnya gimana ya?",
-  tertawa: "Wkwkwk, lucu banget!", fokus: "Sebentar, aku lagi fokus.", lelah: "Istirahat dulu, yuk.",
-  cinta: "Makasih, aku sayang kamu!", termotivasi: "Kamu pasti bisa!", capek: "Zzz… baterai habis.",
-  penasaran: "Coba kuperiksa dulu…", salam: "Halo, apa kabar?", semangat: "Ayo gaskeun!",
-};
-
 export default function MascotShowcase() {
   const [mood, setMood] = useState("senang");
   return (

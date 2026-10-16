@@ -5,6 +5,7 @@ import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { processStudentCardScan, processClassScan } from "@/app/(dashboard)/teacher/attendance/actions";
 import { Loader2, Camera, XCircle, CheckCircle, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useMascot } from "@/components/mascot/mascot-context";
 
 interface ActiveSession {
   id: string;
@@ -14,6 +15,7 @@ interface ActiveSession {
 }
 
 export function ScannerClient() {
+  const { triggerReaction } = useMascot();
   const [state, setState] = useState<"scanning" | "processing" | "success" | "error">("scanning");
   const [error, setError] = useState("");
   const [studentName, setStudentName] = useState("");
@@ -73,6 +75,7 @@ export function ScannerClient() {
 
   const processScan = async (scannedText: string) => {
     setState("processing");
+    triggerReaction("fokus", "Memproses data kartu...", 3000);
 
     // Check if it's a CLASS_QR prefix OR a URL containing class_id
     if (scannedText.startsWith("CLASS_QR:") || scannedText.includes("class_id=")) {
@@ -129,9 +132,11 @@ export function ScannerClient() {
     if (result.error) {
       setState("error");
       setError(result.error);
+      triggerReaction("kaget", result.error, 4000);
     } else {
       setState("success");
       setStudentName(result.studentName || "Siswa");
+      triggerReaction("senang", `Kartu ${result.studentName || "Siswa"} terverifikasi!`, 4000);
       setTimeout(() => {
         setState("scanning");
       }, 2500); // Back to scanning after 2.5 seconds
