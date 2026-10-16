@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useMascot } from "@/components/mascot/mascot-context";
@@ -24,7 +24,250 @@ import {
   ExternalLink,
   MessageSquare,
   ChevronDown,
+  ArrowRight,
+  ArrowUpRight,
+  Compass,
+  Sparkles,
 } from "lucide-react";
+
+export interface SmartRoute {
+  path: string;
+  title: string;
+  desc: string;
+  roleBadge: string;
+  keywords: string[];
+}
+
+export const SMART_ROUTES: SmartRoute[] = [
+  {
+    path: "/admin/teachers",
+    title: "Kelola & Tambah Guru",
+    desc: "Form penambahan data guru baru, NIP, akun, dan status aktif",
+    roleBadge: "Admin",
+    keywords: ["tambah guru", "data guru", "kelola guru", "guru baru", "manajemen guru", "nip guru", "hapus guru", "edit guru", "cara tambah guru"],
+  },
+  {
+    path: "/admin/students",
+    title: "Kelola & Tambah Siswa",
+    desc: "Database seluruh siswa, input siswa baru, NISN, dan rombel",
+    roleBadge: "Admin",
+    keywords: ["tambah siswa", "data siswa", "kelola siswa", "siswa baru", "database siswa", "nisn", "input siswa"],
+  },
+  {
+    path: "/admin/classes",
+    title: "Data Kelas & Rombel",
+    desc: "Atur pembagian kelas, tingkat, jurusan, dan wali kelas",
+    roleBadge: "Admin",
+    keywords: ["tambah kelas", "kelola kelas", "data kelas", "rombel", "ruang kelas", "wali kelas"],
+  },
+  {
+    path: "/admin/schedules",
+    title: "Jadwal Pelajaran",
+    desc: "Atur alokasi jam mengajar, mata pelajaran, dan jadwal harian",
+    roleBadge: "Admin",
+    keywords: ["jadwal pelajaran", "jadwal belajar", "atur jadwal", "buat jadwal", "jam pelajaran", "roster"],
+  },
+  {
+    path: "/admin/attendance",
+    title: "Rekap Presensi Siswa",
+    desc: "Monitoring kehadiran real-time seluruh siswa dan persentase hadir",
+    roleBadge: "Admin",
+    keywords: ["rekap presensi", "presensi siswa", "kehadiran siswa", "pantau presensi", "alpa", "bolos", "hadir siswa"],
+  },
+  {
+    path: "/admin/attendance/teachers",
+    title: "Presensi Guru",
+    desc: "Monitoring kehadiran dan kedisiplinan guru di sekolah",
+    roleBadge: "Admin",
+    keywords: ["presensi guru", "kehadiran guru", "rekap guru", "absen guru", "kedisiplinan guru"],
+  },
+  {
+    path: "/admin/scanner",
+    title: "Terminal Scanner Gerbang QR",
+    desc: "Pemindai kartu QR siswa di gerbang masuk sekolah",
+    roleBadge: "Admin",
+    keywords: ["scanner gerbang", "scan kartu", "scan barcode", "terminal scanner", "alat scan", "pintu gerbang"],
+  },
+  {
+    path: "/admin/camera-monitor",
+    title: "Kamera & Telemetri Kelas",
+    desc: "Pantau suasana dan keterlibatan kelas secara visual via AI",
+    roleBadge: "Admin",
+    keywords: ["kamera kelas", "cctv kelas", "telemetri kelas", "monitor kelas", "ai vision", "pantau kelas"],
+  },
+  {
+    path: "/admin/reports",
+    title: "Laporan & Dokumen Resmi",
+    desc: "Pusat ekspor dokumen resmi, PDF laporan bulanan & akreditasi",
+    roleBadge: "Admin",
+    keywords: ["laporan resmi", "cetak laporan", "ekspor pdf", "laporan bulanan", "akreditasi", "download laporan"],
+  },
+  {
+    path: "/admin/notifications",
+    title: "Broadcast Notifikasi",
+    desc: "Kirim pengumuman resmi ke seluruh guru, siswa, atau wali",
+    roleBadge: "Admin",
+    keywords: ["kirim notifikasi", "broadcast", "pengumuman", "kirim pesan", "pemberitahuan"],
+  },
+  {
+    path: "/admin/parents",
+    title: "Data Orang Tua / Wali",
+    desc: "Manajemen kontak dan akun orang tua siswa",
+    roleBadge: "Admin",
+    keywords: ["data orang tua", "wali siswa", "akun ortu", "kontak ortu"],
+  },
+  {
+    path: "/admin/settings",
+    title: "Pengaturan Sistem",
+    desc: "Konfigurasi instansi sekolah, batas toleransi jam, dan aturan",
+    roleBadge: "Admin",
+    keywords: ["pengaturan", "setting", "konfigurasi sekolah", "jam masuk"],
+  },
+  {
+    path: "/teacher/attendance",
+    title: "Buka Sesi Presensi QR",
+    desc: "Generate QR Code dinamis untuk presensi siswa di kelas",
+    roleBadge: "Guru",
+    keywords: ["buka presensi", "sesi presensi", "generate qr", "qr presensi", "mulai absen"],
+  },
+  {
+    path: "/teacher/scan",
+    title: "Scanner Presensi Siswa",
+    desc: "Pindai QR Code atau kartu siswa langsung dari kamera guru",
+    roleBadge: "Guru",
+    keywords: ["scanner guru", "scan presensi", "scan siswa", "kamera scan"],
+  },
+  {
+    path: "/teacher/assignments",
+    title: "Kelola Tugas & Uji Lisan",
+    desc: "Buat tugas baru, set rubrik penilaian, dan evaluasi siswa",
+    roleBadge: "Guru",
+    keywords: ["buat tugas", "tugas siswa", "uji lisan", "tambah tugas", "evaluasi tugas", "koreksi tugas", "nilai tugas"],
+  },
+  {
+    path: "/teacher/materials",
+    title: "Bahan & Modul Pembelajaran",
+    desc: "Unggah materi ajar, PDF modul, dan bahan bacaan siswa",
+    roleBadge: "Guru",
+    keywords: ["upload materi", "bahan ajar", "modul ajar", "tambah materi", "buku ajar"],
+  },
+  {
+    path: "/teacher/camera-monitor",
+    title: "Telemetri Keterlibatan Kelas",
+    desc: "Analisis fokus dan keterlibatan siswa di dalam kelas via AI",
+    roleBadge: "Guru",
+    keywords: ["fokus kelas", "telemetri guru", "keterlibatan siswa"],
+  },
+  {
+    path: "/teacher/recap",
+    title: "Rekap Kehadiran Kelas",
+    desc: "Grafik dan rincian kehadiran kelas yang diampu guru",
+    roleBadge: "Guru",
+    keywords: ["rekap guru", "kehadiran kelas", "laporan kelas"],
+  },
+  {
+    path: "/student/scan",
+    title: "Presensi Mandiri Scan QR",
+    desc: "Scan QR Code sesi presensi guru dan verifikasi wajah",
+    roleBadge: "Siswa",
+    keywords: ["scan absen", "scan qr siswa", "absen mandiri", "presensi saya", "cara absen"],
+  },
+  {
+    path: "/student/assignments",
+    title: "Tugas & Uji Lisan Siswa",
+    desc: "Lihat daftar tugas yang harus dikerjakan dan uji lisan AI",
+    roleBadge: "Siswa",
+    keywords: ["tugas saya", "kerjakan tugas", "uji lisan siswa", "kumpul tugas", "tenggat tugas"],
+  },
+  {
+    path: "/student/notebook",
+    title: "Notebook Modul & Catatan",
+    desc: "Akses materi pembelajaran dan catatan ringkas offline",
+    roleBadge: "Siswa",
+    keywords: ["notebook", "catatan", "materi siswa", "baca modul", "belajar offline"],
+  },
+  {
+    path: "/student/schedule",
+    title: "Jadwal Pelajaran Siswa",
+    desc: "Lihat susunan jam mata pelajaran kelasmu hari ini",
+    roleBadge: "Siswa",
+    keywords: ["jadwal saya", "jadwal siswa", "mata pelajaran hari ini"],
+  },
+  {
+    path: "/parent/attendance",
+    title: "Pantau Presensi Anak",
+    desc: "Status kedatangan dan kepulangan anak di sekolah real-time",
+    roleBadge: "Orang Tua",
+    keywords: ["pantau anak", "kehadiran anak", "presensi anak", "cek anak", "status anak"],
+  },
+  {
+    path: "/parent/history",
+    title: "Riwayat Presensi Bulanan",
+    desc: "Kalender riwayat kehadiran lengkap anak dalam satu semester",
+    roleBadge: "Orang Tua",
+    keywords: ["riwayat anak", "rekap anak", "kalender presensi anak"],
+  },
+  {
+    path: "/panduan",
+    title: "Panduan Pengguna Lengkap",
+    desc: "Dokumentasi fungsionalitas dan tutorial 4 peran Smart Learning",
+    roleBadge: "Panduan",
+    keywords: ["panduan", "dokumentasi", "tutorial", "cara pakai", "bantuan aplikasi"],
+  },
+];
+
+export function getSmartNavigationActions(content: string): SmartRoute[] {
+  const matchedRoutes: SmartRoute[] = [];
+  const addedPaths = new Set<string>();
+
+  // 1. Check for markdown links: [label](/path)
+  const linkRegex = /\[([^\]]+)\]\((\/[a-zA-Z0-9_\-\/]+)\)/g;
+  let match;
+  while ((match = linkRegex.exec(content)) !== null) {
+    const linkPath = match[2];
+    const linkLabel = match[1];
+    const foundRoute = SMART_ROUTES.find((r) => r.path === linkPath);
+    if (foundRoute && !addedPaths.has(foundRoute.path)) {
+      matchedRoutes.push(foundRoute);
+      addedPaths.add(foundRoute.path);
+    } else if (!addedPaths.has(linkPath)) {
+      matchedRoutes.push({
+        path: linkPath,
+        title: linkLabel.replace(/^(tombol|buka|navigasi|halaman)\s*:\s*/i, "").trim(),
+        desc: `Buka halaman ${linkPath}`,
+        roleBadge: linkPath.startsWith("/admin")
+          ? "Admin"
+          : linkPath.startsWith("/teacher")
+          ? "Guru"
+          : linkPath.startsWith("/student")
+          ? "Siswa"
+          : linkPath.startsWith("/parent")
+          ? "Orang Tua"
+          : "Navigasi",
+        keywords: [],
+      });
+      addedPaths.add(linkPath);
+    }
+  }
+
+  // 2. Check if content explicitly contains known route path
+  const lower = content.toLowerCase();
+  for (const route of SMART_ROUTES) {
+    if (addedPaths.has(route.path)) continue;
+    if (content.includes(route.path)) {
+      matchedRoutes.push(route);
+      addedPaths.add(route.path);
+      continue;
+    }
+    const hasKeyword = route.keywords.some((kw) => lower.includes(kw));
+    if (hasKeyword && matchedRoutes.length < 2) {
+      matchedRoutes.push(route);
+      addedPaths.add(route.path);
+    }
+  }
+
+  return matchedRoutes.slice(0, 3);
+}
 
 interface WorkspaceItem {
   id: string;
@@ -57,10 +300,11 @@ interface ChatMessage {
 }
 
 const QUICK_PROMPTS = [
+  "Bagaimana cara tambah guru baru?",
   "Cek siswa yang paling hadir dan paling aktif",
-  "Rekap kelas hari ini",
+  "Buka scanner presensi gerbang",
   "Cek siswa at-risk & sering alpa",
-  "guru yang jarang masuk",
+  "Cara buat tugas & uji lisan siswa",
   "Ide ice-breaking 3 menit",
 ];
 
@@ -73,6 +317,7 @@ const GUIDE_QUICK_PROMPTS = [
 ];
 
 export function HermesCopilotWidget() {
+  const router = useRouter();
   const pathname = usePathname();
   const isGuidePage = pathname === "/panduan";
   const activePrompts = isGuidePage ? GUIDE_QUICK_PROMPTS : QUICK_PROMPTS;
@@ -80,6 +325,16 @@ export function HermesCopilotWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
   const [awardedStudents, setAwardedStudents] = useState<Record<string, boolean>>({});
+  const [navToast, setNavToast] = useState<string | null>(null);
+
+  const handleNavigate = (path: string, label?: string) => {
+    setNavToast(label ? `Membuka ${label}...` : `Membuka halaman ${path}...`);
+    setTimeout(() => {
+      setNavToast(null);
+      setIsOpen(false);
+      router.push(path);
+    }, 250);
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -327,86 +582,114 @@ export function HermesCopilotWidget() {
     return content;
   };
 
-  const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+  const MarkdownRenderer: React.FC<{ content: string; onNavigate?: (path: string, label?: string) => void }> = ({ content, onNavigate }) => {
     return (
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          h1: ({ ...props }) => (
-            <h1 className="text-sm sm:text-base font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5" {...props} />
-          ),
-          h2: ({ ...props }) => (
-            <h2 className="text-[13px] sm:text-sm font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5" {...props} />
-          ),
-          h3: ({ ...props }) => (
-            <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 mt-2.5 mb-1 pb-1 border-b border-slate-100 flex items-center gap-1.5 tracking-tight" {...props} />
-          ),
-          p: ({ ...props }) => (
-            <p className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 my-1" {...props} />
-          ),
-          strong: ({ ...props }) => (
-            <strong className="font-semibold text-slate-900" {...props} />
-          ),
-          ul: ({ ...props }) => (
-            <ul className="my-1.5 space-y-1 pl-0.5 list-none" {...props} />
-          ),
-          ol: ({ ...props }) => (
-            <ol className="my-1.5 space-y-1 pl-4 list-decimal text-[11.5px] text-slate-700" {...props} />
-          ),
-          li: ({ children, ...props }) => (
-            <li className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 flex items-start gap-1.5" {...props}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-              <div className="flex-1">{children}</div>
-            </li>
-          ),
-          blockquote: ({ ...props }) => (
-            <blockquote className="border-l-3 border-blue-500 bg-blue-50/60 rounded-r-xl px-3 py-1.5 my-2 text-[11.5px] text-slate-700 font-medium italic" {...props} />
-          ),
-          code: ({ className, children, ...props }: any) => {
-            const isInline = !className?.includes("language-");
-            if (isInline) {
+      <div className="w-full min-w-0 max-w-full overflow-hidden break-words [overflow-wrap:anywhere] text-left space-y-1">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ ...props }) => (
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5 break-words [overflow-wrap:anywhere]" {...props} />
+            ),
+            h2: ({ ...props }) => (
+              <h2 className="text-[13px] sm:text-sm font-bold text-slate-900 mt-2.5 mb-1.5 flex items-center gap-1.5 break-words [overflow-wrap:anywhere]" {...props} />
+            ),
+            h3: ({ ...props }) => (
+              <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 mt-2.5 mb-1 pb-1 border-b border-slate-100 flex items-center gap-1.5 tracking-tight break-words [overflow-wrap:anywhere]" {...props} />
+            ),
+            p: ({ ...props }) => (
+              <p className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 my-1 break-words [overflow-wrap:anywhere]" {...props} />
+            ),
+            strong: ({ ...props }) => (
+              <strong className="font-semibold text-slate-900 break-words" {...props} />
+            ),
+            ul: ({ ...props }) => (
+              <ul className="my-1.5 space-y-1 pl-0.5 list-none min-w-0 max-w-full" {...props} />
+            ),
+            ol: ({ ...props }) => (
+              <ol className="my-1.5 space-y-1 pl-4 list-decimal text-[11.5px] text-slate-700 min-w-0 max-w-full" {...props} />
+            ),
+            li: ({ children, ...props }) => (
+              <li className="text-[11.5px] sm:text-xs leading-relaxed text-slate-700 flex items-start gap-1.5 min-w-0 break-words [overflow-wrap:anywhere]" {...props}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                <div className="flex-1 min-w-0 break-words [overflow-wrap:anywhere]">{children}</div>
+              </li>
+            ),
+            blockquote: ({ ...props }) => (
+              <blockquote className="border-l-3 border-blue-500 bg-blue-50/60 rounded-r-xl px-3 py-1.5 my-2 text-[11.5px] text-slate-700 font-medium italic break-words [overflow-wrap:anywhere]" {...props} />
+            ),
+            a: ({ href, children, ...props }: any) => {
+              const isInternal = href?.startsWith("/");
+              if (isInternal) {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate(href, typeof children === "string" ? children : undefined)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 my-1 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-600 hover:to-indigo-600 text-blue-700 hover:text-white border border-blue-200/90 font-semibold text-xs transition-all shadow-2xs active:scale-95 group text-left cursor-pointer"
+                  >
+                    <span>{children}</span>
+                    <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                  </button>
+                );
+              }
               return (
-                <code className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-blue-700 font-semibold border border-slate-200/60" {...props}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline hover:text-blue-700 font-medium break-all"
+                  {...props}
+                >
                   {children}
-                </code>
+                </a>
               );
-            }
-            return (
-              <div className="my-2 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 text-slate-100 text-[10.5px] shadow-sm">
-                <pre className="p-3 overflow-x-auto font-mono">
-                  <code {...props}>{children}</code>
-                </pre>
+            },
+            code: ({ className, children, ...props }: any) => {
+              const isInline = !className?.includes("language-");
+              if (isInline) {
+                return (
+                  <code className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-blue-700 font-semibold border border-slate-200/60 break-all whitespace-normal inline-block max-w-full" {...props}>
+                    {children}
+                  </code>
+                );
+              }
+              return (
+                <div className="my-2 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 text-slate-100 text-[10.5px] shadow-sm max-w-full">
+                  <pre className="p-3 overflow-x-auto font-mono max-w-full scrollbar-thin scrollbar-thumb-slate-700">
+                    <code {...props}>{children}</code>
+                  </pre>
+                </div>
+              );
+            },
+            table: ({ ...props }) => (
+              <div className="my-2.5 w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs">
+                <div className="overflow-x-auto max-w-full scrollbar-thin scrollbar-thumb-slate-200">
+                  <table className="w-full min-w-full border-collapse text-left text-[11px]" {...props} />
+                </div>
               </div>
-            );
-          },
-          table: ({ ...props }) => (
-            <div className="my-2.5 w-full overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs">
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
-                <table className="w-full border-collapse text-left text-[11px]" {...props} />
-              </div>
-            </div>
-          ),
-          thead: ({ ...props }) => (
-            <thead className="bg-slate-50/90 text-slate-700 border-b border-slate-200/90 font-semibold tracking-wide text-[10px] uppercase" {...props} />
-          ),
-          tbody: ({ ...props }) => (
-            <tbody className="divide-y divide-slate-100 text-slate-700" {...props} />
-          ),
-          tr: ({ ...props }) => (
-            <tr className="transition-colors hover:bg-blue-50/40 even:bg-slate-50/40" {...props} />
-          ),
-          th: ({ ...props }) => (
-            <th className="px-2.5 py-2 whitespace-nowrap font-semibold text-slate-800 tracking-tight" {...props} />
-          ),
-          td: ({ children, ...props }) => (
-            <td className="px-2.5 py-2 text-slate-700 whitespace-nowrap font-medium" {...props}>
-              {renderTableCellContent(children)}
-            </td>
-          ),
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+            ),
+            thead: ({ ...props }) => (
+              <thead className="bg-slate-50/90 text-slate-700 border-b border-slate-200/90 font-semibold tracking-wide text-[10px] uppercase" {...props} />
+            ),
+            tbody: ({ ...props }) => (
+              <tbody className="divide-y divide-slate-100 text-slate-700" {...props} />
+            ),
+            tr: ({ ...props }) => (
+              <tr className="transition-colors hover:bg-blue-50/40 even:bg-slate-50/40" {...props} />
+            ),
+            th: ({ ...props }) => (
+              <th className="px-2.5 py-2 font-semibold text-slate-800 tracking-tight text-[10.5px] bg-slate-50/90 border-b border-slate-200/90" {...props} />
+            ),
+            td: ({ children, ...props }) => (
+              <td className="px-2.5 py-2 text-slate-700 font-medium text-[10.5px] break-words border-b border-slate-100 last:border-b-0" {...props}>
+                {renderTableCellContent(children)}
+              </td>
+            ),
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
     );
   };
 
@@ -495,10 +778,18 @@ export function HermesCopilotWidget() {
               <button
                 type="button"
                 onClick={() => setToastNotice(null)}
-                className="text-zinc-400 hover:text-white p-0.5 rounded transition-colors"
+                className="text-zinc-400 hover:text-white p-0.5 rounded transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            </div>
+          )}
+
+          {/* Navigation Route Toast */}
+          {navToast && (
+            <div className="absolute top-16 left-4 right-4 z-50 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+              <Compass className="w-4 h-4 text-blue-200 animate-spin" />
+              <span className="truncate">{navToast}</span>
             </div>
           )}
 
@@ -509,7 +800,7 @@ export function HermesCopilotWidget() {
                 key={prompt}
                 onClick={() => handleSendMessage(prompt)}
                 disabled={isLoading}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3 py-1 font-medium text-slate-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs whitespace-nowrap"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3 py-1 font-medium text-slate-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 shadow-2xs whitespace-nowrap cursor-pointer"
               >
                 <Bot className="h-3 w-3 text-blue-500 shrink-0" />
                 <span>{prompt}</span>
@@ -520,13 +811,13 @@ export function HermesCopilotWidget() {
           {/* Chat Messages Stream with Generative UI Workspaces */}
           <div
             ref={chatContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-slate-50/50 text-xs sm:text-[13px] overscroll-contain"
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 space-y-4 bg-slate-50/50 text-xs sm:text-[13px] overscroll-contain max-w-full"
           >
             {messages.map((m) => {
               const isUser = m.role === "user";
               return (
-                <div key={m.id} className="space-y-2.5">
-                  <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
+                <div key={m.id} className="space-y-2.5 w-full min-w-0 max-w-full overflow-hidden">
+                  <div className={`flex gap-2.5 w-full min-w-0 max-w-full ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isUser && (
                       <div className="relative flex h-7 w-7 shrink-0 items-center justify-center mt-0.5 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-0.5 border border-blue-200/60 shadow-2xs">
                         <Mascot mood="senang" size={24} interactive={false} showBadge={false} />
@@ -534,21 +825,65 @@ export function HermesCopilotWidget() {
                     )}
 
                     <div
-                      className={`leading-relaxed transition-all duration-200 ${
+                      className={`leading-relaxed transition-all duration-200 min-w-0 break-words [overflow-wrap:anywhere] ${
                         isUser
-                          ? "max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tr-xs px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs"
-                          : "max-w-[96%] sm:max-w-[88%] w-full sm:w-auto rounded-2xl rounded-tl-xs px-3.5 sm:px-4 py-3 bg-white text-slate-800 border border-slate-200/90 shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
+                          ? "max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tr-xs px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs ml-auto"
+                          : "flex-1 min-w-0 max-w-full rounded-2xl rounded-tl-xs px-3.5 sm:px-4 py-3 bg-white text-slate-800 border border-slate-200/90 shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
                       }`}
                     >
                       {isUser ? (
-                        <div className="text-[12px] sm:text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans">
+                        <div className="text-[12px] sm:text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans break-words [overflow-wrap:anywhere]">
                           {m.content}
                         </div>
                       ) : (
-                        <div className="font-sans">
-                          <MarkdownRenderer content={m.content} />
+                        <div className="font-sans min-w-0 max-w-full overflow-hidden break-words [overflow-wrap:anywhere]">
+                          <MarkdownRenderer content={m.content} onNavigate={handleNavigate} />
                         </div>
                       )}
+
+                      {/* Smart Navigation Action Card for Assistant Message */}
+                      {!isUser && (() => {
+                        const navActions = getSmartNavigationActions(m.content);
+                        if (navActions.length === 0) return null;
+                        return (
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-2 min-w-0 max-w-full">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                              <Compass className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+                              <span>Navigasi Cepat Halaman</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-1.5">
+                              {navActions.map((action) => (
+                                <div
+                                  key={action.path}
+                                  className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50/50 border border-blue-200/70 hover:border-blue-400 transition-all shadow-2xs group"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <span className="px-1.5 py-0.2 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold shrink-0">
+                                        {action.roleBadge}
+                                      </span>
+                                      <span className="font-semibold text-slate-800 text-[11px] sm:text-xs truncate">
+                                        {action.title}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 truncate">
+                                      {action.desc}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleNavigate(action.path, action.title)}
+                                    className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white active:scale-95 text-[11px] font-semibold shadow-xs transition-all cursor-pointer"
+                                  >
+                                    <span>Buka</span>
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <div
                         className={`mt-2 flex items-center justify-between gap-2 border-t pt-1.5 ${
@@ -774,7 +1109,7 @@ export function HermesCopilotWidget() {
           </div>
 
           {/* Input Bar */}
-          <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md px-3.5 pt-2 pb-3.5 sm:pb-3 shrink-0">
+          <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md px-3.5 pt-2.5 pb-[max(1.25rem,env(safe-area-inset-bottom,20px))] sm:pb-3.5 shrink-0">
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-2xs">
               <input
                 ref={inputRef}

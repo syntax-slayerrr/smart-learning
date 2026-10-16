@@ -96,19 +96,52 @@ D. ADMINISTRATOR:
 - iOS / iPhone (Safari): Buka tautan di Safari -> ketuk tombol Share (ikon kotak panah ke atas) -> gulir ke bawah -> pilih 'Add to Home Screen' (Tambahkan ke Layar Utama).
 - Izin Perangkat: Pastikan izin Akses Kamera dan Izin Notifikasi disetujui agar pemindaian QR dan notifikasi instan berfungsi optimal.
 
-PEDOMAN FORMAT JAWABAN:
+PEDOMAN FORMAT JAWABAN & ATURAN NAVIGASI PINTAR (SMART NAVIGATION):
 - Gunakan bahasa Indonesia yang ramah, terstruktur, dan jelas.
 - Gunakan Markdown: **bold** untuk poin penting, bullet/nomor untuk tahapan alur, serta tips praktis.
-- Jawab secara tuntas dan langsung ke inti pertanyaan.`;
+- DAFTAR HALAMAN & RUTE RESMI SISTEM:
+  * Admin - Tambah / Kelola Guru: /admin/teachers
+  * Admin - Tambah / Kelola Siswa: /admin/students
+  * Admin - Kelola Kelas & Rombel: /admin/classes
+  * Admin - Jadwal Pelajaran: /admin/schedules
+  * Admin - Rekap Presensi Siswa: /admin/attendance
+  * Admin - Presensi Guru: /admin/attendance/teachers
+  * Admin - Scanner Gerbang QR: /admin/scanner
+  * Admin - Kamera & Telemetri Kelas: /admin/camera-monitor
+  * Admin - Laporan Resmi & Ekspor PDF: /admin/reports
+  * Admin - Broadcast Notifikasi: /admin/notifications
+  * Admin - Data Orang Tua / Wali: /admin/parents
+  * Admin - Pengaturan Sekolah: /admin/settings
+  * Guru - Buka Sesi Presensi QR: /teacher/attendance
+  * Guru - Scanner Presensi Siswa: /teacher/scan
+  * Guru - Kelola Tugas & Uji Lisan: /teacher/assignments
+  * Guru - Unggah Bahan & Modul Ajar: /teacher/materials
+  * Guru - Telemetri Keterlibatan Siswa: /teacher/camera-monitor
+  * Guru - Rekap Kehadiran Kelas: /teacher/recap
+  * Guru - Jadwal Mengajar: /teacher/schedule
+  * Siswa - Scan Presensi QR Mandiri: /student/scan
+  * Siswa - Kerjakan Tugas & Uji Lisan: /student/assignments
+  * Siswa - Notebook & Modul Offline: /student/notebook
+  * Siswa - Jadwal Pelajaran Siswa: /student/schedule
+  * Siswa - Riwayat Presensi & Nilai: /student/history
+  * Orang Tua - Pantau Presensi Anak: /parent/attendance
+  * Orang Tua - Riwayat Kehadiran Anak: /parent/history
+  * Panduan Lengkap: /panduan
+- ATURAN NAVIGASI WAJIB:
+  Setiap kali pengguna bertanya cara melakukan sesuatu, lokasi menu, atau cara mengakses fitur (contoh: cara tambah guru, tambah siswa, buat jadwal, buka presensi QR, buat tugas, ekspor laporan, dsb):
+  1. Berikan langkah-langkah praktisnya secara ringkas dan lugas.
+  2. SELALU sertakan tautan navigasi langsung di akhir jawaban dengan format Markdown:
+     [Buka Halaman Kelola Guru](/admin/teachers)
+  Sistem Smart AI akan otomatis mengubah tautan ini menjadi tombol aksi navigasi cepat yang langsung mengarahkan pengguna ke halaman tersebut saat diklik!`;
 
 function isGuideIntent(text: string): boolean {
   const t = text.toLowerCase();
   const guideKeywords = [
-    "panduan", "fitur", "aplikasi", "cara kerja", "cara pakai", "bagaimana cara",
-    "presensi qr", "scan qr", "biometrik", "titip absen", "uji lisan", "tugas",
+    "panduan", "fitur", "aplikasi", "cara kerja", "cara pakai", "bagaimana cara", "gimana cara", "cara tambah",
+    "buka menu", "halaman", "presensi qr", "scan qr", "biometrik", "titip absen", "uji lisan", "tugas",
     "modul", "materi", "notebook", "orang tua", "wali", "siswa", "guru",
     "admin", "pwa", "install", "izin kamera", "notifikasi", "arsitektur", "socratic", "tutor",
-    "apa itu", "fungsi aplikasi", "bantuan", "jelaskan", "dokumentasi", "kenapa"
+    "apa itu", "fungsi aplikasi", "bantuan", "jelaskan", "dokumentasi", "kenapa", "jadwal", "laporan", "scanner"
   ];
   return guideKeywords.some((kw) => t.includes(kw));
 }
@@ -466,7 +499,10 @@ STANDAR JAWABAN (ANTI-ASAL JAWAB & TERARAH):
 3. GAYA KOMUNIKASI:
    - Gunakan Bahasa Indonesia yang luwes, santun, dan profesional.
    - Tanggap terhadap gaya bahasa pengguna (formal, kasual, atau instruksi singkat) tanpa kehilangan ketelitian akademis.
-   - Gunakan formatting Markdown bersih (bold untuk poin kunci, bullet list, hindari wall-of-text).`;
+   - Gunakan formatting Markdown bersih (bold untuk poin kunci, bullet list, hindari wall-of-text).
+4. NAVIGASI PINTAR (SMART NAVIGATION):
+   - Jika pengguna menanyakan cara akses halaman, tambah data (guru/siswa/jadwal), ekspor laporan, atau buka scanner, sertakan tautan Markdown langsung di akhir:
+     Contoh: [Buka Kelola Guru](/admin/teachers), [Buka Kelola Siswa](/admin/students), [Buka Presensi QR](/teacher/attendance), [Buka Rekap Presensi](/admin/attendance), [Buka Scanner Gerbang](/admin/scanner), [Buka Laporan Resmi](/admin/reports), [Buka Jadwal](/admin/schedules).`;
 
       const aiRes = await call9Router({
         model: ROUTER_MODELS.GEMINI_3_FLASH,
