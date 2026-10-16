@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useMascot } from "@/components/mascot/mascot-context";
+import { Mascot } from "@/components/Mascot";
 import {
   X,
   Send,
@@ -62,7 +64,7 @@ const QUICK_PROMPTS = [
 ];
 
 export function HermesCopilotWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isCopilotOpen: isOpen, setIsCopilotOpen: setIsOpen, mood } = useMascot();
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
   const [awardedStudents, setAwardedStudents] = useState<Record<string, boolean>>({});
@@ -380,43 +382,6 @@ export function HermesCopilotWidget() {
 
   return (
     <>
-      {/* Floating Action Button - Smart AI */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-26 sm:bottom-24 right-3.5 sm:right-6 lg:bottom-6 lg:right-6 z-40 flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-xl p-2 pr-3.5 sm:pr-4 text-slate-800 shadow-[0_12px_36px_rgba(15,23,42,0.14)] border border-slate-200/90 ring-1 ring-black/[0.04] hover:border-blue-400 hover:shadow-[0_18px_46px_rgba(59,130,246,0.24)] active:scale-[0.98] transition-all duration-300 group"
-          title="Buka Smart AI"
-        >
-          {/* Wrapped Character Icon */}
-          <div className="relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center shrink-0 rounded-xl bg-gradient-to-tr from-blue-500/15 via-sky-400/20 to-indigo-500/15 p-1.5 border border-blue-200/80 shadow-inner group-hover:scale-105 transition-transform duration-300">
-            <picture className="h-full w-full flex items-center justify-center">
-              <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
-              <img
-                src="/assets/hermes-robot.webp"
-                alt="Smart AI"
-                className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.3)] pointer-events-none select-none"
-                loading="eager"
-              />
-            </picture>
-            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-              <span className="inline-flex h-full w-full rounded-full bg-emerald-500 ring-2 ring-white" />
-            </span>
-          </div>
-
-          <div className="flex flex-col items-start pr-1 text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-                Smart AI
-              </span>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
-            <span className="text-[10px] sm:text-[10.5px] font-medium text-slate-500">
-              Asisten Cerdas
-            </span>
-          </div>
-        </button>
-      )}
-
       {/* Mobile Backdrop Overlay */}
       {isOpen && (
         <div
@@ -433,8 +398,8 @@ export function HermesCopilotWidget() {
             "inset-x-0 bottom-0 h-[88dvh] max-h-[88dvh] rounded-t-[28px] border-t border-slate-200/90 shadow-[0_-10px_40px_rgba(15,23,42,0.18)] slide-in-from-bottom-full sm:inset-x-auto sm:bottom-6 sm:right-6 sm:rounded-3xl sm:border sm:border-slate-200/90 sm:shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:slide-in-from-bottom-4"
           } ${
             isExpanded
-              ? "sm:h-[680px] sm:w-[580px] sm:max-w-[calc(100vw-32px)] sm:max-h-[calc(100vh-5rem)]"
-              : "sm:h-[560px] sm:w-[420px] sm:max-w-[calc(100vw-32px)] sm:max-h-[calc(100vh-5rem)]"
+              ? "sm:w-[720px] sm:h-[680px]"
+              : "sm:w-[480px] sm:h-[580px]"
           }`}
         >
           {/* iOS Grab Handle (Mobile Only) */}
@@ -443,16 +408,8 @@ export function HermesCopilotWidget() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 bg-white/95 backdrop-blur-md px-4 py-2.5 sm:px-5 sm:py-3 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500/15 via-sky-400/20 to-indigo-500/15 p-1 border border-blue-200/80 shadow-2xs">
-                <picture className="h-full w-full flex items-center justify-center">
-                  <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
-                  <img
-                    src="/assets/hermes-robot.webp"
-                    alt="Smart AI"
-                    className="h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(37,99,235,0.25)] pointer-events-none select-none"
-                    loading="eager"
-                  />
-                </picture>
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-0.5 border border-blue-200/80 shadow-2xs">
+                <Mascot mood={isLoading ? "fokus" : mood || "senang"} size={36} interactive={false} showBadge={false} />
                 <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </span>
@@ -542,15 +499,7 @@ export function HermesCopilotWidget() {
                   <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
                     {!isUser && (
                       <div className="relative flex h-7 w-7 shrink-0 items-center justify-center mt-0.5 rounded-xl bg-gradient-to-tr from-blue-500/10 via-sky-400/15 to-indigo-500/10 p-0.5 border border-blue-200/60 shadow-2xs">
-                        <picture className="h-full w-full flex items-center justify-center">
-                          <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
-                          <img
-                            src="/assets/hermes-robot.webp"
-                            alt="Smart AI"
-                            className="h-full w-full object-contain pointer-events-none select-none"
-                            loading="eager"
-                          />
-                        </picture>
+                        <Mascot mood="senang" size={24} interactive={false} showBadge={false} />
                       </div>
                     )}
 
@@ -782,15 +731,7 @@ export function HermesCopilotWidget() {
             {isLoading && (
               <div className="flex gap-2.5 items-center text-xs text-slate-500">
                 <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 p-0.5 border border-blue-200/50 shadow-2xs">
-                  <picture className="h-full w-full flex items-center justify-center">
-                    <source srcSet="/assets/hermes-robot.webp" type="image/webp" />
-                    <img
-                      src="/assets/hermes-robot.webp"
-                      alt="Smart AI Loading"
-                      className="h-full w-full object-contain pointer-events-none select-none animate-pulse"
-                      loading="eager"
-                    />
-                  </picture>
+                  <Mascot mood="fokus" size={24} interactive={false} showBadge={false} />
                 </div>
                 <div className="flex items-center gap-1.5 rounded-xl bg-white border border-slate-200/90 px-3.5 py-2 text-slate-600 shadow-2xs font-mono text-[11px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />

@@ -130,8 +130,9 @@ const CSS = `
 .mm-wave{transform-origin:132px 150px;animation:mm-w .8s ease-in-out infinite alternate}
 .mm-fx{transform-box:fill-box;transform-origin:center;animation:mm-x 1.6s ease-in-out infinite}
 .mm-still,.mm-still *{animation:none!important}
-.mm-say{position:absolute;right:105%;top:50%;transform:translateY(-50%);margin-right:8px;white-space:nowrap;padding:4px 9px;border-radius:10px;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;font:700 11px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 4px 12px rgba(37,99,235,0.12);z-index:20;pointer-events:auto}
-.mm-say:after{content:"";position:absolute;left:100%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#fff;border:solid #bfdbfe;border-width:1px 1px 0 0;transform:rotate(45deg)}
+.mm-say{position:absolute;right:105%;top:50%;transform:translateY(-50%);margin-right:10px;max-width:210px;white-space:normal;padding:6px 11px;border-radius:12px;background:#fff;color:#1e40af;border:1px solid #bfdbfe;font:600 11px/1.35 system-ui,-apple-system,sans-serif;text-align:left;box-shadow:0 8px 24px rgba(37,99,235,0.14),0 2px 6px rgba(0,0,0,0.04);z-index:50;pointer-events:auto;animation:mm-bubble .25s cubic-bezier(.16,1,.3,1)}
+.mm-say:after{content:"";position:absolute;left:100%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;background:#fff;border:solid #bfdbfe;border-width:1px 1px 0 0;transform:rotate(45deg)}
+@keyframes mm-bubble{from{opacity:0;transform:translateY(-50%) scale(.85)}to{opacity:1;transform:translateY(-50%) scale(1)}}
 .mm-interactive{cursor:pointer;transition:transform .2s cubic-bezier(0.16,1,0.3,1),filter .2s ease;user-select:none;-webkit-tap-highlight-color:transparent}
 .mm-interactive:hover{transform:scale(1.08);filter:drop-shadow(0 6px 16px rgba(59,130,246,0.25))}
 .mm-interactive:active{transform:scale(0.92)}
