@@ -59,17 +59,17 @@ const ROLES_DATA: Record<
     badgeBg: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-900/40",
     guides: [
       {
-        title: "Presensi Mandiri via Scan QR Sesi",
-        badge: "Fitur Presensi",
+        title: "Presensi Cepat via Kartu ID Pelajar",
+        badge: "Fitur Presensi Kartu",
         icon: QrCode,
-        overview: "Lakukan presensi kelas setiap jam pelajaran dimulai saat guru membuka sesi.",
+        overview: "Presensi masuk sekolah dan kelas menggunakan Kartu Pelajar fisik ber-QR resmi.",
         steps: [
-          "Buka aplikasi Smart Learning di HP Anda.",
-          "Pilih menu 'Scan QR' pada navigasi bawah.",
-          "Arahkan kamera ke layar proyektor / HP guru yang menampilkan QR Sesi Dinamis.",
-          "Sistem memverifikasi identitas Anda dan langsung mencatat kehadiran dengan status Hadir Tepat Waktu.",
+          "Siapkan Kartu Pelajar fisik ber-QR terenkripsi Anda.",
+          "Arahkan atau tap kode QR kartu ke Terminal Scanner Gerbang (/admin/scanner) saat tiba di sekolah.",
+          "Guru kelas juga dapat memindai kartu Anda menggunakan scanner perangkat guru (/teacher/scan).",
+          "Sistem seketika mencatat status Hadir dan mengirimkan notifikasi real-time ke akun orang tua Anda.",
         ],
-        tips: "Pastikan izin kamera browser aktif. Kode QR guru berganti berkala untuk mencegah kecurangan titip absen.",
+        tips: "QR dinamis proyektor sudah tidak digunakan. Cukup bawa kartu pelajar atau manfaatkan Face ID kamera kelas.",
       },
       {
         title: "Pendaftaran & Verifikasi Face ID Biometrik",

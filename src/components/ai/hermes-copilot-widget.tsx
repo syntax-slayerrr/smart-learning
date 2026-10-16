@@ -125,10 +125,10 @@ export const SMART_ROUTES: SmartRoute[] = [
   },
   {
     path: "/teacher/attendance",
-    title: "Buka Sesi Presensi QR",
-    desc: "Generate QR Code dinamis untuk presensi siswa di kelas",
+    title: "Kelola Presensi Sesi Kelas",
+    desc: "Buka sesi pelajaran, konfirmasi kehadiran draf, dan absen manual",
     roleBadge: "Guru",
-    keywords: ["buka presensi", "sesi presensi", "generate qr", "qr presensi", "mulai absen"],
+    keywords: ["buka presensi", "sesi presensi", "absen manual", "daftar hadir", "mulai absen", "presensi kelas"],
   },
   {
     path: "/teacher/scan",

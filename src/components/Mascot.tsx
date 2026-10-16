@@ -155,10 +155,10 @@ const Arm = ({ sx, sy, hx, hy, cls = "" }: { sx: number; sy: number; hx: number;
 
 export const SAY: Record<string, string> = {
   senang: "Hore, kamu datang!", wink: "Rahasia kita ya.", sedih: "Yah, kok gagal ya?",
-  marah: "Hmph! Jangan diulang lagi.", kaget: "Hah?! Serius?!", bingung: "Hmm, maksudnya gimana ya?",
+  marah: "Hmph! Jangan diulang lagi.", kaget: "Hah?! Serius?!", bingung: "Bingung navigasi? Tanya Smart AI aja!",
   tertawa: "Wkwkwk, lucu banget!", fokus: "Sebentar, aku lagi fokus.", lelah: "Istirahat dulu, yuk.",
   cinta: "Makasih, aku sayang kamu!", termotivasi: "Kamu pasti bisa!", capek: "Zzz… baterai habis.",
-  penasaran: "Coba kuperiksa dulu…", salam: "Halo, apa kabar?", semangat: "Ayo gaskeun!",
+  penasaran: "Bingung navigasi? Tanya Smart AI aja!", salam: "Halo, apa kabar?", semangat: "Ayo gaskeun!",
 };
 
 export const MOOD_KEYS = Object.keys(MOODS) as Array<keyof typeof MOODS>;

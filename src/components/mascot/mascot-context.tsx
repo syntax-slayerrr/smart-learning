@@ -47,19 +47,19 @@ const ROUTE_GREETINGS: Record<string, { mood: MascotMood; say: string }> = {
   "/student/attendance": { mood: "fokus", say: "Scan presensi wajah aktif." },
   "/student/notebook": { mood: "fokus", say: "Ruang Catatan Pintar aktif!" },
   "/parent": { mood: "cinta", say: "Pantau tumbuh kembang ananda tercinta." },
-  "/panduan": { mood: "penasaran", say: "Ada materi yang ingin dipelajari?" },
+  "/panduan": { mood: "penasaran", say: "Bingung navigasi? Tanya Smart AI aja!" },
   "/mascot": { mood: "tertawa", say: "Halo! Ini galeri 15 karakterku!" },
 };
 
 const DYNAMIC_IDLE_MESSAGES: Array<{ mood: MascotMood; say: string }> = [
+  { mood: "penasaran", say: "Bingung navigasi? Tanya Smart AI aja!" },
+  { mood: "wink", say: "Bingung navigasi? Tanya Smart AI aja!" },
   { mood: "semangat", say: "Tetap fokus dan konsisten hari ini!" },
-  { mood: "wink", say: "Butuh bantuan analitik? Klik aku ya!" },
   { mood: "fokus", say: "AI Vision siap memantau presensi kelas." },
   { mood: "senang", say: "Belajar lebih asyik bersama Smart Learning!" },
   { mood: "termotivasi", say: "Setiap progres kecil adalah kemenangan." },
-  { mood: "penasaran", say: "Sudah cek pembaharuan data terbaru?" },
+  { mood: "penasaran", say: "Bingung navigasi? Tanya Smart AI aja!" },
   { mood: "cinta", say: "Jaga kesehatan dan jangan lupa istirahat!" },
-  { mood: "termotivasi", say: "Hebat! Kamu terus melangkah maju." },
   { mood: "salam", say: "Smart Learning siap mendampingi belajarmu." },
 ];
 

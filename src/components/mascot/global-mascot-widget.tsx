@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Mascot } from "@/components/Mascot";
 import { useMascot } from "./mascot-context";
@@ -17,14 +17,23 @@ export function GlobalMascotWidget() {
     cycleNextMood,
   } = useMascot();
 
+  const isGuidePage = pathname === "/panduan";
+  const isCopilotEligible = pathname.startsWith("/admin") || pathname.startsWith("/teacher") || isGuidePage;
+
+  // Sambutan edukatif navigasi pintar maskot
+  useEffect(() => {
+    if (!isVisible || pathname === "/login" || pathname === "/mascot") return;
+    const timer = setTimeout(() => {
+      triggerReaction("penasaran", "Bingung navigasi? Tanya Smart AI aja!", 4500);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [pathname, isVisible, triggerReaction]);
+
   // Sembunyikan jika tidak visible, di halaman login, di galeri maskot,
   // atau saat Smart AI Copilot drawer sedang terbuka (agar tidak bertumpuk/bertabrakan)
   if (!isVisible || pathname === "/login" || pathname === "/mascot" || isCopilotOpen) {
     return null;
   }
-
-  const isGuidePage = pathname === "/panduan";
-  const isCopilotEligible = pathname.startsWith("/admin") || pathname.startsWith("/teacher") || isGuidePage;
 
   const handleMascotClick = () => {
     if (isCopilotEligible) {
@@ -40,12 +49,12 @@ export function GlobalMascotWidget() {
       mood: "semangat" | "senang" | "wink" | "termotivasi" | "cinta" | "penasaran" | "tertawa" | "fokus";
       text: string;
     }> = [
+      { mood: "penasaran", text: "Bingung navigasi? Tanya Smart AI aja!" },
+      { mood: "wink", text: "Bingung navigasi? Tanya Smart AI aja!" },
       { mood: "semangat", text: "Ayo fokus dan semangat!" },
       { mood: "senang", text: "Hari yang menyenangkan untuk belajar!" },
-      { mood: "wink", text: "Aku siap menemanimu belajar!" },
       { mood: "termotivasi", text: "Kerja bagus, teruskan!" },
       { mood: "cinta", text: "Tetap jaga kesehatan dan terhidrasi ya!" },
-      { mood: "penasaran", text: "Ada materi atau tugas baru hari ini?" },
       { mood: "fokus", text: "Semua sistem berjalan optimal 100%!" },
       { mood: "tertawa", text: "Haha! Selalu asyik belajar bersama!" },
     ];
