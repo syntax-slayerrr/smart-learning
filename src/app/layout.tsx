@@ -18,6 +18,7 @@ import { AmbientBackground } from "@/components/layout/ambient-background";
 import { PwaLaunchSplash } from "@/components/brand/pwa-launch-splash";
 import { MascotProvider } from "@/components/mascot/mascot-context";
 import { GlobalMascotWidget } from "@/components/mascot/global-mascot-widget";
+import { HermesCopilotWidget } from "@/components/ai/hermes-copilot-widget";
 import { SCHOOL_NAME } from "@/lib/constants";
 import "./globals.css";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
           </Suspense>
           {children}
           <GlobalMascotWidget />
+          <HermesCopilotWidget />
         </MascotProvider>
         <script
           dangerouslySetInnerHTML={{

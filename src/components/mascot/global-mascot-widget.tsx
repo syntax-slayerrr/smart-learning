@@ -23,11 +23,12 @@ export function GlobalMascotWidget() {
     return null;
   }
 
-  const isCopilotEligible = pathname.startsWith("/admin") || pathname.startsWith("/teacher");
+  const isGuidePage = pathname === "/panduan";
+  const isCopilotEligible = pathname.startsWith("/admin") || pathname.startsWith("/teacher") || isGuidePage;
 
   const handleMascotClick = () => {
     if (isCopilotEligible) {
-      triggerReaction("senang", "Smart AI siap membantu!", 3000);
+      triggerReaction("senang", isGuidePage ? "Smart AI Panduan siap!" : "Smart AI siap membantu!", 3000);
       setIsCopilotOpen(true);
     } else {
       handlePoke();
@@ -61,13 +62,13 @@ export function GlobalMascotWidget() {
       <div
         onClick={handleMascotClick}
         className="pointer-events-auto cursor-pointer mb-1.5 flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-md px-2.5 py-0.5 border border-blue-200/80 shadow-[0_4px_14px_rgba(37,99,235,0.12)] text-[10.5px] font-bold text-slate-800 hover:border-blue-400 hover:text-blue-600 transition-all active:scale-95 group"
-        title={isCopilotEligible ? "Buka Smart AI Copilot" : "Sahabat Belajar"}
+        title={isCopilotEligible ? (isGuidePage ? "Tanya Smart AI Panduan Aplikasi" : "Buka Smart AI Copilot") : "Sahabat Belajar"}
       >
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
         </span>
-        <span>{isCopilotEligible ? "Smart AI" : "Sahabat Belajar"}</span>
+        <span>{isCopilotEligible ? (isGuidePage ? "Tanya AI Panduan" : "Smart AI") : "Sahabat Belajar"}</span>
       </div>
 
       {/* Maskot Karakter Utama */}

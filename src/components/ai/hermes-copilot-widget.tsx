@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useMascot } from "@/components/mascot/mascot-context";
@@ -63,7 +64,18 @@ const QUICK_PROMPTS = [
   "Ide ice-breaking 3 menit",
 ];
 
+const GUIDE_QUICK_PROMPTS = [
+  "Jelaskan alur presensi QR & Biometrik",
+  "Apa itu Uji Lisan AI dan cara kerjanya?",
+  "Bagaimana cara Orang Tua memantau siswa?",
+  "Cara Guru mengelola tugas & modul ajar",
+  "Panduan instalasi aplikasi PWA di HP",
+];
+
 export function HermesCopilotWidget() {
+  const pathname = usePathname();
+  const isGuidePage = pathname === "/panduan";
+  const activePrompts = isGuidePage ? GUIDE_QUICK_PROMPTS : QUICK_PROMPTS;
   const { isCopilotOpen: isOpen, setIsCopilotOpen: setIsOpen, mood } = useMascot();
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedDraftId, setCopiedDraftId] = useState<string | null>(null);
@@ -78,6 +90,20 @@ export function HermesCopilotWidget() {
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
+
+  useEffect(() => {
+    if (isGuidePage) {
+      setMessages([
+        {
+          id: "welcome-guide",
+          role: "assistant",
+          content:
+            "Halo! Saya **Smart AI Panduan Aplikasi**. Saya siap menjelaskan seluruh fitur, arsitektur, dan cara penggunaan sistem Smart Learning untuk **Siswa, Guru, Orang Tua, dan Administrator**. Silakan klik topik rekomendasi di atas atau tanyakan apa saja!",
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
+  }, [isGuidePage]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -173,7 +199,11 @@ export function HermesCopilotWidget() {
       const res = await fetch("/api/ai/copilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payloadMessages }),
+        body: JSON.stringify({
+          messages: payloadMessages,
+          context: isGuidePage ? "guide" : "general",
+          pathname,
+        }),
       });
 
       const data = await res.json();
@@ -417,7 +447,7 @@ export function HermesCopilotWidget() {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-sm font-bold tracking-tight text-slate-900 truncate">
-                    Smart AI
+                    {isGuidePage ? "Smart AI • Panduan Aplikasi" : "Smart AI"}
                   </h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700 border border-emerald-200/70 shrink-0">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -425,7 +455,7 @@ export function HermesCopilotWidget() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium truncate">
-                  Asisten Cerdas & Operasional Akademik
+                  {isGuidePage ? "Asisten Penjelas Fitur & Dokumentasi Lengkap" : "Asisten Cerdas & Operasional Akademik"}
                 </p>
               </div>
             </div>
@@ -474,7 +504,7 @@ export function HermesCopilotWidget() {
 
           {/* Quick Suggestion Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-100 bg-slate-50/70 px-4 py-2 text-xs shrink-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {QUICK_PROMPTS.map((prompt) => (
+            {activePrompts.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => handleSendMessage(prompt)}
@@ -757,7 +787,11 @@ export function HermesCopilotWidget() {
                     window.scrollTo(0, 0);
                   }
                 }}
-                placeholder="Tanyakan kehadiran, ringkasan kelas, atau siswa..."
+                placeholder={
+                  isGuidePage
+                    ? "Tanyakan fitur, cara pakai, atau panduan Smart Learning..."
+                    : "Tanyakan kehadiran, ringkasan kelas, atau siswa..."
+                }
                 disabled={isLoading}
                 className="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 py-1"
               />

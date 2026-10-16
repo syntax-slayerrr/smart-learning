@@ -7,7 +7,6 @@ import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { InstallPrompt } from "@/components/shared/install-prompt";
-import { HermesCopilotWidget } from "@/components/ai/hermes-copilot-widget";
 import { logoutAction } from "@/app/(auth)/login/actions";
 import type { UserRole } from "@/types/database";
 
@@ -82,7 +81,6 @@ export function DashboardLayout({
       </div>
 
       <InstallPrompt />
-      {role !== "student" && role !== "parent" && !isNotebook && <HermesCopilotWidget />}
     </div>
   );
 }
