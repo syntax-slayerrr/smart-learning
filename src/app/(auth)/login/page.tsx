@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { LoginInteractiveContainer } from "./login-interactive-container";
-import { HelpCircle, Sparkles } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +44,8 @@ export default function LoginPage() {
         {/* Clean Divider */}
         <div className="w-full border-t border-slate-300/40 my-3" />
 
-        {/* Links: Panduan & Galeri 15 Maskot */}
-        <div className="flex items-center justify-center gap-2">
+        {/* Links: Panduan */}
+        <div className="flex items-center justify-center pb-8 sm:pb-4">
           <Link
             href="/panduan"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-white text-xs font-semibold text-slate-700 hover:text-blue-600 shadow-2xs transition-all active:scale-95"
@@ -53,23 +53,6 @@ export default function LoginPage() {
             <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
             <span>Panduan</span>
           </Link>
-          <Link
-            href="/mascot"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200/80 bg-blue-50/70 hover:bg-blue-100/80 text-xs font-bold text-blue-700 shadow-2xs transition-all active:scale-95"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>15 Karakter Maskot</span>
-          </Link>
-        </div>
-
-        {/* Motivational Quote & Signature */}
-        <div className="text-center space-y-1 pb-10 sm:pb-4">
-          <p className="text-xs italic text-slate-600 font-medium">
-            “Ilmu adalah senjata terbaik untuk masa depan.”
-          </p>
-          <p className="text-[10px] tracking-widest font-bold uppercase text-slate-400">
-            SYNTAX SLAYER
-          </p>
         </div>
       </div>
     </div>
